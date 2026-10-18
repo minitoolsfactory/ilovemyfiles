@@ -1,0 +1,39 @@
+---
+import CropEditor from './CropEditor.astro';
+import MergeWorkspace from './MergeWorkspace.astro';
+import PreviewWorkspace from './PreviewWorkspace.astro';
+import ToolOptions from './ToolOptions.astro';
+import toolConfig from '../data/tool-config.json';
+import toolData from '../data/tools.json';
+
+const clientToolConfig = Object.fromEntries(
+  Object.entries(toolConfig).map(([id, { options, ...settings }]) => [id, settings])
+);
+const routeTools = toolData.TOOLS.map(({ id, slug }) => ({ id, slug }));
+---
+<dialog class="tool-dialog" id="tool-dialog" aria-labelledby="dialog-title" data-tool-config={JSON.stringify(clientToolConfig)} data-route-tools={JSON.stringify(routeTools)}>
+  <div class="wb" id="tool-launcher-content">
+    <header class="wb-head"><div class="wb-head-text"><span class="wb-badge">iLoveMyFiles tool</span><h2 id="dialog-title">Choose a tool</h2><p id="dialog-description">Use browser-based tools to work with your files locally.</p></div><button type="button" class="icon-button" id="close-dialog" aria-label="Close tool">×</button></header>
+    <div class="wb-body">
+      <section class="wb-stage"><div class="wb-stage-inner">
+        <div class="drop-zone" id="drop-zone" tabindex="0" role="button" aria-label="Choose or drop files"><input id="file-input" type="file" multiple hidden><div class="upload-icon">↥</div><b>Drop files here, or <span>browse</span></b><p id="file-hint">Choose files from your device</p><p class="drop-paste" id="drop-paste" hidden>Tip: paste an image with ⌘/Ctrl + V</p></div>
+        <CropEditor /><MergeWorkspace />
+        <div class="text-workspace" id="text-workspace" hidden><textarea id="utility-input" class="utility-textarea" spellcheck="false" placeholder="Paste or type your text or data here…" aria-label="Input"></textarea></div>
+        <PreviewWorkspace />
+        <div class="utility-results" id="utility-results" hidden><textarea id="utility-output" class="utility-textarea" readonly spellcheck="false" aria-label="Result"></textarea><img id="utility-image" class="utility-output-image" alt="Generated result" hidden><div class="utility-actions"><button type="button" class="button button-small" id="utility-copy">Copy</button><button type="button" class="button button-small" id="utility-download">Download</button></div></div>
+      </div></section>
+      <aside class="wb-side"><div class="wb-side-scroll"><ToolOptions config={toolConfig} /><div id="selected-files" class="selected-files" aria-live="polite"></div><div class="progress-wrap" id="progress-wrap" hidden><div class="progress-head"><span id="progress-label">Processing files…</span><span id="progress-percent">0%</span></div><div class="progress-track"><span id="progress-bar"></span></div></div><div id="status-message" class="status-message" role="status" aria-live="polite" hidden></div><div id="results" class="results" hidden></div></div><div class="wb-side-foot"><span class="local-note"><span class="status-dot"></span> Processed on your device</span><button type="button" class="button button-primary" id="run-tool" disabled>Choose files to start <span aria-hidden="true">→</span></button></div></aside>
+    </div>
+  </div>
+</dialog>
+<dialog class="preview-dialog" id="preview-dialog" aria-labelledby="preview-title"><div class="preview-head"><b id="preview-title">Preview</b><button type="button" class="icon-button" id="preview-close" aria-label="Close preview">×</button></div><div class="preview-stage" id="preview-stage"></div></dialog>
+<dialog class="confirm-dialog" id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-note"><div class="confirm-head"><b id="confirm-title">Confirm metadata removal</b><button type="button" class="icon-button" id="confirm-close" aria-label="Cancel">×</button></div><div class="confirm-body" id="confirm-body"></div><p class="confirm-note" id="confirm-note">This edits document properties only; page content, links, annotations and forms are preserved where the PDF engine supports it. Some metadata structures (for example extended XMP written by other editors) may not be fully removed. Your original file is not changed — a separate cleaned PDF is created.</p><div class="confirm-foot"><button type="button" class="button button-ghost" id="confirm-cancel">Cancel</button><button type="button" class="button button-primary" id="confirm-ok">Confirm removal</button></div></dialog>
+<script>
+  const dialog = document.getElementById('tool-dialog');
+  if (dialog && !dialog.dataset.initialized) {
+    window.iLoveMyFilesModulesReady.then(() => {
+      window.iLoveMyFilesModules['tool-dialog'].initToolDialog(JSON.parse(dialog.dataset.toolConfig));
+      dialog.dataset.initialized = 'true';
+    });
+  }
+</script>

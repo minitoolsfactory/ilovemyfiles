@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import toolData from '../data/tools.json';
+import ToolSeoContent from '../components/ToolSeoContent.astro';
+import RouteOpen from '../components/RouteOpen.astro';
+
+const { TOOLS } = toolData;
+export function getStaticPaths() {
+  return toolData.TOOLS.map(tool => ({ params: { slug: tool.slug } }));
+}
+
+const { slug } = Astro.params;
+const tool = TOOLS.find(item => item.slug === slug);
+---
+<BaseLayout>
+  <Fragment slot="head">
+    <title>{tool?.seo?.title ?? 'iLoveMyFiles'}</title>
+    <meta name="description" content={tool?.seo?.description ?? ''} />
+  </Fragment>
+  {tool && <section class="tool-view"><ToolSeoContent tool={tool} /></section>}
+  <RouteOpen />
+</BaseLayout>

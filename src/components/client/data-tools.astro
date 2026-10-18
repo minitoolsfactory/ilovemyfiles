@@ -1,0 +1,158 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+  function formatJson(text, { minify = false, indent = 2 } = {}) {
+    if (!text.trim()) throw new Error('Paste some JSON first.');
+    let parsed;
+    try { parsed = JSON.parse(text); }
+    catch (error) { throw new Error(`Invalid JSON - ${error.message}`); }
+    return minify ? JSON.stringify(parsed) : JSON.stringify(parsed, null, Math.max(0, Math.min(8, Number(indent) || 2)));
+  }
+  
+  function utf8ToBase64(value) {
+    const bytes = new TextEncoder().encode(value);
+    let binary = '';
+    bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+    return btoa(binary);
+  }
+  
+  function base64ToUtf8(value) {
+    let binary;
+    try { binary = atob(value.replace(/\s+/g, '')); }
+    catch { throw new Error('Input is not valid Base64.'); }
+    const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  }
+  
+  function base64Convert(text, { mode = 'encode' } = {}) {
+    if (!text.length) throw new Error('Enter some text first.');
+    return mode === 'decode' ? base64ToUtf8(text.trim()) : utf8ToBase64(text);
+  }
+  
+  async function digestBytes(buffer, algorithm = 'SHA-256') {
+    if (!globalThis.crypto?.subtle) throw new Error('Hashing needs a secure context (https or localhost).');
+    const digest = await crypto.subtle.digest(algorithm, buffer);
+    return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+  
+  async function hashText(text, algorithm = 'SHA-256') {
+    if (!text.length) throw new Error('Enter some text to hash.');
+    return digestBytes(new TextEncoder().encode(text), algorithm);
+  }
+  
+  async function hashFile(file, algorithm = 'SHA-256') {
+    if (!file) throw new Error('Choose a file to hash.');
+    const buffer = await file.arrayBuffer();
+    return digestBytes(buffer, algorithm);
+  }
+  
+  async function hashFiles(files, algorithm = 'SHA-256') {
+    if (!files?.length) throw new Error('Choose at least one file to hash.');
+    const lines = [];
+    for (const file of files) {
+      const hash = await hashFile(file, algorithm);
+      lines.push(`${file.name}\t${hash}`);
+    }
+    return lines.join('\n');
+  }
+  
+  function countText(text) {
+    const words = text.trim() ? (text.trim().match(/\S+/g) || []).length : 0;
+    const characters = [...text].length;
+    const charactersNoSpaces = [...text.replace(/\s/g, '')].length;
+    const lines = text.length ? text.split(/\r\n|\r|\n/).length : 0;
+    const sentences = text.trim() ? (text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || []).length : 0;
+    const paragraphs = text.trim() ? text.trim().split(/\n\s*\n/).filter(Boolean).length : 0;
+    const readingMinutes = words ? Math.max(1, Math.round(words / 200)) : 0;
+    return { words, characters, charactersNoSpaces, lines, sentences, paragraphs, readingMinutes };
+  }
+  
+  function countTextReport(text) {
+    const stats = countText(text);
+    return [
+      `Characters: ${stats.characters}`,
+      `Characters (no spaces): ${stats.charactersNoSpaces}`,
+      `Words: ${stats.words}`,
+      `Lines: ${stats.lines}`,
+      `Sentences: ${stats.sentences}`,
+      `Paragraphs: ${stats.paragraphs}`,
+      `Reading time: ~${stats.readingMinutes} min`
+    ].join('\n');
+  }
+  
+  function csvEscape(value) {
+    const string = value == null ? '' : String(value);
+    return /[",\n\r]/.test(string) ? `"${string.replace(/"/g, '""')}"` : string;
+  }
+  
+  function jsonToCsv(text) {
+    let data;
+    try { data = JSON.parse(text); }
+    catch (error) { throw new Error(`Invalid JSON - ${error.message}`); }
+    if (!Array.isArray(data)) throw new Error('JSON must be an array of objects.');
+    if (!data.length) throw new Error('The JSON array is empty.');
+    const headers = [...new Set(data.flatMap(row => Object.keys(row || {})))];
+    if (!headers.length) throw new Error('Objects have no keys to convert.');
+    const lines = [headers.map(csvEscape).join(',')];
+    data.forEach(row => lines.push(headers.map(header => csvEscape(row?.[header])).join(',')));
+    return lines.join('\n');
+  }
+  
+  function parseCsv(text) {
+    const rows = [];
+    let row = [], field = '', inQuotes = false;
+    for (let index = 0; index < text.length; index++) {
+      const character = text[index];
+      if (inQuotes) {
+        if (character === '"') {
+          if (text[index + 1] === '"') { field += '"'; index++; }
+          else inQuotes = false;
+        } else field += character;
+      } else if (character === '"') inQuotes = true;
+      else if (character === ',') { row.push(field); field = ''; }
+      else if (character === '\n' || character === '\r') {
+        if (character === '\r' && text[index + 1] === '\n') index++;
+        row.push(field); rows.push(row); row = []; field = '';
+      } else field += character;
+    }
+    if (field.length || row.length) { row.push(field); rows.push(row); }
+    return rows.filter(values => values.some(value => value !== ''));
+  }
+  
+  function csvToJson(text) {
+    const rows = parseCsv(text);
+    if (rows.length < 2) throw new Error('Enter a CSV with a header row and at least one data row.');
+    const headers = rows[0];
+    const records = rows.slice(1).map(values => {
+      const record = {};
+      headers.forEach((header, index) => { record[header] = values[index] ?? ''; });
+      return record;
+    });
+    return JSON.stringify(records, null, 2);
+  }
+  
+  const UNIT_GROUPS = {
+    'data-size': { base: 'bytes', units: { bytes: 1, KB: 1024, MB: 1024 ** 2, GB: 1024 ** 3, TB: 1024 ** 4 } },
+    length: { base: 'metres', units: { metres: 1, kilometres: 1000, centimetres: 0.01, millimetres: 0.001, inches: 0.0254, feet: 0.3048, miles: 1609.344 } },
+    mass: { base: 'grams', units: { grams: 1, kilograms: 1000, milligrams: 0.001, pounds: 453.59237, ounces: 28.349523 } },
+    time: { base: 'seconds', units: { seconds: 1, minutes: 60, hours: 3600, days: 86400, weeks: 604800 } }
+  };
+  
+  const UNIT_CATEGORIES = Object.keys(UNIT_GROUPS);
+  
+  function convertUnits(text, category = 'data-size') {
+    const group = UNIT_GROUPS[category];
+    if (!group) throw new Error('Unknown conversion category.');
+    const value = Number(text.trim());
+    if (!text.trim() || !Number.isFinite(value)) throw new Error('Enter a numeric value to convert.');
+    const lines = [`${value} ${group.base} equals:`];
+    Object.entries(group.units).forEach(([unit, factor]) => {
+      lines.push(`${unit}: ${Number((value / factor).toPrecision(8))}`);
+    });
+    return lines.join('\n');
+  }
+      window.iLoveMyFilesModules['data-tools'] = { formatJson, base64Convert, hashText, hashFile, hashFiles, countText, countTextReport, jsonToCsv, csvToJson, UNIT_CATEGORIES, convertUnits };
+  });
+</script>

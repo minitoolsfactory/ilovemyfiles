@@ -1,0 +1,1542 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+      const { loadPdfDocument, renderPageToCanvas, renderThumbnail } = window.iLoveMyFilesModules['pdf-render'];
+  const MAX_RENDER_PIXELS = 3600;
+  const PREVIEW_RENDER_PIXELS = 1500;
+  const THUMB_LIMIT = 120;
+  
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = text;
+    return node;
+  }
+  
+  function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+
+  function isPdfFile(file) {
+    return !!file && (file.type === 'application/pdf' || /\.pdf$/i.test(file.name || ''));
+  }
+  
+  class PreviewWorkspace {
+    constructor(root, options = {}) {
+      this.root = root;
+      this.options = options;
+      this.kind = null;
+      this.doc = null;
+      this.file = null;
+      this.pages = [];
+      this.pageCount = 0;
+      this.zoom = 1;
+      this.zoomMode = 'fit-page';
+      this._preferredZoomMode = 'fit-page';
+      this.active = 1;
+      this.renderer = null;
+      this.decorator = null;
+      this.rotationFor = null;
+      this.highlightFor = null;
+      this.orderFor = null;
+      this.sizeFor = null;
+      this.selectable = null;
+      this.renderVersion = 0;
+      this.renderScale = 1;
+      this.pageObjs = new Map();
+      this.rendered = new Map();
+      this.objectUrls = [];
+      this.imageFileCache = new Map();
+      this.pdfThumbCache = new Map();
+      this.processedImageCache = new Map();
+      this.imageTransition = null;
+      this.onPageChange = null;
+      this.onSelectChange = null;
+      this.pageClickSelect = false;
+      this.pageDraggable = false;
+      this.onPageReorder = null;
+      this.pageRemovable = false;
+      this.onPageRemove = null;
+      this._pageDragFrom = null;
+      this._thumbObserver = null;
+      this._activeQueued = false;
+      this._selectionAnimationTimer = null;
+      this._filestripKey = null;
+      this._filestripButtons = null;
+      this._filestripSelect = null;
+      this._imageToken = 0;
+      this.processedWidth = 0;
+      this.processedHeight = 0;
+      this._lastVpW = -1;
+      this._lastVpH = -1;
+      this._refitRaf = null;
+      this._build();
+    }
+  
+    _build() {
+      const root = this.root;
+      root.innerHTML = '';
+      root.classList.add('pv');
+  
+      const toolbar = el('div', 'pv-toolbar');
+      const docNav = el('div', 'pv-docnav');
+      this.docPrevBtn = el('button', 'pv-icon-btn', '‹');
+      this.docPrevBtn.type = 'button';
+      this.docPrevBtn.setAttribute('aria-label', 'Previous document');
+      this.docLabel = el('span', 'pv-doclabel', '');
+      this.docNextBtn = el('button', 'pv-icon-btn', '›');
+      this.docNextBtn.type = 'button';
+      this.docNextBtn.setAttribute('aria-label', 'Next document');
+      docNav.append(this.docPrevBtn, this.docLabel, this.docNextBtn);
+      docNav.hidden = true;
+      this.docNavEl = docNav;
+      const nav = el('div', 'pv-nav');
+      this.prevBtn = el('button', 'pv-icon-btn', '‹');
+      this.prevBtn.type = 'button';
+      this.prevBtn.setAttribute('aria-label', 'Previous page');
+      this.pageNo = el('span', 'pv-pageno', '1 / 1');
+      this.nextBtn = el('button', 'pv-icon-btn', '›');
+      this.nextBtn.type = 'button';
+      this.nextBtn.setAttribute('aria-label', 'Next page');
+      nav.append(this.prevBtn, this.pageNo, this.nextBtn);
+      this.navEl = nav;
+  
+      const zoom = el('div', 'pv-zoom');
+      this.zoomOut = el('button', 'pv-icon-btn', '−');
+      this.zoomOut.type = 'button';
+      this.zoomOut.setAttribute('aria-label', 'Zoom out');
+      this.zoomLabel = el('span', 'pv-zoom-label', '100%');
+      this.zoomIn = el('button', 'pv-icon-btn', '+');
+      this.zoomIn.type = 'button';
+      this.zoomIn.setAttribute('aria-label', 'Zoom in');
+      const fit = el('div', 'pv-fit');
+      this.fitWidth = el('button', 'pv-text-btn pv-fit-btn');
+      this.fitWidth.type = 'button';
+      this.fitWidth.title = 'Scale so the full width is visible';
+      this.fitWidth.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v14"/><path d="M19 5v14"/><path d="M8 12h8"/><path d="m11 9-3 3 3 3"/><path d="m13 9 3 3-3 3"/></svg><span>Fit width</span>';
+      this.fitPage = el('button', 'pv-text-btn pv-fit-btn active');
+      this.fitPage.type = 'button';
+      this.fitPage.title = 'Scale so the whole page/image is visible';
+      this.fitPage.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V6a2 2 0 0 1 2-2h3"/><path d="M15 4h3a2 2 0 0 1 2 2v3"/><path d="M20 15v3a2 2 0 0 1-2 2h-3"/><path d="M9 20H6a2 2 0 0 1-2-2v-3"/><path d="M9 12h6"/></svg><span>Fit page</span>';
+      fit.append(this.fitWidth, this.fitPage);
+      zoom.append(this.zoomOut, this.zoomLabel, this.zoomIn, fit);
+  
+      const extra = el('div', 'pv-extra');
+      this.originalBtn = el('button', 'pv-text-btn pv-orig-btn', 'Original');
+      this.originalBtn.type = 'button';
+      this.originalBtn.hidden = true;
+      this.originalBtn.setAttribute('aria-pressed', 'false');
+      this.originalBtn.title = 'Show the original image';
+      this.originalBtn.addEventListener('click', () => this._toggleOriginal());
+      this.modeLabel = el('span', 'pv-mode-label');
+      this.addFilesBtn = el('button', 'pv-text-btn pv-add-btn', '+ Add');
+      this.addFilesBtn.type = 'button';
+      this.clearFilesBtn = el('button', 'pv-text-btn pv-clear-btn', '🗑');
+      this.clearFilesBtn.type = 'button';
+      this.clearFilesBtn.hidden = true;
+      this.addFilesBtn.hidden = true;
+      this.fullBtn = el('button', 'pv-text-btn pv-full-btn', '⛶');
+      this.fullBtn.type = 'button';
+      this.fullBtn.setAttribute('aria-label', 'Full screen');
+      extra.append(this.originalBtn, this.modeLabel, this.addFilesBtn, this.clearFilesBtn, this.fullBtn);
+  
+      toolbar.append(docNav, nav, zoom, extra);
+  
+      this.noteEl = el('div', 'pv-note');
+      this.noteEl.hidden = true;
+  
+      this.viewport = el('div', 'pv-viewport');
+      this.viewport.tabIndex = 0;
+      this.pagesBox = el('div', 'pv-pages');
+      this.pagesBox.addEventListener('click', event => {
+        if (!this.pageClickSelect || this.kind !== 'pdf') return;
+        const pageEl = event.target.closest('.pv-page');
+        if (!pageEl || !this.pagesBox.contains(pageEl)) return;
+        const pageNumber = Number(pageEl.dataset.page);
+        if (Number.isInteger(pageNumber) && pageNumber >= 1) {
+          this.goToPage(pageNumber);
+          if (this.selectable) this._toggleSelect(pageNumber);
+          pageEl.classList.remove('pv-page-pressed');
+          void pageEl.offsetWidth;
+          pageEl.classList.add('pv-page-pressed');
+          pageEl.classList.remove('pv-page-clicked');
+          void pageEl.offsetWidth;
+          pageEl.classList.add('pv-page-clicked');
+          clearTimeout(this._pagePressTimer);
+          this._pagePressTimer = setTimeout(() => pageEl.classList.remove('pv-page-pressed', 'pv-page-clicked'), 420);
+        }
+      });
+      this.viewport.append(this.pagesBox);
+
+      this.imagePrevBtn = el('button', 'pv-image-nav pv-image-nav-prev', '‹');
+      this.imagePrevBtn.type = 'button';
+      this.imagePrevBtn.setAttribute('aria-label', 'Previous image');
+      this.imageNextBtn = el('button', 'pv-image-nav pv-image-nav-next', '›');
+      this.imageNextBtn.type = 'button';
+      this.imageNextBtn.setAttribute('aria-label', 'Next image');
+      this.imagePrevBtn.hidden = this.imageNextBtn.hidden = true;
+      this.imagePrevBtn.addEventListener('click', () => this._docPrev?.());
+      this.imageNextBtn.addEventListener('click', () => this._docNext?.());
+      this.viewport.append(this.imagePrevBtn, this.imageNextBtn);
+  
+      this.statusEl = el('div', 'pv-status');
+      this.statusEl.hidden = true;
+      this.viewport.append(this.statusEl);
+  
+      this.thumbsBox = el('div', 'pv-thumbs');
+      this.thumbsBox.hidden = true;
+      this.thumbsBox.setAttribute('aria-label', 'Page thumbnails');
+      this.thumbsBox.addEventListener('dragover', event => {
+        if (this._pageDragFrom === null) return;
+        event.preventDefault();
+        if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+        const dragged = this.thumbsBox.querySelector('.pv-thumb.dragging');
+        if (!dragged) return;
+        const after = this._pageThumbAfter(event.clientX, event.clientY);
+        if (after === null) this.thumbsBox.append(dragged);
+        else this.thumbsBox.insertBefore(dragged, after);
+      });
+      this.thumbsBox.addEventListener('drop', event => event.preventDefault());
+  
+      this.filestripBox = el('div', 'pv-filestrip');
+      this.filestripBox.hidden = true;
+      this.filestripBox.setAttribute('aria-label', 'Files in this tool');
+      this._dragFrom = null;
+      this.filestripBox.addEventListener('dragover', event => {
+        if (this._dragFrom === null) return;
+        event.preventDefault();
+        if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+        const after = this._thumbAfter(event.clientX);
+        const dragged = this.filestripBox.querySelector('.pv-thumb.dragging');
+        if (!dragged) return;
+        if (after === null) this.filestripBox.append(dragged);
+        else this.filestripBox.insertBefore(dragged, after);
+      });
+      this.filestripBox.addEventListener('drop', event => event.preventDefault());
+  
+      root.append(toolbar, this.noteEl, this.viewport, this.thumbsBox, this.filestripBox);
+  
+      this._bindToolbar();
+  
+      this._onScroll = () => this._updateActiveFromScroll();
+      this.viewport.addEventListener('scroll', this._onScroll, { passive: true });
+      this._onViewportResize = () => {
+        const w = this.viewport.clientWidth, h = this.viewport.clientHeight;
+        if (w === this._lastVpW && h === this._lastVpH) return;
+        this._lastVpW = w; this._lastVpH = h;
+        if (this.zoomMode.startsWith('fit')) this._applyZoom();
+      };
+      this._resizeObserver = new ResizeObserver(this._onViewportResize);
+      this._resizeObserver.observe(this.viewport);
+    }
+  
+    _bindToolbar() {
+      this.docPrevBtn.addEventListener('click', () => this._docPrev?.());
+      this.docNextBtn.addEventListener('click', () => this._docNext?.());
+      this.prevBtn.addEventListener('click', () => this.goToPage(this.active - 1));
+      this.nextBtn.addEventListener('click', () => this.goToPage(this.active + 1));
+      this.zoomIn.addEventListener('click', () => this._stepZoom(1.25));
+      this.zoomOut.addEventListener('click', () => this._stepZoom(0.8));
+      this.fitWidth.addEventListener('click', () => this._setFitMode('fit-width'));
+      this.fitPage.addEventListener('click', () => this._setFitMode('fit-page'));
+      this.addFilesBtn.addEventListener('click', () => this._addFiles?.());
+      this.fullBtn.addEventListener('click', () => this._toggleFullscreen());
+      this.viewport.addEventListener('keydown', event => {
+        if (event.key === 'ArrowRight' || event.key === 'PageDown') { this.goToPage(this.active + 1); event.preventDefault(); }
+        if (event.key === 'ArrowLeft' || event.key === 'PageUp') { this.goToPage(this.active - 1); event.preventDefault(); }
+      });
+      document.addEventListener('fullscreenchange', () => {
+        this.fullBtn.setAttribute('aria-label', document.fullscreenElement ? 'Exit full screen' : 'Full screen');
+        this._onViewportResize();
+      });
+    }
+  
+    _toggleFullscreen() {
+      if (document.fullscreenElement) document.exitFullscreen?.();
+      else this.root.requestFullscreen?.().catch(() => {});
+    }
+  
+    setActivePageListener(fn) {
+      this.onPageChange = fn;
+      if (this.kind === 'pdf' && this.pageCount) fn?.(this.active);
+    }
+    setSelectListener(fn) { this.onSelectChange = fn; }
+    get currentPage() { return this.active; }
+    setPageClickSelect(enabled) {
+      this.pageClickSelect = !!enabled;
+      this.pagesBox.classList.toggle('pv-pages-clickable', this.pageClickSelect);
+    }
+  
+    setDocNav(config) {
+      if (!config || config.total < 2) {
+        this.docNavEl.hidden = true;
+        this.imagePrevBtn.hidden = this.imageNextBtn.hidden = true;
+        this._docPrev = null; this._docNext = null;
+        return;
+      }
+      const imageNavigation = !!config.imageNavigation;
+      this.docNavEl.hidden = imageNavigation;
+      this.imagePrevBtn.hidden = this.imageNextBtn.hidden = !imageNavigation;
+      this.docLabel.textContent = `Doc ${config.index + 1} / ${config.total}`;
+      this._docPrev = config.onPrev;
+      this._docNext = config.onNext;
+      this.docPrevBtn.disabled = config.index <= 0;
+      this.docNextBtn.disabled = config.index >= config.total - 1;
+      this.imagePrevBtn.disabled = config.index <= 0;
+      this.imageNextBtn.disabled = config.index >= config.total - 1;
+    }
+  
+    setAddFilesHandler(fn, { replace = false } = {}) {
+      this._addFiles = fn || null;
+      this.addFilesBtn.hidden = !fn;
+      this.addFilesBtn.textContent = replace ? 'Replace file' : '+ Add';
+      this.addFilesBtn.title = replace ? 'Choose a different file' : 'Add more files';
+      this.addFilesBtn.setAttribute('aria-label', replace ? 'Replace the current file' : 'Add more files');
+    }
+  
+    setClearFilesHandler(fn) {
+      this._clearFiles = fn || null;
+      this.clearFilesBtn.hidden = !fn;
+      this.clearFilesBtn.title = 'Clear all files and choose again';
+      this.clearFilesBtn.setAttribute('aria-label', 'Clear all files and choose again');
+      if (fn) this.clearFilesBtn.onclick = () => fn();
+      else this.clearFilesBtn.onclick = null;
+    }
+  
+    _setFitMode(mode) {
+      this.zoomMode = mode;
+      this._preferredZoomMode = mode;
+      this._syncFitButtons();
+      this._applyZoom();
+    }
+  
+    _syncFitButtons() {
+      this.fitWidth?.classList.toggle('active', this.zoomMode === 'fit-width');
+      this.fitPage?.classList.toggle('active', this.zoomMode === 'fit-page');
+    }
+  
+    showStatus(message, kind = 'loading') {
+      this.statusEl.textContent = message;
+      this.statusEl.className = `pv-status pv-status-${kind}`;
+      this.statusEl.hidden = false;
+    }
+  
+    clearStatus() { this.statusEl.hidden = true; this.statusEl.textContent = ''; }
+  
+    setNote(text, kind = 'info') {
+      if (!text) { this.noteEl.hidden = true; this.noteEl.innerHTML = ''; return; }
+      this.noteEl.className = `pv-note pv-note-${kind}`;
+      this.noteEl.innerHTML = text;
+      this.noteEl.hidden = false;
+    }
+  
+    setModeLabel(text) { this.modeLabel.textContent = text || ''; }
+  
+    async loadPdf(file, opts = {}) {
+      this.clear();
+      this.kind = 'pdf';
+      this.file = file;
+      const loadToken = this._pdfLoadToken = (this._pdfLoadToken || 0) + 1;
+      this.selectable = opts.selectable || null;
+      this.showStatus('Loading document…');
+      try {
+        const doc = await loadPdfDocument(file);
+        if (loadToken !== this._pdfLoadToken) { doc.destroy?.(); return 0; }
+        this.doc = doc;
+      } catch (error) {
+        this.showStatus(error?.message || 'Could not open this PDF.', 'error');
+        throw error;
+      }
+      this.pageCount = this.doc.numPages;
+      this.pages = [];
+      this.pagesBox.innerHTML = '';
+      this.thumbsBox.innerHTML = '';
+      this.thumbsBox.hidden = true;
+      for (let num = 1; num <= this.pageCount; num++) {
+        this.pages.push({ num, el: null, status: 'idle', job: 0 });
+      }
+      this._buildPageShells();
+      this.active = 1;
+      this._updateActivePageVisuals();
+      this.zoomMode = this._preferredZoomMode;
+      this.navEl.hidden = false;
+      this._updatePageno();
+      this.clearStatus();
+      this._setupPageObserver();
+      if (opts.thumbnails === true) {
+        const token = this._pdfLoadToken;
+        const schedule = window.requestIdleCallback || (callback => setTimeout(callback, 350));
+        schedule(() => {
+          if (token === this._pdfLoadToken && this.kind === 'pdf' && this.doc) this._buildThumbs();
+        }, { timeout: 1200 });
+      }
+      this._applyZoom();
+      // Draw the first page immediately; thumbnail rendering is deliberately
+      // deferred so it cannot compete with the document's first visible page.
+      this._renderPage(1, 'preview');
+      this._schedulePageRefine(1);
+      this._scheduleInitialDecorate();
+      return this.pageCount;
+    }
+
+    // The very first paint happens before zoom and the page shells have settled, so
+    // decorations positioned against it can land slightly off. Re-run the decoration
+    // pass a couple of times right after load. This blits the already cached page
+    // bitmaps, so PDF.js never runs again and the canvases are never replaced - it is
+    // visually silent and does not read as a refresh.
+    _scheduleInitialDecorate() {
+      clearTimeout(this._initialDecorateTimer);
+      const run = () => {
+        this._initialDecorateTimer = null;
+        if (this.kind === 'pdf' && this.rendered.size) this.repaintDecorations();
+      };
+      requestAnimationFrame(() => requestAnimationFrame(run));
+      this._initialDecorateTimer = setTimeout(run, 300);
+    }
+  
+    _pageRotation(num) {
+      if (!this.rotationFor) return 0;
+      return typeof this.rotationFor === 'function' ? this.rotationFor(num) : this.rotationFor;
+    }
+  
+    _pointSize(num) {
+      const page = this.pageObjs.get(num) || this.pages[num - 1]._page;
+      if (!page) return { width: 612, height: 792 };
+      const viewport = page.getViewport({ scale: 1, rotation: this._pageRotation(num) });
+      return { width: viewport.width, height: viewport.height };
+    }
+  
+    _shellInfo(num) {
+      const src = this._pointSize(num);
+      if (this.sizeFor) {
+        const override = this.sizeFor(num, src);
+        if (override && override.width > 0 && override.height > 0) return { shell: override, inset: override.inset || 0, src };
+      }
+      return { shell: src, inset: 0, src };
+    }
+  
+    _shellSize(num) { return this._shellInfo(num).shell; }
+  
+    _contentScale(num) {
+      const { shell, inset, src } = this._shellInfo(num);
+      const availW = Math.max(1, shell.width - inset * 2);
+      const availH = Math.max(1, shell.height - inset * 2);
+      return Math.min(availW / src.width, availH / src.height);
+    }
+  
+    _contentBox(num) {
+      const src = this._pointSize(num);
+      const scale = this._contentScale(num);
+      return { width: src.width * scale, height: src.height * scale };
+    }
+  
+    _buildPageShells() {
+      this.pagesBox.innerHTML = '';
+      const frag = document.createDocumentFragment();
+      for (const meta of this.pages) {
+        const wrapper = el('div', 'pv-page');
+        wrapper.dataset.page = String(meta.num);
+        const content = el('div', 'pv-page-content');
+        const badge = el('span', 'pv-page-badge', String(meta.num));
+        wrapper.append(content, badge);
+        meta.el = wrapper;
+        meta.content = content;
+        frag.append(wrapper);
+      }
+      this.pagesBox.append(frag);
+    }
+  
+    _setupPageObserver() {
+      this._pageObserver?.disconnect();
+      this._pageObserver = new IntersectionObserver(entries => {
+        for (const entry of entries) {
+          const num = Number(entry.target.dataset.page);
+          if (entry.isIntersecting) {
+            if (num === this.active) this._renderPage(num);
+            else this._queuePageRender(num);
+          }
+          else if (this.rendered.size > 10) { this._releasePage(num); }
+        }
+      }, { root: this.viewport, rootMargin: '400px 0px' });
+      for (const meta of this.pages) this._pageObserver.observe(meta.el);
+    }
+
+    _queuePageRender(num) {
+      this._renderQueue ??= new Set();
+      this._renderQueue.add(num);
+      this._queueRenderDrain();
+    }
+
+    _queueRenderDrain() {
+      if (this._renderQueueScheduled || !this._renderQueue?.size) return;
+      this._renderQueueScheduled = true;
+      const schedule = window.requestIdleCallback || (callback => setTimeout(callback, 80));
+      schedule(() => {
+        this._renderQueueScheduled = false;
+        if (this.kind !== 'pdf') return;
+        const next = this._renderQueue.values().next().value;
+        if (next == null) return;
+        this._renderQueue.delete(next);
+        this._renderPage(next);
+        this._queueRenderDrain();
+      }, { timeout: 250 });
+    }
+  
+    _fitScale(mode) {
+      if (this.kind === 'image') return this._imageFitScale();
+      const availW = this.viewport.clientWidth - 48;
+      const availH = this.viewport.clientHeight - 48;
+      let maxW = 1, maxH = 1;
+      for (const meta of this.pages) { const s = this._shellSize(meta.num); maxW = Math.max(maxW, s.width); maxH = Math.max(maxH, s.height); }
+      if (mode === 'fit-page') return clamp(Math.min(availW / maxW, availH / maxH), 0.05, 8);
+      return clamp(availW / maxW, 0.05, 8);
+    }
+  
+    _applyZoom() {
+      if (this.kind === 'image') { this._layoutImage(); return; }
+      this._syncFitButtons();
+      if (this.zoomMode.startsWith('fit')) this.zoom = this._fitScale(this.zoomMode);
+      this.renderVersion++;
+      this._applySizes();
+      this._applyDecorations();
+      this._updateZoomLabel();
+      this._refitActive();
+      this._scheduleRefine();
+    }
+  
+    _scheduleApplySizes() {
+      if (this._sizeRaf) return;
+      this._sizeRaf = requestAnimationFrame(() => {
+        this._sizeRaf = null;
+        if (this.kind === 'pdf') this._applySizes();
+      });
+    }
+
+    _applySizes() {
+      for (const meta of this.pages) {
+        const { width, height } = this._shellSize(meta.num);
+        meta.el.style.width = `${Math.round(width * this.zoom)}px`;
+        meta.el.style.height = `${Math.round(height * this.zoom)}px`;
+      }
+      for (const [num, entry] of this.rendered) {
+        if (!entry?.canvas) continue;
+        const box = this._contentBox(num);
+        const displayWidth = Math.max(1, box.width * this.zoom);
+        entry.canvas.style.width = `${displayWidth}px`;
+        entry.canvas.style.height = `${Math.max(1, displayWidth * (entry.canvas.height / entry.canvas.width))}px`;
+      }
+    }
+  
+    _stepZoom(factor) {
+      this.zoomMode = 'free';
+      this._syncFitButtons();
+      this.zoom = clamp(this.zoom * factor, 0.05, 8);
+      if (this.kind === 'image') { this._layoutImage(); return; }
+      this.renderVersion++;
+      this._applySizes();
+      this._applyDecorations();
+      this._updateZoomLabel();
+      this._scheduleRefine();
+    }
+  
+    _updateZoomLabel() {
+      this.zoomLabel.textContent = `${Math.round(this.zoom * 100)}%`;
+    }
+  
+    _scheduleRefine() {
+      clearTimeout(this._refineTimer);
+      this._refineTimer = setTimeout(() => {
+        for (const num of [...this.rendered.keys()]) {
+          this._renderPage(num, 'refine');
+          this._schedulePageRefine(num);
+        }
+      }, 160);
+    }
+
+    _schedulePageRefine(num) {
+      const meta = this.pages[num - 1];
+      if (!meta) return;
+      clearTimeout(meta.refineTimer);
+      meta.refineTimer = setTimeout(() => {
+        if (this.kind === 'pdf' && meta.status === 'done') this._renderPage(num, 'refine-full');
+      }, 1200);
+    }
+  
+    _refitActive() {
+      const meta = this.pages[this.active - 1];
+      if (!meta) return;
+      const target = meta.el.offsetTop - 16;
+      if (Math.abs(this.viewport.scrollTop - target) > 4) this.viewport.scrollTop = Math.max(0, target);
+    }
+  
+    _scheduleActiveUpdate() {
+      if (this._activeQueued) return;
+      this._activeQueued = true;
+      requestAnimationFrame(() => { this._activeQueued = false; this._updateActiveFromScroll(); });
+    }
+  
+    _updateActiveFromScroll() {
+      if (this.kind !== 'pdf') return;
+      const mid = this.viewport.scrollTop + this.viewport.clientHeight / 2;
+      let best = 1, bestDist = Infinity;
+      for (const meta of this.pages) {
+        const center = meta.el.offsetTop + meta.el.offsetHeight / 2;
+        const dist = Math.abs(center - mid);
+        if (dist < bestDist) { bestDist = dist; best = meta.num; }
+      }
+      if (best !== this.active) this._setActivePage(best);
+    }
+  
+    _updatePageno() { this.pageNo.textContent = `${this.active} / ${this.pageCount}`; }
+
+    _updateActivePageVisuals() {
+      for (const meta of this.pages) meta.el?.classList.toggle('pv-page-current', meta.num === this.active);
+      this._updateThumbActive();
+    }
+
+    _setActivePage(num) {
+      this.active = num;
+      this._updatePageno();
+      this._updateActivePageVisuals();
+      this.onPageChange?.(num);
+      const page = this.pages[num - 1]?.el;
+      const thumb = this.thumbsBox.querySelector(`.pv-thumb[data-page="${num}"]`);
+      for (const node of [page, thumb]) {
+        if (!node) continue;
+        node.classList.remove('pv-page-enter', 'pv-thumb-enter');
+        void node.offsetWidth;
+        node.classList.add(node === page ? 'pv-page-enter' : 'pv-thumb-enter');
+      }
+      clearTimeout(this._selectionAnimationTimer);
+      this._selectionAnimationTimer = setTimeout(() => {
+        page?.classList.remove('pv-page-enter');
+        thumb?.classList.remove('pv-thumb-enter');
+      }, 420);
+    }
+
+    _renderScaleFor(num, quality = 1, maxPixels = MAX_RENDER_PIXELS) {
+      const { width, height } = this._pointSize(num);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let scale = this.zoom * this._contentScale(num) * dpr * quality;
+      const maxDim = Math.max(width, height) * scale;
+      if (maxDim > maxPixels) scale *= maxPixels / maxDim;
+      return scale;
+    }
+  
+    async _renderPage(num, force = false) {
+      const meta = this.pages[num - 1];
+      if (!meta) return;
+      const isInitialPreview = force === 'preview' || force === 'retry';
+      const isRefine = force === 'refine' || force === 'refine-full';
+      if (!force && meta.status === 'done') {
+        if (meta.previewLowRes && num === this.active) this._renderPage(num, 'refine-full');
+        return;
+      }
+      if (meta.status === 'rendering') {
+        if (force === 'retry') meta.retryRequested = true;
+        return;
+      }
+      if (force === 'refine' && meta.renderedScale && this._renderScaleFor(num) <= meta.renderedScale * 1.02) {
+        if (meta.previewLowRes) {
+          clearTimeout(meta.refineTimer);
+          meta.refineTimer = setTimeout(() => {
+            if (this.kind === 'pdf' && meta.status === 'done') this._renderPage(num, 'refine-full');
+          }, 1200);
+        } else return;
+      }
+      const job = ++meta.job;
+      meta.status = 'rendering';
+      try {
+        const page = await this._getPage(num);
+        if (meta.job !== job) return;
+        const { width, height } = this._pointSize(num);
+  
+        if (this.renderer) {
+          const result = await this.renderer(page, num, this.zoom);
+          if (meta.job !== job) return;
+          await this._paintImage(num, meta, result, width, height);
+        } else {
+          await this._paintCanvas(num, meta, page, width, height, job, isInitialPreview, isRefine);
+        }
+        meta.status = 'done';
+        meta.renderedScale = this.renderer ? Infinity : (meta.renderedScale || this._renderScaleFor(num));
+        if (isInitialPreview && !isRefine) meta.previewLowRes = true;
+        if (isRefine) meta.previewLowRes = false;
+        meta.retryRequested = false;
+          this.rendered.set(num, meta);
+          this._applyDecorations(num);
+          if (meta.retryRequested && !this.renderer) {
+            meta.retryRequested = false;
+            this._renderPage(num, 'retry');
+          }
+      } catch (error) {
+        if (meta.job === job) {
+          meta.status = 'error';
+          if (force === 'retry') {
+            meta.retryCount = (meta.retryCount || 0) + 1;
+            const retryable = meta.retryCount <= 12;
+            if (!meta.retryMessage) {
+              meta.retryMessage = el('p', 'pv-page-msg', 'Preparing preview…');
+              meta.content.replaceChildren(meta.retryMessage);
+            }
+            meta.retryMessage.textContent = retryable
+              ? 'Preview is taking longer than expected; retrying at lower resolution…'
+              : `Could not preview this page: ${error?.message || 'PDF rendering failed.'}`;
+            if (retryable) {
+              const backoff = Math.min(5000, 350 * meta.retryCount);
+              clearTimeout(meta.retryTimer);
+              meta.retryTimer = setTimeout(() => {
+                if (this.kind === 'pdf' && this.pages[num - 1] === meta) {
+                  meta.status = 'idle';
+                  this._renderPage(num, 'retry');
+                }
+              }, backoff);
+            }
+          } else {
+            meta.status = 'idle';
+            meta.content.innerHTML = '';
+            meta.retryCount = 0;
+            if (this.renderer) this.renderer = null;
+            if (force === 'preview') {
+              meta.retryCount = 1;
+              meta.retryMessage = el('p', 'pv-page-msg', 'Preparing a low-resolution preview…');
+              meta.content.replaceChildren(meta.retryMessage);
+              meta.retryTimer = setTimeout(() => {
+                if (this.kind === 'pdf' && this.pages[num - 1] === meta) {
+                  meta.status = 'idle';
+                  this._renderPage(num, 'retry');
+                }
+              }, 80);
+            } else {
+              this._renderPage(num, 'retry');
+            }
+          }
+        }
+      }
+    }
+  
+    async _getPage(num) {
+      if (this.pageObjs.has(num)) return this.pageObjs.get(num);
+      const page = await this.doc.getPage(num);
+      this.pageObjs.set(num, page);
+      this.pages[num - 1]._page = page;
+      return page;
+    }
+  
+    async _paintCanvas(num, meta, page, width, height, job, isInitialPreview = false, isRefine = false) {
+      const requestedMax = isInitialPreview && !isRefine ? PREVIEW_RENDER_PIXELS : MAX_RENDER_PIXELS;
+      const scale = this._renderScaleFor(num, 1, isRefine ? MAX_RENDER_PIXELS : Math.min(requestedMax, 900));
+      const rotation = this._pageRotation(num);
+      // Re-use the already rasterised page bitmap when only decorations changed
+      // (watermark position/angle, page numbers, ...). Re-running PDF.js for every
+      // refresh is the expensive part; blitting the cached bitmap is not. Bitmaps are
+      // cached per render scale because a page alternates between the cheap preview
+      // scale and the full refine scale.
+      const cacheKey = `${scale}:${rotation}`;
+      let source = meta.pageBitmaps ? meta.pageBitmaps.get(cacheKey) : null;
+      if (!source) {
+        source = await renderPageToCanvas(page, scale, false, { rotation });
+        if (meta.job !== job) { source.width = 1; source.height = 1; return; }
+        if (!meta.pageBitmaps) meta.pageBitmaps = new Map();
+        if (meta.pageBitmaps.size >= 2) {
+          // Never drop the bitmap that is currently on screen - resizing it to 1x1
+          // would leave the live canvas and its cached bitmap out of sync.
+          let victim = null;
+          for (const [key, bitmap] of meta.pageBitmaps) {
+            if (bitmap !== meta.pageBitmap) { victim = key; break; }
+          }
+          if (victim === null) victim = meta.pageBitmaps.keys().next().value;
+          const oldest = meta.pageBitmaps.get(victim);
+          if (oldest && oldest !== meta.pageBitmap) { oldest.width = 1; oldest.height = 1; }
+          meta.pageBitmaps.delete(victim);
+        }
+        meta.pageBitmaps.set(cacheKey, source);
+      }
+      meta.pageBitmap = source;
+      if (meta.job !== job) return;
+      const box = this._contentBox(num);
+      const canvas = document.createElement('canvas');
+      canvas.width = source.width;
+      canvas.height = source.height;
+      const context = canvas.getContext('2d');
+      if (context) context.drawImage(source, 0, 0);
+      meta.content.innerHTML = '';
+      canvas.className = 'pv-page-canvas';
+      // Derive the displayed height from the bitmap's own aspect ratio. The bitmap
+      // scale (pixel budget) and the CSS scale (shell fit * zoom) are computed
+      // independently, so sizing both axes from box/zoom could stretch the page and
+      // push decoration - which is positioned in bitmap pixels - outside the visible
+      // page until the next zoom/layout pass.
+      const displayWidth = Math.max(1, box.width * this.zoom);
+      canvas.style.width = `${displayWidth}px`;
+      canvas.style.height = `${Math.max(1, displayWidth * (source.height / source.width))}px`;
+      meta.canvas = canvas;
+      meta.renderedScale = scale;
+      meta.content.append(canvas);
+      // Shells were sized before the real page dimensions were known (they fall back
+      // to 612x792 until then), so re-fit them now that this page has a real size.
+      this._scheduleApplySizes();
+    }
+
+    _releasePageBitmap(meta) {
+      if (meta.pageBitmaps) {
+        for (const bitmap of meta.pageBitmaps.values()) { bitmap.width = 1; bitmap.height = 1; }
+        meta.pageBitmaps.clear();
+      }
+      meta.pageBitmaps = null;
+      meta.pageBitmap = null;
+    }
+
+    // Redraw only the decoration layer on the canvases already on screen.
+    // Blits the cached page bitmap and re-applies the decorator, so style-only
+    // changes (font, colour, size, angle, position) never re-run PDF.js and never
+    // swap the canvas elements, which would look like the document reloading.
+    repaintDecorations() {
+      let painted = 0;
+      let stale = 0;
+      for (const [num, meta] of this.rendered) {
+        const canvas = meta.canvas;
+        const source = meta.pageBitmap;
+        clearTimeout(meta.refineTimer);
+        if (!canvas?.getContext || !source) continue;
+        // The decoration is positioned against the canvas, so the blitted bitmap
+        // must be exactly the canvas size. If it is not, the canvas was rebuilt at a
+        // different resolution - repaint that page instead of scaling artwork.
+        if (source.width !== canvas.width || source.height !== canvas.height) { stale++; continue; }
+        const context = canvas.getContext('2d');
+        if (!context) continue;
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(source, 0, 0);
+        painted++;
+      }
+      this._applyDecorations();
+      if (stale) for (const [num, meta] of this.rendered) if (!meta.pageBitmap || meta.pageBitmap.width !== meta.canvas?.width) this._renderPage(num, true);
+      if (painted) this._refineWhenIdle();
+      return painted;
+    }
+
+    _refineWhenIdle(delay = 2500) {
+      clearTimeout(this._refineIdleTimer);
+      this._refineIdleTimer = setTimeout(() => {
+        this._refineIdleTimer = null;
+        if (this.kind !== 'pdf') return;
+        for (const [num, meta] of this.rendered) {
+          if (meta.previewLowRes && meta.status === 'done') this._renderPage(num, 'refine-full');
+        }
+      }, delay);
+    }
+  
+    async _paintImage(num, meta, result, width, height) {
+      let source;
+      if (result?.canvas) source = result.canvas;
+      else if (result?.bitmap) {
+        const canvas = document.createElement('canvas');
+        canvas.width = result.bitmap.width; canvas.height = result.bitmap.height;
+        canvas.getContext('2d').drawImage(result.bitmap, 0, 0);
+        source = canvas;
+      } else if (result?.blob) {
+        const url = URL.createObjectURL(result.blob);
+        this.objectUrls.push(url);
+        const img = el('img', 'pv-page-img');
+        img.src = url;
+        const box = this._contentBox(num);
+        img.style.width = `${Math.round(box.width * this.zoom)}px`;
+        img.style.height = `${Math.round(box.height * this.zoom)}px`;
+        meta.content.innerHTML = '';
+        meta.canvas = img;
+        meta.content.append(img);
+        return;
+      } else return;
+      const box = this._contentBox(num);
+      meta.content.innerHTML = '';
+      source.className = 'pv-page-canvas';
+      const displayWidth = Math.max(1, box.width * this.zoom);
+      source.style.width = `${displayWidth}px`;
+      source.style.height = `${Math.max(1, displayWidth * (source.height / source.width))}px`;
+      meta.canvas = source;
+      meta.content.append(source);
+    }
+  
+    _applyDecorations(onlyNum) {
+      const ctxs = onlyNum ? [[onlyNum, this.rendered.get(onlyNum)]] : [...this.rendered];
+      for (const [num, entry] of ctxs) {
+        if (!entry?.canvas || !entry.canvas.getContext) continue;
+        const ctx = entry.canvas.getContext('2d');
+        const { width, height } = this._pointSize(num);
+        // Decorations are drawn in canvas pixels, so they must use the scale this
+        // canvas was actually painted at. Pages that already ran the high-resolution
+        // refine pass have a larger renderedScale than the default preview scale, and
+        // using the default here would render their text at a different size.
+        const actual = Number(entry.renderedScale);
+        const scale = Number.isFinite(actual) && actual > 0 ? actual : this._renderScaleFor(num);
+        ctx.save();
+        if (this.decorator) this.decorator(ctx, { pageNumber: num, scale, widthPt: width, heightPt: height, canvas: entry.canvas });
+        ctx.restore();
+      }
+      for (const meta of this.pages) {
+        if (!meta.el) continue;
+        meta.el.classList.toggle('pv-page-flagged', !!(this.highlightFor && this.highlightFor(meta.num)));
+        const label = this.orderFor ? this.orderFor(meta.num) : null;
+        let tag = meta.el.querySelector('.pv-order-tag');
+        if (label != null) {
+          if (!tag) { tag = el('span', 'pv-order-tag'); meta.el.append(tag); }
+          tag.textContent = label;
+        } else if (tag) tag.remove();
+      }
+    }
+  
+    setRenderer(fn) { this.renderer = fn; }
+    setDecorator(fn) { this.decorator = fn; }
+    setRotation(fn) { this.rotationFor = fn; }
+    setHighlight(fn) { this.highlightFor = fn; }
+    setOrderLabels(fn) { this.orderFor = fn; }
+    setSizeOverride(fn) { this.sizeFor = fn; }
+  
+    async refresh() {
+      this.renderVersion++;
+      const tasks = [...this.rendered.keys()].map(num => this._renderPage(num, true));
+      await Promise.allSettled(tasks);
+    }
+  
+    async rerender() {
+      if (this.kind === 'image') { this._layoutImage(); return; }
+      clearTimeout(this._refineTimer);
+      this._applyZoom();
+      clearTimeout(this._refineTimer);
+      const tasks = [...this.rendered.keys()].map(num => this._renderPage(num, true));
+      await Promise.allSettled(tasks);
+    }
+  
+    reflow() {
+      if (this.kind === 'image') { this._layoutImage(); return; }
+      this._applyZoom();
+    }
+  
+    decorate() { this._applyDecorations(); }
+  
+    _releasePage(num) {
+      const meta = this.pages[num - 1];
+      if (!meta || meta.status !== 'done') return;
+      meta.content.innerHTML = '';
+      meta.canvas = null;
+      meta.status = 'idle';
+      meta.renderedScale = 0;
+      meta.job++;
+      this.rendered.delete(num);
+    }
+  
+    goToPage(num) {
+      if (this.kind === 'image') return;
+      const target = clamp(num, 1, this.pageCount);
+      const meta = this.pages[target - 1];
+      if (!meta) return;
+      if (target !== this.active) this._setActivePage(target);
+      this.viewport.scrollTo({ top: Math.max(0, meta.el.offsetTop - 16), behavior: 'smooth' });
+    }
+  
+    setFileStrip(files, activeIndex, onSelect, onReorder, onRemove, onClearAll) {
+      const box = this.filestripBox;
+      if (!box) return;
+      const retainedFiles = new Set(files?.length ? files : (this.file ? [this.file] : []));
+      for (const [file, resource] of this.imageFileCache) {
+        if (retainedFiles.has(file)) continue;
+        URL.revokeObjectURL(resource.url);
+        this.imageFileCache.delete(file);
+      }
+      for (const [file, entry] of this.pdfThumbCache) {
+        if (retainedFiles.has(file)) continue;
+        if (entry.url) URL.revokeObjectURL(entry.url);
+        this.pdfThumbCache.delete(file);
+      }
+      if (!files || files.length < 2) {
+        box.hidden = true; box.innerHTML = '';
+        this._filestripKey = null; this._filestripButtons = null; this._filestripSelect = null; this._filestripReorder = null;
+        return;
+      }
+      this._filestripSelect = onSelect;
+      this._filestripReorder = onReorder;
+      this._filestripRemove = onRemove;
+      this._filestripClearAll = onClearAll;
+      const key = files.map(file => `${file.name}:${file.size}:${file.lastModified}`).join('|');
+      if (key !== this._filestripKey) {
+        this._filestripKey = key;
+        box.innerHTML = '';
+        this._filestripButtons = files.map((file, index) => {
+          const btn = el('div', 'pv-thumb pv-file-thumb');
+          btn.draggable = true;
+          btn.setAttribute('role', 'listitem');
+          btn.setAttribute('aria-label', `Image ${index + 1}: ${file.name}`);
+          const holder = el('span', 'pv-thumb-img');
+          const img = el('img', 'pv-thumb-canvas');
+          img.alt = ''; img.loading = 'lazy';
+          if (isPdfFile(file)) this._loadPdfFileThumb(file, img);
+          else img.src = this._imageFileUrl(file);
+          holder.append(img);
+          const page = el('span', 'pv-file-page', `p${index + 1}`);
+          const select = el('button', 'pv-file-select');
+          select.type = 'button';
+          select.setAttribute('aria-label', `Preview ${file.name}`);
+          select.title = file.name;
+          select.append(holder, page);
+          select.addEventListener('click', () => this._filestripSelect?.(index));
+          const moveEarlier = el('button', 'pv-file-move pv-file-move-left', '‹');
+          moveEarlier.type = 'button';
+          moveEarlier.disabled = index === 0;
+          moveEarlier.setAttribute('aria-label', `Move ${file.name} left`);
+          moveEarlier.title = 'Move left';
+          moveEarlier.addEventListener('click', event => {
+            event.stopPropagation();
+            this._filestripReorder?.(index, Math.max(0, index - 1));
+          });
+          const moveLater = el('button', 'pv-file-move pv-file-move-right', '›');
+          moveLater.type = 'button';
+          moveLater.disabled = index === files.length - 1;
+          moveLater.setAttribute('aria-label', `Move ${file.name} right`);
+          moveLater.title = 'Move right';
+          moveLater.addEventListener('click', event => {
+            event.stopPropagation();
+            this._filestripReorder?.(index, Math.min(files.length - 1, index + 1));
+          });
+          const remove = el('button', 'pv-thumb-remove pv-file-remove', '×');
+          remove.type = 'button';
+          remove.setAttribute('aria-label', `Remove ${file.name}`);
+          remove.title = `Remove ${file.name}`;
+          remove.addEventListener('click', event => { event.stopPropagation(); this._filestripRemove?.(index); });
+          btn.append(select, moveEarlier, moveLater, remove);
+          btn.addEventListener('click', event => {
+            if (!event.target.closest('button')) this._filestripSelect?.(index);
+          });
+          btn.addEventListener('dragstart', event => {
+            if (event.target.closest('.pv-file-move, .pv-file-remove')) { event.preventDefault(); return; }
+            this._dragFrom = index;
+            btn.classList.add('dragging');
+            if (event.dataTransfer) { event.dataTransfer.effectAllowed = 'move'; try { event.dataTransfer.setData('text/plain', String(index)); } catch { /* ignore */ } }
+          });
+          btn.addEventListener('dragend', () => {
+            btn.classList.remove('dragging');
+            const from = this._dragFrom;
+            this._dragFrom = null;
+            if (from === null) return;
+            const to = [...box.querySelectorAll('.pv-thumb')].indexOf(btn);
+            if (to >= 0 && to !== from && this._filestripReorder) this._filestripReorder(from, to);
+          });
+          box.append(btn);
+          return btn;
+        });
+  
+      }
+      box.hidden = false;
+      (this._filestripButtons || []).forEach((btn, index) => {
+        btn.classList.toggle('active', index === activeIndex);
+        if (index === activeIndex) btn.setAttribute('aria-current', 'true');
+        else btn.removeAttribute('aria-current');
+      });
+    }
+  
+    _thumbAfter(x) {
+      const thumbs = [...this.filestripBox.querySelectorAll('.pv-thumb:not(.dragging)')];
+      let best = null, bestDist = Infinity;
+      for (const thumb of thumbs) {
+        const rect = thumb.getBoundingClientRect();
+        const dist = Math.abs(x - (rect.left + rect.width / 2));
+        if (dist < bestDist) { bestDist = dist; best = thumb; }
+      }
+      if (!best) return null;
+      const rect = best.getBoundingClientRect();
+      return x > rect.left + rect.width / 2 ? best.nextElementSibling : best;
+    }
+  
+    clearFileStrip() { this.setFileStrip([], 0, null, null, null, null); }
+  
+    _buildThumbs() {
+      const thumbToken = this._thumbToken = (this._thumbToken || 0) + 1;
+      this.thumbsBox.hidden = false;
+      this.thumbsBox.innerHTML = '';
+      const limit = Math.min(this.pageCount, THUMB_LIMIT);
+      for (let num = 1; num <= limit; num++) {
+        const btn = el('button', 'pv-thumb');
+        btn.type = 'button';
+        btn.dataset.page = String(num);
+        btn.setAttribute('aria-label', `Page ${num}`);
+        if (this.pageDraggable) {
+          btn.draggable = true;
+          btn.classList.add('pv-thumb-draggable');
+          btn.addEventListener('dragstart', event => {
+            this._pageDragFrom = num;
+            btn.classList.add('dragging');
+            if (event.dataTransfer) { event.dataTransfer.effectAllowed = 'move'; try { event.dataTransfer.setData('text/plain', ''); } catch { /* ignore */ } }
+          });
+          btn.addEventListener('dragend', () => {
+            btn.classList.remove('dragging');
+            const from = this._pageDragFrom;
+            this._pageDragFrom = null;
+            if (from === null) return;
+            const order = [...this.thumbsBox.querySelectorAll('.pv-thumb')].map(b => Number(b.dataset.page));
+            if (this.onPageReorder) this.onPageReorder(order);
+          });
+        }
+        const holder = el('span', 'pv-thumb-img');
+        const label = el('span', 'pv-thumb-label', String(num));
+        btn.append(holder, label);
+        if (this.pageRemovable) {
+          const remove = el('button', 'pv-thumb-remove', '×');
+          remove.type = 'button';
+          remove.setAttribute('aria-label', `Remove page ${num} from output`);
+          remove.addEventListener('click', event => { event.stopPropagation(); if (this.onPageRemove) this.onPageRemove(num); });
+          btn.append(remove);
+        }
+        btn.addEventListener('click', () => this._onThumbClick(num));
+        this.thumbsBox.append(btn);
+        if (num === 1) this._renderThumb(num, holder, thumbToken);
+        else this._queueThumb(num, holder, thumbToken);
+      }
+      if (this.pageCount > limit) {
+        const more = el('span', 'pv-thumb-more', `+${this.pageCount - limit}`);
+        this.thumbsBox.append(more);
+      }
+      this._updateThumbActive();
+      if (this.selectable) this._syncThumbSelection();
+    }
+  
+    setPageDraggable(enabled, callback) {
+      const next = !!enabled;
+      if (this.pageDraggable === next && this.onPageReorder === (callback || null)) return;
+      this.pageDraggable = next;
+      this.onPageReorder = callback || null;
+      if (this.pageCount) this._buildThumbs();
+    }
+  
+    setPageRemovable(enabled, callback) {
+      const next = !!enabled;
+      if (this.pageRemovable === next && this.onPageRemove === (callback || null)) return;
+      this.pageRemovable = next;
+      this.onPageRemove = callback || null;
+      if (this.pageCount) this._buildThumbs();
+    }
+  
+    _pageThumbAfter(x, y) {
+      const thumbs = [...this.thumbsBox.querySelectorAll('.pv-thumb:not(.dragging)')];
+      let best = null, bestDist = Infinity;
+      for (const thumb of thumbs) {
+        const rect = thumb.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dist = Math.hypot(x - cx, y - cy);
+        if (dist < bestDist) { bestDist = dist; best = thumb; }
+      }
+      if (!best) return null;
+      const rect = best.getBoundingClientRect();
+      const past = (y > rect.top + rect.height / 2) || (Math.abs(y - (rect.top + rect.height / 2)) < rect.height / 2 && x > rect.left + rect.width / 2);
+      return past ? best.nextElementSibling : best;
+    }
+  
+  
+    _queueThumb(num, holder, token) {
+      this._thumbQueue ??= [];
+      this._thumbQueue.push({ num, holder, token });
+      this._queueThumbDrain();
+    }
+
+    _queueThumbDrain() {
+      if (this._thumbQueueScheduled || !this._thumbQueue?.length) return;
+      this._thumbQueueScheduled = true;
+      const schedule = window.requestIdleCallback || (callback => setTimeout(callback, 100));
+      schedule(() => {
+        this._thumbQueueScheduled = false;
+        const next = this._thumbQueue.shift();
+        if (next && next.token === this._thumbToken && this.kind === 'pdf') {
+          this._renderThumb(next.num, next.holder, next.token);
+        }
+        this._queueThumbDrain();
+      }, { timeout: 500 });
+    }
+
+    async _renderThumb(num, holder, token = this._thumbToken) {
+      try {
+        const page = await this._getPage(num);
+        if (token !== this._thumbToken || this.kind !== 'pdf') return;
+        const base = page.getViewport({ scale: 1 });
+        let lastError = null;
+        for (const width of [64, 48, 32]) {
+          if (token !== this._thumbToken || this.kind !== 'pdf') return;
+          const scale = Math.max(0.1, width / base.width);
+          try {
+            const canvas = await renderPageToCanvas(page, scale, false);
+            if (token !== this._thumbToken || this.kind !== 'pdf') { canvas.width = 1; canvas.height = 1; return; }
+            canvas.className = 'pv-thumb-canvas';
+            holder.innerHTML = '';
+            holder.append(canvas);
+            this._clearThumbError(holder);
+            return;
+          } catch (error) {
+            lastError = error;
+          }
+        }
+        this._showThumbError(holder);
+      } catch { this._showThumbError(holder); }
+    }
+
+    _clearThumbError(holder) {
+      const error = holder.querySelector('.pv-thumb-empty');
+      if (error) error.remove();
+    }
+
+    _showThumbError(holder) {
+      this._clearThumbError(holder);
+      const empty = el('span', 'pv-thumb-empty', '!');
+      holder.append(empty);
+    }
+  
+    _onThumbClick(num) {
+      if (this.selectable) this._toggleSelect(num);
+      else this.goToPage(num);
+    }
+  
+    _toggleSelect(num) {
+      const set = this.selectable.set;
+      if (set.has(num)) set.delete(num); else set.add(num);
+      this._syncThumbSelection();
+      this.onSelectChange?.(set);
+    }
+  
+    _syncThumbSelection() {
+      const set = this.selectable?.set || new Set();
+      for (const btn of this.thumbsBox.querySelectorAll('.pv-thumb')) {
+        btn.classList.toggle('selected', set.has(Number(btn.dataset.page)));
+      }
+    }
+  
+    _updateThumbActive() {
+      for (const btn of this.thumbsBox.querySelectorAll('.pv-thumb')) {
+        const active = Number(btn.dataset.page) === this.active;
+        btn.classList.toggle('active', active);
+        if (active) btn.setAttribute('aria-current', 'page');
+        else btn.removeAttribute('aria-current');
+      }
+    }
+  
+    async loadImage(file, opts = {}) {
+      const reuseImageWorkspace = this.kind === 'image';
+      if (!reuseImageWorkspace) this.clear();
+      else {
+        this.imageProcessedUrl = null;
+        this.processedWidth = 0;
+        this.processedHeight = 0;
+      }
+      this.kind = 'image';
+      this.file = file;
+      this.clearStatus();
+      const token = ++this._imageToken;
+      const resource = await this._loadImageFile(file);
+      if (token !== this._imageToken) return resource;
+      const { url, image } = resource;
+      this.imageOriginalUrl = url;
+      this.imageWidth = resource.width;
+      this.imageHeight = resource.height;
+      this.imageName = opts.name || file.name;
+      this.imageProcessedUrl = null;
+      this.processedWidth = 0;
+      this.processedHeight = 0;
+      this.zoomMode = this._preferredZoomMode;
+      this.navEl.hidden = true;
+      this._buildImageStage(image);
+      this._layoutImage();
+      this._refitSoon();
+      return { width: this.imageWidth, height: this.imageHeight };
+    }
+
+    _imageFileUrl(file) {
+      let resource = this.imageFileCache.get(file);
+      if (!resource) {
+        resource = { url: URL.createObjectURL(file), promise: null, image: null };
+        this.imageFileCache.set(file, resource);
+      }
+      return resource.url;
+    }
+
+    _loadPdfFileThumb(file, img) {
+      let entry = this.pdfThumbCache.get(file);
+      if (!entry) {
+        entry = { url: null, promise: null };
+        this.pdfThumbCache.set(file, entry);
+        entry.promise = (async () => {
+          const doc = await loadPdfDocument(file);
+          try {
+            const page = await doc.getPage(1);
+            const rendered = await renderThumbnail(page, 96, 0.5);
+            const url = URL.createObjectURL(rendered.blob);
+            if (this.pdfThumbCache.get(file) !== entry) { URL.revokeObjectURL(url); return null; }
+            entry.url = url;
+            return url;
+          } finally {
+            doc.destroy?.();
+          }
+        })().catch(() => null);
+      }
+      if (entry.url) { img.src = entry.url; return; }
+      entry.promise?.then(url => {
+        if (!url || this.pdfThumbCache.get(file) !== entry || !img.isConnected) return;
+        img.src = url;
+      });
+    }
+
+    _loadImageFile(file) {
+      let resource = this.imageFileCache.get(file);
+      if (resource?.promise) return resource.promise;
+      if (!resource) {
+        resource = { url: URL.createObjectURL(file), promise: null, image: null };
+        this.imageFileCache.set(file, resource);
+      }
+      resource.promise = new Promise((resolve, reject) => {
+        const image = new Image();
+        resource.image = image;
+        image.onload = () => resolve({ url: resource.url, image, width: image.naturalWidth, height: image.naturalHeight });
+        image.onerror = () => {
+          if (this.imageFileCache.get(file) === resource) {
+            this.imageFileCache.delete(file);
+            URL.revokeObjectURL(resource.url);
+          }
+          reject(new Error('Could not load this image.'));
+        };
+        image.src = resource.url;
+      });
+      return resource.promise;
+    }
+
+    getImageElement() { return this.kind === 'image' ? this.imageEl : null; }
+  
+    setImageTransition(direction) {
+      this.imageTransition = direction === 'next' || direction === 'previous' ? direction : null;
+    }
+
+    _buildImageStage(image) {
+      this.pagesBox.innerHTML = '';
+      const stage = el('div', 'pv-image-stage');
+      const img = image || el('img', 'pv-image');
+      img.className = 'pv-image';
+      img.alt = this.imageName ? `Preview of ${this.imageName}` : 'Image preview';
+      img.decoding = 'async';
+      if (this.imageTransition) {
+        stage.classList.add(`pv-image-slide-${this.imageTransition}`);
+        this.imageTransition = null;
+      }
+      const badge = el('span', 'pv-image-badge original', 'Original');
+      stage.append(img, badge);
+      this.pagesBox.append(stage);
+      this.imageStage = stage;
+      this.imageEl = img;
+      this.imageBadge = badge;
+      this.showOriginal = false;
+      this.originalBtn.hidden = true;
+      this.originalBtn.classList.remove('active');
+      this.originalBtn.textContent = 'Original';
+      this.originalBtn.setAttribute('aria-pressed', 'false');
+      this._applyImageSrc();
+    }
+  
+    _applyImageSrc() {
+      if (!this.imageEl) return;
+      const showOriginal = this.showOriginal || !this.imageProcessedUrl;
+      const url = showOriginal ? this.imageOriginalUrl : this.imageProcessedUrl;
+      if (url && this.imageEl.getAttribute('src') !== url) this.imageEl.setAttribute('src', url);
+      this.imageEl.dataset.state = showOriginal ? 'original' : 'processed';
+      if (this.imageBadge) {
+        this.imageBadge.textContent = showOriginal ? 'Original' : 'Processed';
+        this.imageBadge.className = `pv-image-badge ${showOriginal ? 'original' : 'processed'}`;
+        this.imageBadge.hidden = false;
+      }
+    }
+  
+    _toggleOriginal() {
+      if (!this.imageProcessedUrl) return;
+      this.showOriginal = !this.showOriginal;
+      this.originalBtn.classList.toggle('active', this.showOriginal);
+      this.originalBtn.setAttribute('aria-pressed', String(this.showOriginal));
+      this.originalBtn.textContent = this.showOriginal ? 'Processed' : 'Original';
+      this.originalBtn.title = this.showOriginal ? 'Show the processed image' : 'Show the original image';
+      this._applyImageSrc();
+      this._layoutImage();
+      this._refitSoon();
+    }
+  
+    setImageProcessed(result) {
+      if (this.kind !== 'image' || !this.imageStage) return;
+      const token = ++this._imageToken;
+      if (!result.blob) { this._commitImageProcessed(null, null, result.details, token); return; }
+      if (result.cacheKey && this.processedImageCache.has(result.cacheKey)) {
+        const cached = this.processedImageCache.get(result.cacheKey);
+        this.processedImageCache.delete(result.cacheKey);
+        this.processedImageCache.set(result.cacheKey, cached);
+        this._commitImageProcessed(cached.url, cached.size, result.details || cached.details, token);
+        this._trimProcessedImageCache(result.cacheKey);
+        return;
+      }
+      const url = URL.createObjectURL(result.blob);
+      this.objectUrls.push(url);
+      const node = new Image();
+      node.onload = () => {
+        const size = { width: node.naturalWidth, height: node.naturalHeight };
+        if (result.cacheKey && result.blob.size <= 8 * 1024 * 1024) {
+          this.processedImageCache.set(result.cacheKey, { url, size, details: result.details });
+          this._trimProcessedImageCache(result.cacheKey);
+        }
+        if (token !== this._imageToken) return;
+        this._commitImageProcessed(url, size, result.details, token);
+      };
+      node.onerror = () => {
+        URL.revokeObjectURL(url);
+        this.objectUrls = this.objectUrls.filter(item => item !== url);
+      };
+      node.src = url;
+    }
+
+    _trimProcessedImageCache(protectedKey = null) {
+      while (this.processedImageCache.size > 6) {
+        const oldestKey = [...this.processedImageCache.keys()].find(key => key !== protectedKey);
+        if (oldestKey == null) break;
+        const oldest = this.processedImageCache.get(oldestKey);
+        this.processedImageCache.delete(oldestKey);
+        if (oldest.url === this.imageProcessedUrl) continue;
+        URL.revokeObjectURL(oldest.url);
+        this.objectUrls = this.objectUrls.filter(url => url !== oldest.url);
+      }
+    }
+
+    _commitImageProcessed(url, size, details, token) {
+      if (token !== this._imageToken) {
+        if (url && ![...this.processedImageCache.values()].some(entry => entry.url === url)) {
+          URL.revokeObjectURL(url);
+          this.objectUrls = this.objectUrls.filter(item => item !== url);
+        }
+        return;
+      }
+      const previousUrl = this.imageProcessedUrl;
+      if (previousUrl && previousUrl !== url && ![...this.processedImageCache.values()].some(entry => entry.url === previousUrl)) {
+        URL.revokeObjectURL(previousUrl);
+        this.objectUrls = this.objectUrls.filter(item => item !== previousUrl);
+      }
+      this.imageProcessedUrl = url;
+      if (size) { this.processedWidth = size.width; this.processedHeight = size.height; }
+      this.imageDetails = details || '';
+      this.showOriginal = false;
+      this.originalBtn.hidden = !url;
+      this.originalBtn.classList.remove('active');
+      this.originalBtn.setAttribute('aria-pressed', 'false');
+      this.originalBtn.textContent = 'Original';
+      this.originalBtn.title = 'Show the original image';
+      this._applyImageSrc();
+      this._layoutImage();
+      this._refitSoon();
+    }
+  
+    clearImageProcessed() {
+      this._imageToken++;
+      if (this.imageProcessedUrl && ![...this.processedImageCache.values()].some(entry => entry.url === this.imageProcessedUrl)) {
+        URL.revokeObjectURL(this.imageProcessedUrl);
+        this.objectUrls = this.objectUrls.filter(url => url !== this.imageProcessedUrl);
+      }
+      this.imageProcessedUrl = null;
+      this.processedWidth = 0;
+      this.processedHeight = 0;
+      this.showOriginal = false;
+      if (this.originalBtn) {
+        this.originalBtn.hidden = true;
+        this.originalBtn.classList.remove('active');
+        this.originalBtn.textContent = 'Original';
+      }
+      this._applyImageSrc();
+      this._layoutImage();
+      this._refitSoon();
+    }
+  
+    _refitSoon() {
+      if (this._refitRaf) cancelAnimationFrame(this._refitRaf);
+      clearTimeout(this._refineIdleTimer); this._refineIdleTimer = null;
+      clearTimeout(this._initialDecorateTimer); this._initialDecorateTimer = null;
+      this._refitRaf = requestAnimationFrame(() => {
+        this._refitRaf = null;
+        if (this.kind === 'image') { if (this.zoomMode.startsWith('fit')) this._layoutImage(); }
+        else if (this.zoomMode.startsWith('fit')) this._applyZoom();
+      });
+    }
+    _activeImageSize() {
+      const useProcessed = !this.showOriginal && this.imageProcessedUrl;
+      return {
+        width: useProcessed ? (this.processedWidth || this.imageWidth) : this.imageWidth,
+        height: useProcessed ? (this.processedHeight || this.imageHeight) : this.imageHeight
+      };
+    }
+  
+    _imageFitScale() {
+      const { width, height } = this._activeImageSize();
+      if (!width || !height) return 1;
+      const availW = this.viewport.clientWidth - 48;
+      const availH = this.viewport.clientHeight - 48;
+      if (this.zoomMode === 'fit-width') return clamp(availW / width, 0.02, 8);
+      return clamp(Math.min(availW / width, availH / height), 0.02, 8);
+    }
+  
+    _layoutImage() {
+      if (this.kind !== 'image' || !this.imageStage) return;
+      this._syncFitButtons();
+      if (this.zoomMode.startsWith('fit')) this.zoom = this._imageFitScale();
+      const { width, height } = this._activeImageSize();
+      this.imageStage.style.width = `${Math.round(width * this.zoom)}px`;
+      this.imageStage.style.height = `${Math.round(height * this.zoom)}px`;
+      this._updateZoomLabel();
+    }
+  
+    clear() {
+      clearTimeout(this._refineTimer);
+      clearTimeout(this._selectionAnimationTimer);
+      this._pdfLoadToken = (this._pdfLoadToken || 0) + 1;
+      this._renderQueue?.clear();
+      this._renderQueueScheduled = false;
+      this._thumbToken = (this._thumbToken || 0) + 1;
+      this._thumbQueue = [];
+      this._thumbQueueScheduled = false;
+      for (const meta of this.pages) clearTimeout(meta.refineTimer);
+      if (this._refitRaf) cancelAnimationFrame(this._refitRaf);
+      this._refitRaf = null;
+      this._pageObserver?.disconnect();
+      this.renderer = null; this.decorator = null; this.rotationFor = null;
+      this.highlightFor = null; this.orderFor = null; this.sizeFor = null; this.selectable = null;
+      this.objectUrls.forEach(url => URL.revokeObjectURL(url));
+      this.objectUrls = [];
+      for (const resource of this.imageFileCache.values()) URL.revokeObjectURL(resource.url);
+      this.imageFileCache.clear();
+      for (const entry of this.pdfThumbCache.values()) { if (entry.url) URL.revokeObjectURL(entry.url); }
+      this.pdfThumbCache.clear();
+      for (const meta of this.pages) {
+        meta.job++;
+        clearTimeout(meta.refineTimer);
+        clearTimeout(meta.retryTimer);
+        if (meta.canvas) { meta.canvas.width = 1; meta.canvas.height = 1; }
+        this._releasePageBitmap(meta);
+      }
+      this.pages = []; this.pageObjs.clear(); this.rendered.clear();
+      this.pagesBox.innerHTML = '';
+      this.thumbsBox.innerHTML = ''; this.thumbsBox.hidden = true;
+      this.filestripBox.innerHTML = ''; this.filestripBox.hidden = true;
+      this._filestripKey = null; this._filestripButtons = null; this._filestripSelect = null;
+      this.doc?.destroy?.(); this.doc = null;
+      this.processedImageCache.clear();
+      this.kind = null; this.pageCount = 0; this.active = 1;
+      this.zoom = 1; this.zoomMode = this._preferredZoomMode;
+      this.imageOriginalUrl = null; this.imageProcessedUrl = null;
+      this.processedWidth = 0; this.processedHeight = 0; this._imageToken++;
+      this.imageStage = null; this.imageEl = null; this.imageBadge = null; this.showOriginal = false;
+      if (this.originalBtn) { this.originalBtn.hidden = true; this.originalBtn.classList.remove('active'); this.originalBtn.textContent = 'Original'; this.originalBtn.setAttribute('aria-pressed', 'false'); }
+      this.docNavEl.hidden = true; this._docPrev = null; this._docNext = null;
+      if (this.imagePrevBtn) this.imagePrevBtn.hidden = this.imageNextBtn.hidden = true;
+      this.setModeLabel(''); this.setNote(''); this.clearStatus();
+    }
+  
+    destroy() {
+      this.clear();
+      this._resizeObserver?.disconnect();
+    }
+  }
+      window.iLoveMyFilesModules['preview-workspace'] = { PreviewWorkspace };
+  });
+</script>

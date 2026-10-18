@@ -1,0 +1,23 @@
+---
+---
+<script>
+  const dialog = document.getElementById('tool-dialog');
+  const params = new URLSearchParams(location.search);
+  if (dialog && params.get('open') === '1') {
+    const slug = location.pathname.replace(/^\/+|\/+$/g, '');
+    const tools = JSON.parse(dialog.dataset.routeTools);
+    const tool = tools.find(item => item.slug === slug);
+    if (tool) {
+      // Recently used tools are recorded centrally in openTool(), which every entry
+      // point funnels through, so nothing needs to be stored here.
+      const openWhenReady = () => {
+        if (!dialog.dataset.initialized) {
+          requestAnimationFrame(openWhenReady);
+          return;
+        }
+        document.dispatchEvent(new CustomEvent('ilovemyfiles:open-tool', { detail: { id: tool.id } }));
+      };
+      openWhenReady();
+    }
+  }
+</script>

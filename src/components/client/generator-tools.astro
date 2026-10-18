@@ -1,0 +1,69 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+      const { canvasToBlob, formatBytes } = window.iLoveMyFilesModules['file-utils'];
+  const BARCODE_FORMATS = [
+    ['CODE128', 'Code 128 (any text)'],
+    ['EAN13', 'EAN-13 (12–13 digits)'],
+    ['UPC', 'UPC-A (11–12 digits)'],
+    ['CODE39', 'Code 39'],
+    ['ITF14', 'ITF-14 (14 digits)']
+  ];
+  
+  async function generateQr(text, options = {}) {
+    const value = text.trim();
+    if (!value) throw new Error('Enter a link or text to encode.');
+    const qrcode = (await import('qrcode-generator')).default;
+    const level = ['L', 'M', 'Q', 'H'].includes(options.level) ? options.level : 'M';
+    const cell = Math.max(2, Math.min(24, Number(options.size) || 8));
+    const qr = qrcode(0, level);
+    qr.addData(value);
+    qr.make();
+    const count = qr.getModuleCount();
+    const margin = cell * 2;
+    const dimension = count * cell + margin * 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = dimension; canvas.height = dimension;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, dimension, dimension);
+    context.fillStyle = '#0b0d1a';
+    for (let row = 0; row < count; row++) {
+      for (let column = 0; column < count; column++) {
+        if (qr.isDark(row, column)) context.fillRect(margin + column * cell, margin + row * cell, cell, cell);
+      }
+    }
+    const blob = await canvasToBlob(canvas, 'image/png');
+    canvas.width = 1; canvas.height = 1;
+    return { blob, name: 'ilovemyfiles-qr.png', details: `${dimension} × ${dimension} · ${formatBytes(blob.size)}` };
+  }
+  
+  async function generateBarcode(text, options = {}) {
+    const value = text.trim();
+    if (!value) throw new Error('Enter a value to encode.');
+    const format = BARCODE_FORMATS.some(([id]) => id === options.format) ? options.format : 'CODE128';
+    const JsBarcode = (await import('jsbarcode')).default;
+    const canvas = document.createElement('canvas');
+    try {
+      JsBarcode(canvas, value, {
+        format,
+        displayValue: true,
+        margin: 14,
+        width: Math.max(1, Math.min(6, Number(options.width) || 2)),
+        height: Math.max(30, Math.min(200, Number(options.height) || 90)),
+        background: '#ffffff',
+        lineColor: '#0b0d1a'
+      });
+    } catch (error) {
+      throw new Error(`This value is not valid for ${format}. ${error?.message || ''}`.trim());
+    }
+    const width = canvas.width, height = canvas.height;
+    const blob = await canvasToBlob(canvas, 'image/png');
+    canvas.width = 1; canvas.height = 1;
+    return { blob, name: `ilovemyfiles-barcode-${format.toLowerCase()}.png`, details: `${width} × ${height} · ${format}` };
+  }
+      window.iLoveMyFilesModules['generator-tools'] = { BARCODE_FORMATS, generateQr, generateBarcode };
+  });
+</script>

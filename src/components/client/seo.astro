@@ -1,0 +1,55 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+  const SITE = (typeof location !== 'undefined' && location.protocol.startsWith('http'))
+    ? location.origin
+    : 'https://ilovemyfiles.com';
+  
+  function meta(attr, key, content) {
+    let el = document.head.querySelector(`meta[${attr}="${key}"]`);
+    if (!el) {
+      el = document.createElement('meta');
+      el.setAttribute(attr, key);
+      document.head.append(el);
+    }
+    el.setAttribute('content', content);
+  }
+  
+  function setPageMeta({ title, description, path = '/', image = '/favicon.svg' }) {
+    if (title) document.title = title;
+    if (description) meta('name', 'description', description);
+    const url = `${SITE}${path}`;
+    meta('property', 'og:title', title || '');
+    meta('property', 'og:description', description || '');
+    meta('property', 'og:type', 'website');
+    meta('property', 'og:url', url);
+    meta('property', 'og:image', `${SITE}${image}`);
+    meta('name', 'twitter:card', 'summary_large_image');
+    let canonical = document.head.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.rel = 'canonical';
+      document.head.append(canonical);
+    }
+    canonical.href = url;
+  }
+  
+  function setJsonLd(id, data) {
+    let el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement('script');
+      el.type = 'application/ld+json';
+      el.id = id;
+      document.head.append(el);
+    }
+    el.textContent = JSON.stringify(data);
+  }
+  
+  function removeJsonLd(id) {
+    document.getElementById(id)?.remove();
+  }
+      window.iLoveMyFilesModules['seo'] = { SITE, setPageMeta, setJsonLd, removeJsonLd };
+  });
+</script>

@@ -1,0 +1,85 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+
+    // Single source of truth for every font choice in the application.
+    const STANDARD_FONTS = [
+      { id: 'helvetica', family: 'helvetica', label: 'Helvetica', category: 'Standard', css: 'Helvetica, Arial, sans-serif', standardFont: 'Helvetica' },
+      { id: 'helvetica-bold', family: 'helvetica', label: 'Helvetica Bold', category: 'Standard', css: 'Helvetica, Arial, sans-serif', weight: 700, standardFont: 'HelveticaBold' },
+      { id: 'helvetica-oblique', family: 'helvetica', label: 'Helvetica Oblique', category: 'Standard', css: 'Helvetica, Arial, sans-serif', style: 'italic', standardFont: 'HelveticaOblique' },
+      { id: 'helvetica-bold-oblique', family: 'helvetica', label: 'Helvetica Bold Oblique', category: 'Standard', css: 'Helvetica, Arial, sans-serif', weight: 700, style: 'italic', standardFont: 'HelveticaBoldOblique' },
+      { id: 'times', family: 'times', label: 'Times New Roman', category: 'Standard', css: '"Times New Roman", Times, serif', standardFont: 'TimesRoman' },
+      { id: 'times-bold', family: 'times', label: 'Times New Roman Bold', category: 'Standard', css: '"Times New Roman", Times, serif', weight: 700, standardFont: 'TimesRomanBold' },
+      { id: 'times-italic', family: 'times', label: 'Times New Roman Italic', category: 'Standard', css: '"Times New Roman", Times, serif', style: 'italic', standardFont: 'TimesRomanItalic' },
+      { id: 'times-bold-italic', family: 'times', label: 'Times New Roman Bold Italic', category: 'Standard', css: '"Times New Roman", Times, serif', weight: 700, style: 'italic', standardFont: 'TimesRomanBoldItalic' },
+      { id: 'courier', family: 'courier', label: 'Courier', category: 'Standard', css: '"Courier New", Courier, monospace', standardFont: 'Courier' },
+      { id: 'courier-bold', family: 'courier', label: 'Courier Bold', category: 'Standard', css: '"Courier New", Courier, monospace', weight: 700, standardFont: 'CourierBold' },
+      { id: 'courier-oblique', family: 'courier', label: 'Courier Oblique', category: 'Standard', css: '"Courier New", Courier, monospace', style: 'italic', standardFont: 'CourierOblique' },
+      { id: 'courier-bold-oblique', family: 'courier', label: 'Courier Bold Oblique', category: 'Standard', css: '"Courier New", Courier, monospace', weight: 700, style: 'italic', standardFont: 'CourierBoldOblique' },
+      { id: 'symbol', label: 'Symbol', category: 'Symbol', symbolOnly: true, css: 'Symbol, serif', standardFont: 'Symbol' },
+      { id: 'zapf-dingbats', label: 'Zapf Dingbats', category: 'Symbol', symbolOnly: true, css: '"Zapf Dingbats", sans-serif', standardFont: 'ZapfDingbats' }
+    ];
+
+    const WEB_FONTS = [
+      'Roboto', 'Open Sans', 'Inter', 'Lato', 'Arial', 'Noto Sans', 'Source Sans 3', 'Nunito',
+      'Ubuntu', 'Work Sans', 'Poppins', 'Montserrat', 'Oswald', 'Raleway', 'Bebas Neue',
+      'Archivo', 'DM Sans', 'Manrope', 'Outfit', 'League Spartan', 'Merriweather', 'Lora',
+      'Playfair Display', 'Libre Baskerville', 'PT Serif', 'Roboto Slab', 'Bitter',
+      'Source Serif 4', 'Roboto Mono', 'JetBrains Mono', 'Fira Code', 'IBM Plex Mono',
+      'Caveat', 'Pacifico', 'Dancing Script', 'Permanent Marker', 'Lobster',
+      'Noto Sans Devanagari', 'Noto Sans Arabic', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans KR'
+    ];
+
+    const STANDARD_INDEX = new Map(STANDARD_FONTS.map(font => [font.id, font]));
+
+    const WEB_INDEX = new Map(WEB_FONTS.map(family => [
+      family,
+      { id: family, label: family, category: 'Web font', css: `"${family}", sans-serif`, googleFamily: family }
+    ]));
+
+    const ALL_FONTS = [...STANDARD_FONTS, ...WEB_FONTS.map(family => WEB_INDEX.get(family))];
+    const ALL_INDEX = new Map(ALL_FONTS.map(font => [font.id, font]));
+
+    let stylesheetPromise = null;
+
+    function webFontHref() {
+      const families = WEB_FONTS.map(family =>
+        `family=${encodeURIComponent(family).replace(/%20/g, '+')}:ital,wght@0,400;0,700;1,400`).join('&');
+      return `https://fonts.googleapis.com/css2?${families}&display=swap`;
+    }
+
+    // One combined request loads every preview face at once.
+    function ensureWebFonts() {
+      if (!stylesheetPromise) {
+        stylesheetPromise = new Promise(resolve => {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = webFontHref();
+          link.onload = () => resolve(true);
+          link.onerror = () => resolve(false);
+          document.head.append(link);
+        });
+      }
+      return stylesheetPromise;
+    }
+
+    function getFont(id) { return ALL_INDEX.get(id) || null; }
+    function cssFor(id) { return getFont(id)?.css || 'inherit'; }
+    function labelFor(id) { return getFont(id)?.label || 'Helvetica'; }
+
+    function fontShorthand(id, px) {
+      const font = getFont(id);
+      if (!font) return `${px}px inherit`;
+      const style = font.style || 'normal';
+      const weight = font.weight || 400;
+      return `${style} ${weight} ${px}px ${font.css}`;
+    }
+
+    window.iLoveMyFilesModules['font-registry'] = {
+      STANDARD_FONTS, WEB_FONTS, ALL_FONTS,
+      getFont, cssFor, labelFor, fontShorthand, webFontHref, ensureWebFonts
+    };
+  });
+</script>

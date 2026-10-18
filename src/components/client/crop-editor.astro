@@ -1,0 +1,182 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+  const clamp01 = value => Math.min(1, Math.max(0, value));
+  
+  function createCropEditor(container) {
+    const canvas = container.querySelector('.crop-canvas');
+    const image = container.querySelector('.crop-image');
+    const selection = container.querySelector('.crop-selection');
+    const readout = container.querySelector('.crop-readout');
+    const aspectButtons = [...container.querySelectorAll('.crop-aspect')];
+    const resetButton = container.querySelector('.crop-reset');
+    let natural = { width: 0, height: 0 };
+    let aspect = null;
+    let rect = { x: 0, y: 0, w: 1, h: 1 };
+    let drag = null;
+    let url = null;
+  
+    const ratioInFractions = () => aspect * natural.height / natural.width;
+  
+    function getCropRect() {
+      return {
+        x: Math.round(rect.x * natural.width),
+        y: Math.round(rect.y * natural.height),
+        width: Math.max(1, Math.round(rect.w * natural.width)),
+        height: Math.max(1, Math.round(rect.h * natural.height))
+      };
+    }
+  
+    function render() {
+      const bounds = canvas.getBoundingClientRect();
+      if (!bounds.width || !bounds.height || !natural.width) return;
+      selection.style.left = `${rect.x * bounds.width}px`;
+      selection.style.top = `${rect.y * bounds.height}px`;
+      selection.style.width = `${rect.w * bounds.width}px`;
+      selection.style.height = `${rect.h * bounds.height}px`;
+      const px = Math.max(1, Math.round(rect.w * natural.width));
+      const py = Math.max(1, Math.round(rect.h * natural.height));
+      if (readout) readout.textContent = `Crop area: ${px} × ${py} px`;
+    }
+  
+    function apply(next) {
+      const min = 0.015;
+      const w = Math.min(1, Math.max(min, next.w));
+      const h = Math.min(1, Math.max(min, next.h));
+      rect = { x: Math.min(1 - w, Math.max(0, next.x)), y: Math.min(1 - h, Math.max(0, next.y)), w, h };
+      render();
+    }
+  
+    function fitAspect() {
+      const ra = ratioInFractions();
+      let w = rect.w, h = w / ra;
+      if (h > rect.h) { h = rect.h; w = h * ra; }
+      rect = { x: rect.x + (rect.w - w) / 2, y: rect.y + (rect.h - h) / 2, w, h };
+    }
+  
+    function setAspect(value, button) {
+      aspect = value ? Number(value) : null;
+      container.classList.toggle('ratio-locked', aspect !== null);
+      aspectButtons.forEach(item => item.classList.toggle('active', item === button));
+      if (aspect && natural.width) fitAspect();
+      render();
+    }
+  
+    function load(source) {
+      return new Promise((resolve, reject) => {
+        if (url) URL.revokeObjectURL(url);
+        url = URL.createObjectURL(source);
+        image.onload = () => {
+          natural = { width: image.naturalWidth, height: image.naturalHeight };
+          rect = { x: 0, y: 0, w: 1, h: 1 };
+          selection.hidden = false;
+          if (aspect) fitAspect();
+          requestAnimationFrame(render);
+          resolve();
+        };
+        image.onerror = () => reject(new Error('Could not load image for cropping.'));
+        image.src = url;
+      });
+    }
+  
+    function clear() {
+      natural = { width: 0, height: 0 };
+      rect = { x: 0, y: 0, w: 1, h: 1 };
+      drag = null;
+      selection.hidden = true;
+      if (readout) readout.textContent = 'Drag on the image to select the area to keep.';
+      if (url) { URL.revokeObjectURL(url); url = null; }
+      image.removeAttribute('src');
+    }
+  
+    canvas.addEventListener('pointerdown', event => {
+      if (!natural.width) return;
+      const handle = event.target.dataset?.handle;
+      const bounds = canvas.getBoundingClientRect();
+      if (handle) {
+        drag = { mode: 'resize', handle, startX: event.clientX, startY: event.clientY, rect: { ...rect }, bounds };
+      } else if (event.target === selection) {
+        drag = { mode: 'move', startX: event.clientX, startY: event.clientY, rect: { ...rect }, bounds };
+      } else {
+        const x = clamp01((event.clientX - bounds.left) / bounds.width);
+        const y = clamp01((event.clientY - bounds.top) / bounds.height);
+        drag = { mode: 'new', originX: x, originY: y, startX: event.clientX, startY: event.clientY, bounds };
+        apply({ x, y, w: 0.015, h: 0.015 });
+      }
+      canvas.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
+    });
+  
+    canvas.addEventListener('pointermove', event => {
+      if (!drag) return;
+      const dx = (event.clientX - drag.startX) / drag.bounds.width;
+      const dy = (event.clientY - drag.startY) / drag.bounds.height;
+  
+      if (drag.mode === 'move') {
+        apply({ ...drag.rect, x: drag.rect.x + dx, y: drag.rect.y + dy });
+        return;
+      }
+  
+      if (drag.mode === 'new') {
+        const x2 = clamp01(drag.originX + dx);
+        const y2 = clamp01(drag.originY + dy);
+        const signX = x2 >= drag.originX ? 1 : -1;
+        const signY = y2 >= drag.originY ? 1 : -1;
+        let w = Math.abs(x2 - drag.originX);
+        let h = Math.abs(y2 - drag.originY);
+        if (aspect) { const ra = ratioInFractions(); w = Math.min(w, h * ra); h = w / ra; }
+        apply({ x: signX > 0 ? drag.originX : drag.originX - w, y: signY > 0 ? drag.originY : drag.originY - h, w, h });
+        return;
+      }
+  
+      const r = drag.rect, handle = drag.handle;
+      let left = r.x, top = r.y, right = r.x + r.w, bottom = r.y + r.h;
+      if (handle.includes('w')) left = clamp01(r.x + dx);
+      if (handle.includes('e')) right = clamp01(r.x + r.w + dx);
+      if (handle.includes('n')) top = clamp01(r.y + dy);
+      if (handle.includes('s')) bottom = clamp01(r.y + r.h + dy);
+      let x = Math.min(left, right), y = Math.min(top, bottom);
+      let w = Math.abs(right - left), h = Math.abs(bottom - top);
+      if (aspect) {
+        const ra = ratioInFractions();
+        const signX = handle.includes('e') ? 1 : -1;
+        const signY = handle.includes('s') ? 1 : -1;
+        const anchorX = signX > 0 ? r.x : r.x + r.w;
+        const anchorY = signY > 0 ? r.y : r.y + r.h;
+        w = Math.min(w, h * ra);
+        h = w / ra;
+        x = signX > 0 ? anchorX : anchorX - w;
+        y = signY > 0 ? anchorY : anchorY - h;
+      }
+      apply({ x, y, w, h });
+    });
+  
+    const endDrag = event => {
+      if (drag) { drag = null; render(); }
+      if (canvas.hasPointerCapture?.(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    };
+    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointercancel', () => { drag = null; });
+  
+    aspectButtons.forEach(button => button.addEventListener('click', () => {
+      setAspect(button.dataset.aspect === 'free' ? null : button.dataset.aspect, button);
+    }));
+    resetButton?.addEventListener('click', () => { rect = { x: 0, y: 0, w: 1, h: 1 }; if (aspect) fitAspect(); render(); });
+  
+    window.addEventListener('resize', render);
+  
+    return {
+      load,
+      clear,
+      getCropRect,
+      destroy() {
+        window.removeEventListener('resize', render);
+        if (url) URL.revokeObjectURL(url);
+      }
+    };
+  }
+      window.iLoveMyFilesModules['crop-editor'] = { createCropEditor };
+  });
+</script>

@@ -1,0 +1,14 @@
+---
+const { config } = Astro.props;
+---
+<div class="tool-options" id="tool-options">
+  {Object.entries(config).map(([id, settings]) => (
+    <div data-tool-options={id} hidden set:html={settings.options ?? ''} />
+  ))}
+</div>
+
+<style>
+  .tool-options > [data-tool-options] {
+    display: contents;
+  }
+</style>

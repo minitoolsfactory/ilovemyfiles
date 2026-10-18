@@ -1,0 +1,329 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+      const { canvasToBlob, loadImage, makeCanvas, safeBaseName, formatBytes } = window.iLoveMyFilesModules['file-utils'];
+  const FORMATS = {
+    'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/bmp': 'bmp',
+    'image/gif': 'gif', 'image/x-icon': 'ico', 'image/svg+xml': 'svg', 'image/tiff': 'tiff'
+  };
+  function extensionFor(type) { return FORMATS[type] || 'webp'; }
+  
+  const OPAQUE_FORMATS = new Set(['image/jpeg', 'image/bmp', 'image/gif', 'image/tiff', 'image/x-icon']);
+  
+  function canvasToBmp(canvas) {
+    const { width, height } = canvas;
+    const data = canvas.getContext('2d').getImageData(0, 0, width, height).data;
+    const rowSize = Math.floor((24 * width + 31) / 32) * 4;
+    const pixelArraySize = rowSize * height;
+    const buffer = new ArrayBuffer(54 + pixelArraySize);
+    const view = new DataView(buffer);
+    view.setUint16(0, 0x424D, false);
+    view.setUint32(2, 54 + pixelArraySize, true);
+    view.setUint32(10, 54, true);
+    view.setUint32(14, 40, true);
+    view.setInt32(18, width, true);
+    view.setInt32(22, height, true);
+    view.setUint16(26, 1, true);
+    view.setUint16(28, 24, true);
+    view.setUint32(34, pixelArraySize, true);
+    const bytes = new Uint8Array(buffer);
+    for (let y = 0; y < height; y++) {
+      const sourceY = height - 1 - y;
+      for (let x = 0; x < width; x++) {
+        const source = (sourceY * width + x) * 4;
+        const target = 54 + y * rowSize + x * 3;
+        bytes[target] = data[source + 2];
+        bytes[target + 1] = data[source + 1];
+        bytes[target + 2] = data[source];
+      }
+    }
+    return new Blob([buffer], { type: 'image/bmp' });
+  }
+  function canvasToTiff(canvas) {
+    const { width, height } = canvas;
+    const data = canvas.getContext('2d').getImageData(0, 0, width, height).data;
+    const entries = 13;
+    const ifdOffset = 8;
+    const ifdEnd = ifdOffset + 2 + entries * 12 + 4;
+    const bitsOffset = ifdEnd;
+    const xResOffset = bitsOffset + 6;
+    const yResOffset = xResOffset + 8;
+    const pixelOffset = yResOffset + 8;
+    const pixelBytes = width * height * 3;
+    const buffer = new ArrayBuffer(pixelOffset + pixelBytes);
+    const view = new DataView(buffer);
+    const bytes = new Uint8Array(buffer);
+    view.setUint16(0, 0x4949, true);
+    view.setUint16(2, 42, true);
+    view.setUint32(4, ifdOffset, true);
+    let p = ifdOffset;
+    view.setUint16(p, entries, true); p += 2;
+    const entry = (tag, type, count, value) => {
+      view.setUint16(p, tag, true);
+      view.setUint16(p + 2, type, true);
+      view.setUint32(p + 4, count, true);
+      if (type === 3 && count === 1) {
+        view.setUint16(p + 8, value, true);
+        view.setUint16(p + 10, 0, true);
+      } else { view.setUint32(p + 8, value, true); }
+      p += 12;
+    };
+    entry(256, 4, 1, width);
+    entry(257, 4, 1, height);
+    entry(258, 3, 3, bitsOffset);
+    entry(259, 3, 1, 1);
+    entry(262, 3, 1, 2);
+    entry(273, 4, 1, pixelOffset);
+    entry(277, 3, 1, 3);
+    entry(278, 4, 1, height);
+    entry(279, 4, 1, pixelBytes);
+    entry(282, 5, 1, xResOffset);
+    entry(283, 5, 1, yResOffset);
+    entry(284, 3, 1, 1);
+    entry(296, 3, 1, 2);
+    view.setUint32(p, 0, true);
+    view.setUint16(bitsOffset, 8, true);
+    view.setUint16(bitsOffset + 2, 8, true);
+    view.setUint16(bitsOffset + 4, 8, true);
+    view.setUint32(xResOffset, 300, true);
+    view.setUint32(xResOffset + 4, 1, true);
+    view.setUint32(yResOffset, 300, true);
+    view.setUint32(yResOffset + 4, 1, true);
+    for (let i = 0; i < width * height; i++) {
+      const source = i * 4;
+      const target = pixelOffset + i * 3;
+      bytes[target] = data[source];
+      bytes[target + 1] = data[source + 1];
+      bytes[target + 2] = data[source + 2];
+    }
+    return new Blob([buffer], { type: 'image/tiff' });
+  }
+  
+  function canvasToIco(canvas) {
+    return canvasToBlob(canvas, 'image/png').then(png =>
+      png.arrayBuffer().then(buffer => {
+        const pngBytes = new Uint8Array(buffer);
+        const { width, height } = canvas;
+        const out = new ArrayBuffer(22 + pngBytes.length);
+        const view = new DataView(out);
+        const bytes = new Uint8Array(out);
+        view.setUint16(0, 0, true);
+        view.setUint16(2, 1, true);
+        view.setUint16(4, 1, true);
+        view.setUint8(6, width >= 256 ? 0 : width);
+        view.setUint8(7, height >= 256 ? 0 : height);
+        view.setUint8(8, 0);
+        view.setUint8(9, 0);
+        view.setUint16(10, 1, true);
+        view.setUint16(12, 32, true);
+        view.setUint32(14, pngBytes.length, true);
+        view.setUint32(18, 22, true);
+        bytes.set(pngBytes, 22);
+        return new Blob([out], { type: 'image/x-icon' });
+      }));
+  }
+  
+  function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+      reader.onerror = () => reject(new Error('Could not read the image data.'));
+      reader.readAsDataURL(blob);
+    });
+  }
+  
+  async function canvasToSvg(canvas) {
+    const png = await canvasToBlob(canvas, 'image/png');
+    const base64 = await blobToBase64(png);
+    const { width, height } = canvas;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><image width="${width}" height="${height}" href="data:image/png;base64,${base64}"/></svg>`;
+    return new Blob([svg], { type: 'image/svg+xml' });
+  }
+  
+  async function canvasToGif(canvas) {
+    const gifenc = await import('gifenc');
+    const GIFEncoder = gifenc.GIFEncoder || gifenc.default?.GIFEncoder;
+    const quantize = gifenc.quantize || gifenc.default?.quantize;
+    const applyPalette = gifenc.applyPalette || gifenc.default?.applyPalette;
+    const { width, height } = canvas;
+    const data = canvas.getContext('2d').getImageData(0, 0, width, height).data;
+    const palette = quantize(data, 256);
+    const index = applyPalette(data, palette);
+    const gif = GIFEncoder();
+    gif.writeFrame(index, width, height, { palette });
+    gif.finish();
+    return new Blob([gif.bytesView()], { type: 'image/gif' });
+  }
+  
+  const ENCODERS = {
+    'image/bmp': canvasToBmp,
+    'image/gif': canvasToGif,
+    'image/x-icon': canvasToIco,
+    'image/svg+xml': canvasToSvg,
+    'image/tiff': canvasToTiff
+  };
+  
+  function drawImage(image, width, height, type) {
+    const canvas = makeCanvas(width, height);
+    const opaque = OPAQUE_FORMATS.has(type);
+    const context = canvas.getContext('2d', { alpha: !opaque });
+    if (opaque) { context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height); }
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  }
+  function padCanvas(source, margin, type) {
+    const m = Math.max(0, Math.round(Number(margin) || 0));
+    if (!m) return source;
+    const canvas = makeCanvas(source.width + m * 2, source.height + m * 2);
+    const opaque = OPAQUE_FORMATS.has(type);
+    const context = canvas.getContext('2d', { alpha: !opaque });
+    if (opaque) { context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height); }
+    context.drawImage(source, m, m);
+    return canvas;
+  }
+  async function encodeImage(image, width, height, type, quality, margin) {
+    const base = drawImage(image, width, height, type);
+    const canvas = padCanvas(base, margin, type);
+    const encoder = ENCODERS[type];
+    const blob = encoder ? await encoder(canvas) : await canvasToBlob(canvas, type, quality);
+    if (canvas !== base) { canvas.width = 1; canvas.height = 1; }
+    base.width = 1; base.height = 1;
+    return blob;
+  }
+  
+  async function convertImage(file, type, margin = 0, ext = null) {
+    const image = await loadImage(file);
+    const blob = await encodeImage(image, image.naturalWidth, image.naturalHeight, type, 0.9, margin);
+    const m = Math.max(0, Math.round(Number(margin) || 0));
+    const width = image.naturalWidth + m * 2, height = image.naturalHeight + m * 2;
+    return { blob, name: `${safeBaseName(file.name)}.${ext || extensionFor(type)}`, details: `${width} × ${height} · ${formatBytes(blob.size)}` };
+  }
+  
+  async function resizeImage(file, width, height, keepRatio, type, margin = 0) {
+    const image = await loadImage(file);
+    if (keepRatio) {
+      const ratio = Math.min(width / image.naturalWidth, height / image.naturalHeight);
+      width = Math.max(1, Math.round(image.naturalWidth * ratio));
+      height = Math.max(1, Math.round(image.naturalHeight * ratio));
+    }
+    const blob = await encodeImage(image, width, height, type, 0.9, margin);
+    const m = Math.max(0, Math.round(Number(margin) || 0));
+    return { blob, name: `${safeBaseName(file.name)}-${width + m * 2}x${height + m * 2}.${extensionFor(type)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}` };
+  }
+  
+  async function cropImage(file, area, type, margin = 0) {
+    const image = await loadImage(file);
+    const width = Math.max(1, Math.min(image.naturalWidth, Math.round(area.width)));
+    const height = Math.max(1, Math.min(image.naturalHeight, Math.round(area.height)));
+    const x = Math.max(0, Math.min(image.naturalWidth - width, Math.round(area.x)));
+    const y = Math.max(0, Math.min(image.naturalHeight - height, Math.round(area.y)));
+    const canvas = makeCanvas(width, height);
+    const opaque = OPAQUE_FORMATS.has(type);
+    const context = canvas.getContext('2d', { alpha: !opaque });
+    if (opaque) { context.fillStyle = '#fff'; context.fillRect(0, 0, width, height); }
+    context.drawImage(image, x, y, width, height, 0, 0, width, height);
+    const padded = padCanvas(canvas, margin, type);
+    const blob = await canvasToBlob(padded, type, 0.92);
+    const m = Math.max(0, Math.round(Number(margin) || 0));
+    if (padded !== canvas) { padded.width = 1; padded.height = 1; }
+    canvas.width = 1; canvas.height = 1;
+    return { blob, name: `${safeBaseName(file.name)}-cropped.${extensionFor(type)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}` };
+  }
+  
+  async function compressImage(file, options) {
+    const image = await loadImage(file);
+    let width = image.naturalWidth, height = image.naturalHeight;
+    const { type, mode } = options;
+    if (mode === 'quality') {
+      const blob = await encodeImage(image, width, height, type, Number(options.quality) / 100);
+      return { blob, name: `${safeBaseName(file.name)}-compressed.${extensionFor(type)}`, details: `${width} × ${height} · ${formatBytes(blob.size)}` };
+    }
+    const target = Number(options.targetKb) * 1024;
+    if (!Number.isFinite(target) || target < 5120) throw new Error('Target size must be at least 5 KB.');
+    let low = 0.12, high = 0.95, best = null;
+    for (let i = 0; i < 7; i++) {
+      const quality = (low + high) / 2;
+      const blob = await encodeImage(image, width, height, type, quality);
+      if (!best || Math.abs(blob.size - target) < Math.abs(best.size - target)) best = blob;
+      if (blob.size > target) high = quality; else low = quality;
+    }
+    // If quality alone cannot reach the target, reduce dimensions gradually.
+    let scale = 0.88;
+    for (let i = 0; best.size > target && i < 8; i++, scale *= 0.82) {
+      const w = Math.max(1, Math.round(image.naturalWidth * scale));
+      const h = Math.max(1, Math.round(image.naturalHeight * scale));
+      const blob = await encodeImage(image, w, h, type, 0.72);
+      if (Math.abs(blob.size - target) < Math.abs(best.size - target)) best = blob;
+      width = w; height = h;
+      if (blob.size <= target) break;
+    }
+    return { blob: best, name: `${safeBaseName(file.name)}-compressed.${extensionFor(type)}`, details: `${width} × ${height} · ${formatBytes(best.size)}${best.size > target ? ' · target not reached' : ''}` };
+  }
+  
+  async function rotateImage(file, options = {}) {
+    const image = await loadImage(file);
+    const type = options.type || 'image/png';
+    const rotation = ((Number(options.rotation) || 0) % 360 + 360) % 360;
+    const radians = rotation * Math.PI / 180;
+    const swap = rotation === 90 || rotation === 270;
+    const sourceWidth = image.naturalWidth, sourceHeight = image.naturalHeight;
+    const width = swap ? sourceHeight : sourceWidth;
+    const height = swap ? sourceWidth : sourceHeight;
+    const canvas = makeCanvas(width, height);
+    const opaque = OPAQUE_FORMATS.has(type);
+    const context = canvas.getContext('2d', { alpha: !opaque });
+    if (opaque) { context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height); }
+    context.translate(width / 2, height / 2);
+    context.rotate(radians);
+    context.scale(options.flipH ? -1 : 1, options.flipV ? -1 : 1);
+    context.drawImage(image, -sourceWidth / 2, -sourceHeight / 2);
+    const padded = padCanvas(canvas, options.margin, type);
+    const blob = await canvasToBlob(padded, type, 0.92);
+    const m = Math.max(0, Math.round(Number(options.margin) || 0));
+    if (padded !== canvas) { padded.width = 1; padded.height = 1; }
+    canvas.width = 1; canvas.height = 1;
+    return { blob, name: `${safeBaseName(file.name)}-rotated.${extensionFor(type)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}` };
+  }
+  
+  async function watermarkImage(file, options = {}) {
+    const image = await loadImage(file);
+    const type = options.type || 'image/png';
+    const outWidth = image.naturalWidth, outHeight = image.naturalHeight;
+    const canvas = makeCanvas(outWidth, outHeight);
+    const opaque = OPAQUE_FORMATS.has(type);
+    const context = canvas.getContext('2d', { alpha: !opaque });
+    if (opaque) { context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height); }
+    context.drawImage(image, 0, 0);
+    const text = String(options.text || '© iLoveMyFiles').slice(0, 80);
+    const size = Math.max(8, Math.round(Math.min(canvas.width, canvas.height) * (Number(options.scale) || 6) / 100));
+    const margin = Math.round(size * 0.9);
+    context.font = `700 ${size}px ui-sans-serif, system-ui, sans-serif`;
+    context.globalAlpha = Math.max(0.05, Math.min(1, Number(options.opacity) || 0.6));
+    context.textBaseline = 'alphabetic';
+    const width = context.measureText(text).width;
+    const positions = {
+      'top-left': [margin, margin + size],
+      'top-right': [canvas.width - width - margin, margin + size],
+      'bottom-left': [margin, canvas.height - margin],
+      'bottom-right': [canvas.width - width - margin, canvas.height - margin],
+      center: [(canvas.width - width) / 2, (canvas.height + size) / 2]
+    };
+    const [x, y] = positions[options.position] || positions['bottom-right'];
+    context.fillStyle = options.color || '#ffffff';
+    context.strokeStyle = 'rgba(0,0,0,0.4)';
+    context.lineWidth = Math.max(1, size / 12);
+    context.strokeText(text, x, y);
+    context.fillText(text, x, y);
+    const blob = await canvasToBlob(canvas, type, 0.92);
+    canvas.width = 1; canvas.height = 1;
+    return { blob, name: `${safeBaseName(file.name)}-watermarked.${extensionFor(type)}`, details: `${outWidth} × ${outHeight} · ${formatBytes(blob.size)}` };
+  }
+  
+  function readImageDimensions(file) {
+    return loadImage(file).then(image => ({ width: image.naturalWidth, height: image.naturalHeight }));
+  }
+      window.iLoveMyFilesModules['image-tools'] = { canvasToBmp, convertImage, resizeImage, cropImage, compressImage, rotateImage, watermarkImage, readImageDimensions };
+  });
+</script>

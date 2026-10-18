@@ -1,0 +1,100 @@
+---
+import toolData from "../data/tools.json";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import HomeToolFilters from "../components/HomeToolFilters.astro";
+
+const { TOOLS, CATEGORIES } = toolData;
+const categoryCount = id => id === 'all' ? TOOLS.length : TOOLS.filter(tool => tool.category === id).length;
+const toolById = id => TOOLS.find(tool => tool.id === id);
+const icon = (tool, large = false) => `<span class="tool-icon icon-${tool.icon}${large ? ' tool-icon-lg' : ''}"><svg viewBox="0 0 24 24">${tool.svg}</svg></span>`;
+const popular = ['pdf-merge', 'pdf-compress', 'images-pdf', 'image-resize', 'image-convert'].map(toolById).filter(Boolean);
+---
+<BaseLayout>
+  <Fragment slot="head">
+    <meta name="description" content="Free, private file tools. Convert, compress and resize images, create PDFs, merge PDFs and split PDF pages directly in your browser.">
+    <meta name="robots" content="index,follow">
+    <link rel="canonical" href="https://ilovemyfiles.com/">
+    <title>iLoveMyFiles - Free Online Image & PDF Tools</title>
+  </Fragment>
+
+  <section class="hero">
+    <div class="hero-copy">
+      <div class="eyebrow"><span class="eyebrow-icon">✦</span> SIMPLE TOOLS. NO UPLOADS.</div>
+      <h1>Your files.<br><span>Under your control.</span></h1>
+      <p class="hero-subtitle">Convert, compress and organize images and PDFs in seconds. Free tools that work right in your browser.</p>
+      <div class="hero-actions">
+        <a class="button button-primary" href="/#tools">Explore tools <span aria-hidden="true">↘</span></a>
+        <span class="micro-trust"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2 16 4v5c0 4-2.5 7-6 9-3.5-2-6-5-6-9V4z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m7 10 2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Local processing by default</span>
+      </div>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div>
+      <div class="file-card file-card-back"><div class="fake-lines"></div><div class="fake-lines short"></div><div class="fake-lines"></div></div>
+      <div class="file-card file-card-front"><div class="image-glyph"><span></span><i></i></div><div class="file-label">your-file.webp</div><div class="file-meta">IMAGE · 2.4 MB</div><div class="convert-arrow">↓</div><div class="file-output"><span class="output-icon">✓</span><div><b>Optimized</b><small>640 KB · ready to save</small></div></div></div>
+      <div class="floating-chip chip-lock"><span>⌑</span> Private by design</div><div class="floating-chip chip-speed"><span>↯</span> Fast in-browser tools</div>
+    </div>
+  </section>
+
+  <section class="trust-strip" aria-label="iLoveMyFiles benefits">
+    <div><span class="trust-icon">◎</span><span><b>100% browser-based</b><small>No account needed</small></span></div>
+    <div><span class="trust-icon">ϟ</span><span><b>Fast and lightweight</b><small>Vanilla JavaScript</small></span></div>
+    <div><span class="trust-icon">♧</span><span><b>Privacy first</b><small>Your files aren't uploaded</small></span></div>
+  </section>
+
+  <section class="quick-section" id="popular-section" aria-label="Popular tools">
+    <div class="quick-head"><h2>Popular tools</h2></div>
+    <div class="quick-grid" id="popular-grid">
+      {popular.map(tool => (
+        <a href={`/${tool.slug}/?open=1`} class="quick-card" data-tool={tool.id} data-tool-id={tool.id}>
+          <span set:html={icon(tool)} />
+          <b>{tool.cardTitle}</b>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section class="quick-section" id="recent-section" hidden aria-label="Recently used tools">
+    <div class="quick-head">
+      <h2>Recently used <span class="recent-count" id="recent-count" aria-hidden="true"></span></h2>
+      <button type="button" class="recent-clear" data-clear-recent title="Clear recently used tools" aria-label="Clear recently used tools">Clear</button>
+    </div>
+    <div class="quick-grid" id="recent-grid"></div>
+  </section>
+
+  <section class="tools-section" id="tools">
+    <div class="section-heading">
+      <div><div class="eyebrow">THE TOOLKIT</div><h2>What do you need to do?</h2><p>Choose a tool, add your files, and download the result.</p></div>
+      <div class="search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input id="tool-search" type="search" placeholder="Find a tool..." aria-label="Search tools"></div>
+    </div>
+    <div class="category-tabs" id="category-tabs" role="group" aria-label="Filter tools">
+      {CATEGORIES.map(cat => (
+        <button type="button" class={`category-tab${cat.id === 'all' ? ' active' : ''}`} data-filter={cat.id} aria-pressed={cat.id === 'all' ? 'true' : 'false'}>{cat.label} <span>{categoryCount(cat.id)}</span></button>
+      ))}
+    </div>
+    <div class="tool-grid" id="tool-grid">
+      {TOOLS.map(tool => (
+        <a href={`/${tool.slug}/?open=1`} class="tool-card" data-tool={tool.id} data-tool-id={tool.id} data-category={tool.category} data-search={`${tool.cardTitle} ${tool.cardText} ${tool.keywords.join(' ')}`.toLowerCase()}>
+          <span set:html={icon(tool)} />
+          <span class="tool-card-content">
+            <b>{tool.cardTitle}</b>
+            <span>{tool.cardText}</span>
+            <small>{tool.tag}</small>
+          </span>
+          <span class="tool-arrow">↗</span>
+        </a>
+      ))}
+    </div>
+    <div id="no-results" class="no-results" hidden>No tools match your search. Try another term.</div>
+  </section>
+
+  <section class="privacy-section" id="privacy">
+    <div class="privacy-visual" aria-hidden="true"><div class="privacy-circle"><svg viewBox="0 0 64 64"><path d="M32 6 51 13v16c0 13-8 23-19 29C21 52 13 42 13 29V13z" fill="none" stroke="currentColor" stroke-width="2.6"/><rect x="24" y="27" width="16" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M27 27v-4a5 5 0 0 1 10 0v4" fill="none" stroke="currentColor" stroke-width="2.4"/></svg></div><span class="privacy-spark spark-a">✦</span><span class="privacy-spark spark-b">✧</span></div>
+    <div class="privacy-copy"><div class="eyebrow">YOUR PRIVACY MATTERS</div><h2>Your files stay yours.<br><span>That’s the point.</span></h2>    <p>iLoveMyFiles processes files locally in your browser. Your selected files aren't sent to an iLoveMyFiles server. You stay in control from start to finish.</p><ul><li><span>✓</span> No file uploads to our servers</li><li><span>✓</span> No account or sign-up required</li><li><span>✓</span> Download your result when ready</li></ul><p class="privacy-note">Note: your browser may use memory to process large files. Close the tool when finished, and only use trusted devices for sensitive documents.</p></div>  </section>
+
+  <section class="how-section" id="how-it-works">
+    <div class="section-heading centered"><div><div class="eyebrow">THREE SIMPLE STEPS</div><h2>From file to finished.</h2><p>No confusing settings. No complicated workflow.</p></div></div>
+    <div class="steps-grid"><div class="step"><span class="step-number">01</span><div class="step-symbol">↥</div><h3>Choose your files</h3><p>Select one or more files from your device. They remain in your browser.</p></div><div class="step"><span class="step-number">02</span><div class="step-symbol">✳</div><h3>Set your options</h3><p>Choose the format, size or pages you want to work with.</p></div><div class="step"><span class="step-number">03</span><div class="step-symbol">↓</div><h3>Download the result</h3><p>Save your converted file or ZIP archive straight to your device.</p></div></div>
+  </section>
+  <section class="bottom-cta"><div><h2>Ready to get it done?</h2><p>Your next file task is just a few clicks away.</p></div><a href="/#tools" class="button button-light">Choose a tool <span aria-hidden="true">↗</span></a></section>
+  <HomeToolFilters />
+</BaseLayout>

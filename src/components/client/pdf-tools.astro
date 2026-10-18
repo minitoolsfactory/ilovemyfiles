@@ -1,0 +1,584 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+      const { safeBaseName, parsePageSelection, parsePageOrder, formatBytes } = window.iLoveMyFilesModules['file-utils'];
+  async function getPdfLib() { return import('pdf-lib'); }
+  async function getZip() { return import('jszip'); }
+  
+  const IMAGE_EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+  const watermarkFontLoads = new Map();
+
+  async function loadWatermarkFont(family, text, weight = 400, size = 52, style = 'normal') {
+    if (!family) return;
+    const axis = `${style === 'italic' ? 1 : 0},${Math.max(100, Math.min(900, Number(weight) || 400))}`;
+    const key = `${family}|${axis}`;
+    let load = watermarkFontLoads.get(key);
+    if (!load) {
+      load = new Promise((resolve, reject) => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:ital,wght@${axis}&display=swap`;
+        link.onload = resolve;
+        link.onerror = () => reject(new Error(`Could not load the ${family} font. Check your internet connection and try again.`));
+        document.head.append(link);
+      });
+      watermarkFontLoads.set(key, load);
+      load.catch(() => watermarkFontLoads.delete(key));
+    }
+    await load;
+    const shorthand = `${style === 'italic' ? 'italic ' : ''}${Math.max(100, Math.min(900, Number(weight) || 400))} ${Math.max(12, size * 96 / 72)}px "${family}"`;
+    const loaded = await document.fonts.load(shorthand, text);
+    if (!loaded.length) throw new Error(`The ${family} font could not be prepared for this watermark.`);
+  }
+  
+  const PDF_PAGE_SIZES = {
+    a0: [2383.94, 3370.39],
+    a1: [1683.78, 2383.94],
+    a2: [1190.55, 1683.78],
+    a3: [841.89, 1190.55],
+    a4: [595.28, 841.89],
+    a5: [419.53, 595.28],
+    a6: [297.64, 419.53],
+    b4: [708.66, 1002.52],
+    b5: [498.9, 708.66],
+    letter: [612, 792],
+    legal: [612, 1008],
+    tabloid: [792, 1224],
+    executive: [521.86, 756],
+    statement: [396, 612],
+    folio: [612, 936]
+  };
+  
+  async function imagesToPdf(files, options, progress) {
+    const { PDFDocument } = await getPdfLib();
+    const pdf = await PDFDocument.create();
+    const margin = Math.max(0, Math.min(100, Number(options.margin) || 0));
+    const pageSize = options.pageSize;
+    for (let index = 0; index < files.length; index++) {
+      const file = files[index];
+      progress?.({ percent: Math.round(index / files.length * 90), label: `Adding ${file.name}…` });
+      const bytes = await file.arrayBuffer();
+      let embedded;
+      if (file.type === 'image/jpeg') embedded = await pdf.embedJpg(bytes);
+      else if (file.type === 'image/png') embedded = await pdf.embedPng(bytes);
+      else {
+        let bitmap;
+        try { bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+        catch { bitmap = await createImageBitmap(file); }
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width; canvas.height = bitmap.height;
+        canvas.getContext('2d').drawImage(bitmap, 0, 0);
+        const jpeg = await new Promise((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error(`Could not prepare ${file.name} for PDF.`)), 'image/jpeg', 0.92));
+        embedded = await pdf.embedJpg(await jpeg.arrayBuffer());
+        canvas.width = 1; canvas.height = 1; bitmap.close();
+      }
+      const imageWidth = embedded.width, imageHeight = embedded.height;
+      const fileSetting = (options.fileSettings && options.fileSettings[index]) || {};
+      const effectiveSize = fileSetting.pageSize || pageSize;
+      const effectiveOrientation = fileSetting.orientation || options.orientation || 'portrait';
+      let pageWidth = imageWidth + margin * 2, pageHeight = imageHeight + margin * 2;
+      const standard = PDF_PAGE_SIZES[effectiveSize];
+      if (standard) {
+        let [pageWidthPt, pageHeightPt] = standard;
+        const landscape = effectiveOrientation === 'landscape' || (effectiveOrientation === 'auto' && imageWidth > imageHeight);
+        if (landscape) [pageWidthPt, pageHeightPt] = [pageHeightPt, pageWidthPt];
+        pageWidth = pageWidthPt; pageHeight = pageHeightPt;
+      }
+      const page = pdf.addPage([pageWidth, pageHeight]);
+      const scale = Math.min((pageWidth - margin * 2) / imageWidth, (pageHeight - margin * 2) / imageHeight);
+      const drawWidth = imageWidth * scale, drawHeight = imageHeight * scale;
+      page.drawImage(embedded, { x: (pageWidth - drawWidth) / 2, y: (pageHeight - drawHeight) / 2, width: drawWidth, height: drawHeight });
+    }
+    progress?.({ percent: 95, label: 'Building PDF…' });
+    const bytes = await pdf.save();
+    return { blob: new Blob([bytes], { type: 'application/pdf' }), name: 'ilovemyfiles-images.pdf', details: `${files.length} page(s)` };
+  }
+  
+  async function mergeOnePage(merged, source, pageIndex, settings) {
+    const { PDFDocument } = await getPdfLib();
+    const srcPage = source.getPage(pageIndex);
+    const original = srcPage.getSize();
+    const sizeKey = settings.size || 'original';
+    const orientation = settings.orientation || 'auto';
+    const m = Math.max(0, Math.min(200, Number(settings.margin) || 0));
+    if (sizeKey === 'original' && m === 0) {
+      const [copied] = await merged.copyPages(source, [pageIndex]);
+      merged.addPage(copied);
+      return;
+    }
+    let width = original.width, height = original.height;
+    if (sizeKey !== 'original' && PDF_PAGE_SIZES[sizeKey]) {
+      [width, height] = PDF_PAGE_SIZES[sizeKey];
+      const landscape = orientation === 'landscape' || (orientation === 'auto' && original.width > original.height);
+      if (landscape) [width, height] = [height, width];
+    }
+    const embedded = await merged.embedPage(srcPage);
+    const outPage = merged.addPage([width, height]);
+    const availW = Math.max(1, width - m * 2);
+    const availH = Math.max(1, height - m * 2);
+    const scale = Math.min(availW / embedded.width, availH / embedded.height);
+    const drawW = embedded.width * scale;
+    const drawH = embedded.height * scale;
+    outPage.drawPage(embedded, { x: (width - drawW) / 2, y: (height - drawH) / 2, width: drawW, height: drawH });
+  }
+  
+  async function mergePdfs(files, progress, options = {}) {
+    const { PDFDocument } = await getPdfLib();
+    const defaultSettings = { size: 'original', orientation: 'auto', margin: 0, ...options };
+    const merged = await PDFDocument.create();
+    for (let index = 0; index < files.length; index++) {
+      progress?.({ percent: Math.round(index / files.length * 90), label: `Reading ${files[index].name}…` });
+      const source = await PDFDocument.load(await files[index].arrayBuffer());
+      const pageCount = source.getPageCount();
+      for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+        await mergeOnePage(merged, source, pageIndex, defaultSettings);
+      }
+    }
+    progress?.({ percent: 95, label: 'Building merged PDF…' });
+    const bytes = await merged.save();
+    return { blob: new Blob([bytes], { type: 'application/pdf' }), name: 'ilovemyfiles-merged.pdf', details: `${merged.getPageCount()} page(s)` };
+  }
+  
+  async function mergePdfPages(files, order, progress, options = {}) {
+    const { PDFDocument } = await getPdfLib();
+    const defaultSettings = { size: 'original', orientation: 'auto', margin: 0, ...options };
+    const merged = await PDFDocument.create();
+    const cache = new Map();
+    const list = Array.isArray(order) ? order.filter(entry => entry && Number(entry.page) > 0) : [];
+    if (!list.length) throw new Error('Add at least two PDF files to merge.');
+    for (let index = 0; index < list.length; index++) {
+      const entry = list[index];
+      const file = files[entry.fileIndex];
+      if (!file) continue;
+      progress?.({ percent: Math.round(index / list.length * 90), label: `Adding page ${index + 1} of ${list.length}…` });
+      let source = cache.get(entry.fileIndex);
+      if (!source) { source = await PDFDocument.load(await file.arrayBuffer()); cache.set(entry.fileIndex, source); }
+      const pageIndex = entry.page - 1;
+      if (pageIndex < 0 || pageIndex >= source.getPageCount()) continue;
+      const settings = { ...defaultSettings, size: entry.size || defaultSettings.size, orientation: entry.orientation || defaultSettings.orientation, margin: entry.margin ?? defaultSettings.margin };
+      await mergeOnePage(merged, source, pageIndex, settings);
+    }
+    progress?.({ percent: 95, label: 'Building merged PDF…' });
+    const bytes = await merged.save();
+    return { blob: new Blob([bytes], { type: 'application/pdf' }), name: 'ilovemyfiles-merged.pdf', details: `${merged.getPageCount()} page(s)` };
+  }
+  
+  async function deletePdfPages(file, selection, progress) {
+    const { PDFDocument } = await getPdfLib();
+    const pdf = await PDFDocument.load(await file.arrayBuffer());
+    const count = pdf.getPageCount();
+    const indexes = parsePageSelection(selection, count);
+    if (indexes.length >= count) throw new Error('You cannot delete every page - at least one must remain.');
+    progress?.({ percent: 60, label: 'Removing pages…' });
+    [...indexes].sort((a, b) => b - a).forEach(index => pdf.removePage(index));
+    const bytes = await pdf.save();
+    return { blob: new Blob([bytes], { type: 'application/pdf' }), name: `${safeBaseName(file.name)}-trimmed.pdf`, details: `${count - indexes.length} page(s) remaining` };
+  }
+  
+  function normalizeAngle(angle) {
+    const value = Number(angle) || 0;
+    return ((value % 360) + 360) % 360;
+  }
+  
+  async function rotatePdfPages(file, angle, selection, progress) {
+    const { PDFDocument, degrees } = await getPdfLib();
+    const pdf = await PDFDocument.load(await file.arrayBuffer());
+    const count = pdf.getPageCount();
+    const indexes = selection.trim() ? parsePageSelection(selection, count) : pdf.getPageIndices();
+    progress?.({ percent: 60, label: 'Rotating pages…' });
+    const perPage = angle && typeof angle === 'object' ? angle : null;
+    indexes.forEach(index => {
+      const page = pdf.getPage(index);
+      const current = page.getRotation().angle || 0;
+      const delta = perPage ? Number(perPage[index + 1]) || 0 : Number(angle) || 0;
+      if (delta) page.setRotation(degrees(normalizeAngle(current + delta)));
+    });
+    const bytes = await pdf.save();
+    if (perPage) {
+      const rotated = indexes.filter(index => Number(perPage[index + 1]) || 0);
+      return { blob: new Blob([bytes], { type: 'application/pdf' }), name: `${safeBaseName(file.name)}-rotated.pdf`, details: `${rotated.length} page(s) rotated individually` };
+    }
+    const signed = Number(angle) || 0;
+    const direction = signed < 0 ? 'anticlockwise' : 'clockwise';
+    const magnitude = Math.abs(signed) || 360;
+    return { blob: new Blob([bytes], { type: 'application/pdf' }), name: `${safeBaseName(file.name)}-rotated.pdf`, details: `${indexes.length} page(s) rotated ${magnitude}° ${direction}` };
+  }
+  
+  async function resizePdfPages(file, options, progress) {
+    const { PDFDocument } = await getPdfLib();
+    const source = await PDFDocument.load(await file.arrayBuffer());
+    const count = source.getPageCount();
+    const target = PDF_PAGE_SIZES[options.size];
+    if (!target) throw new Error('Choose a target page size.');
+    const orientation = options.orientation || 'portrait';
+    const margin = Math.max(0, Math.min(200, Number(options.margin) || 0));
+    const selection = (options.pages || '').trim();
+    const chosen = selection ? new Set(parsePageSelection(selection, count)) : null;
+    const out = await PDFDocument.create();
+    for (let index = 0; index < count; index++) {
+      progress?.({ percent: Math.round(index / count * 88), label: `Resizing page ${index + 1} of ${count}…` });
+      const page = source.getPage(index);
+      const isChosen = !chosen || chosen.has(index);
+      if (!isChosen) {
+        const [copied] = await out.copyPages(source, [index]);
+        out.addPage(copied);
+        continue;
+      }
+      const original = page.getSize();
+      let [width, height] = target;
+      const landscape = orientation === 'landscape' || (orientation === 'auto' && original.width > original.height);
+      if (landscape) [width, height] = [height, width];
+      const embedded = await out.embedPage(page);
+      const outPage = out.addPage([width, height]);
+      const availW = Math.max(1, width - margin * 2);
+      const availH = Math.max(1, height - margin * 2);
+      const scale = Math.min(availW / embedded.width, availH / embedded.height);
+      const drawWidth = embedded.width * scale, drawHeight = embedded.height * scale;
+      outPage.drawPage(embedded, { x: (width - drawWidth) / 2, y: (height - drawHeight) / 2, width: drawWidth, height: drawHeight });
+    }
+    progress?.({ percent: 95, label: 'Building resized PDF…' });
+    const bytes = await out.save();
+    const label = options.size.toUpperCase();
+    const scope = chosen ? `${chosen.size} page(s)` : `${count} page(s)`;
+    return { blob: new Blob([bytes], { type: 'application/pdf' }), name: `${safeBaseName(file.name)}-${options.size}.pdf`, details: `${scope} · ${label} ${orientation}` };
+  }
+  
+  async function addPageNumbers(file, options, progress) {
+    const { PDFDocument, StandardFonts, rgb } = await getPdfLib();
+    const hexToRgb = hex => {
+      const match = String(hex || '').trim().replace('#', '');
+      if (!/^[0-9a-fA-F]{6}$/.test(match)) return null;
+      return rgb(
+        parseInt(match.slice(0, 2), 16) / 255,
+        parseInt(match.slice(2, 4), 16) / 255,
+        parseInt(match.slice(4, 6), 16) / 255
+      );
+    };
+    const FONT_KEYS = {
+      'helvetica': 'Helvetica', 'helvetica-bold': 'HelveticaBold',
+      'helvetica-oblique': 'HelveticaOblique', 'helvetica-bold-oblique': 'HelveticaBoldOblique',
+      'times': 'TimesRoman', 'times-bold': 'TimesRomanBold',
+      'times-italic': 'TimesRomanItalic', 'times-bold-italic': 'TimesRomanBoldItalic',
+      'courier': 'Courier', 'courier-bold': 'CourierBold',
+      'courier-oblique': 'CourierOblique', 'courier-bold-oblique': 'CourierBoldOblique'
+    };
+    const pdf = await PDFDocument.load(await file.arrayBuffer());
+    const standardFont = FONT_KEYS[options.standardFont] || FONT_KEYS[options.font] || null;
+    const webFamily = standardFont ? null : (String(options.fontFamily || '').trim() || null);
+    const underline = !!options.underline;
+    const weight = Math.max(100, Math.min(900, Number(options.fontWeight) || 400));
+    const slant = options.fontStyle === 'italic' ? 'italic' : 'normal';
+    const start = Math.max(1, Number(options.start) || 1);
+    const position = options.position || 'bottom-center';
+    const size = Math.min(72, Math.max(6, Number(options.size) || 11));
+    const color = hexToRgb(options.color) || rgb(0.22, 0.24, 0.32);
+    const format = options.format || 'number';
+    const custom = String(options.custom || '').trim();
+    const label = index => {
+      const n = String(start + index);
+      if (format === 'page') return `Page ${n}`;
+      if (format === 'pg') return `Pg ${n}`;
+      if (format === 'dash') return `- ${n} -`;
+      if (format === 'custom') return custom ? custom.replaceAll('{n}', n) : n;
+      return n;
+    };
+
+    let font = null;
+    const imageCache = new Map();
+    if (standardFont) {
+      font = await pdf.embedFont(StandardFonts[standardFont]);
+    } else if (webFamily) {
+      try {
+        await loadWatermarkFont(webFamily, label(0), weight, size, slant);
+      } catch (error) {
+        font = await pdf.embedFont(StandardFonts.Helvetica);
+      }
+    } else {
+      font = await pdf.embedFont(StandardFonts.Helvetica);
+    }
+
+    // Web fonts cannot be embedded by pdf-lib, so stamp the label as artwork.
+    async function labelArtwork(text) {
+      if (imageCache.has(text)) return imageCache.get(text);
+      const scale = Math.min(6, 8192 / (size * 96 / 72 * Math.max(4, text.length) * 2));
+      const fontSize = size * 96 / 72 * scale;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Could not prepare the page-number font.');
+      ctx.font = `${slant} ${weight} ${fontSize}px "${webFamily}"`;
+      const measured = ctx.measureText(text);
+      const pad = fontSize * 0.35;
+      canvas.width = Math.max(1, Math.ceil(measured.width + pad * 2));
+      canvas.height = Math.max(1, Math.ceil(fontSize * 1.8));
+      ctx.font = `${slant} ${weight} ${fontSize}px "${webFamily}"`;
+      ctx.fillStyle = `#${(hexToRgb(options.color) ? [color.red, color.green, color.blue] : [0.22, 0.24, 0.32]).map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join('')}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+      if (underline) {
+        ctx.fillRect((canvas.width - measured.width) / 2, canvas.height / 2 + fontSize * 0.34, measured.width, Math.max(1, fontSize * 0.06));
+      }
+      const blob = await new Promise((resolve, reject) =>
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error('Could not encode the page-number artwork.')), 'image/png'));
+      const image = await pdf.embedPng(await blob.arrayBuffer());
+      const entry = { image, width: canvas.width * 72 / (96 * scale), height: canvas.height * 72 / (96 * scale) };
+      canvas.width = 1; canvas.height = 1;
+      imageCache.set(text, entry);
+      return entry;
+    }
+
+    const margin = 24;
+    progress?.({ percent: 60, label: 'Numbering pages…' });
+    const stampArtwork = [];
+    for (const [index, page] of pdf.getPages().entries()) {
+      const { width, height } = page.getSize();
+      const text = label(index);
+      const pad = Math.min(margin, Math.min(width, height) * 0.08);
+      if (!font) {
+        if (!stampArtwork[index]) stampArtwork[index] = await labelArtwork(text);
+        const art = stampArtwork[index];
+        let ax = width / 2 - art.width / 2;
+        const ay = position.startsWith('top') ? height - pad - art.height : pad;
+        if (position.endsWith('left')) ax = pad;
+        if (position.endsWith('right')) ax = width - art.width - pad;
+        if (art.width > width - pad * 2) ax = Math.max(0, (width - art.width) / 2);
+        ax = Math.min(Math.max(0, ax), Math.max(0, width - art.width));
+        const ayClamped = Math.min(Math.max(0, ay), Math.max(0, height - art.height));
+        page.drawImage(art.image, { x: ax, y: ayClamped, width: art.width, height: art.height, opacity: 1 });
+        continue;
+      }
+      const textWidth = font.widthOfTextAtSize(text, size);
+      // pdf-lib positions text by its baseline. Offset so the *visible* ink keeps the
+      // same margin as the preview, which measures the real glyph box.
+      const fontSize = font.heightAtSize(size, { descender: true });
+      const ascent = size - fontSize;
+      const descender = fontSize;
+      let x = width / 2 - textWidth / 2;
+      let y = pad + descender;
+      if (position.endsWith('right')) x = width - textWidth - pad;
+      if (position.endsWith('left')) x = pad;
+      if (position.startsWith('top')) y = height - pad - ascent;
+      // Never let a long label spill outside the page box.
+      if (textWidth > width - pad * 2) x = Math.max(0, (width - textWidth) / 2);
+      x = Math.min(Math.max(0, x), Math.max(0, width - textWidth));
+      y = Math.min(Math.max(0, y), Math.max(0, height - size));
+      page.drawText(text, { x, y, size, font, color });
+      if (underline) {
+        page.drawLine({
+          start: { x, y: y - size * 0.13 },
+          end: { x: x + textWidth, y: y - size * 0.13 },
+          thickness: Math.max(0.5, size * 0.05),
+          color
+        });
+      }
+    }
+    const bytes = await pdf.save();
+    return { blob: new Blob([bytes], { type: 'application/pdf' }), name: `${safeBaseName(file.name)}-numbered.pdf`, details: `${pdf.getPageCount()} page(s) numbered` };
+  }
+
+  async function addPdfWatermark(file, options, progress) {
+    const { PDFDocument, StandardFonts, rgb, degrees } = await getPdfLib();
+    const FONT_KEYS = {
+      'helvetica': 'Helvetica', 'helvetica-bold': 'HelveticaBold',
+      'helvetica-oblique': 'HelveticaOblique', 'helvetica-bold-oblique': 'HelveticaBoldOblique',
+      'times': 'TimesRoman', 'times-bold': 'TimesRomanBold',
+      'times-italic': 'TimesRomanItalic', 'times-bold-italic': 'TimesRomanBoldItalic',
+      'courier': 'Courier', 'courier-bold': 'CourierBold',
+      'courier-oblique': 'CourierOblique', 'courier-bold-oblique': 'CourierBoldOblique',
+      'symbol': 'Symbol', 'zapf-dingbats': 'ZapfDingbats'
+    };
+    const pdf = await PDFDocument.load(await file.arrayBuffer());
+    const fontName = options.standardFont || FONT_KEYS[String(options.font || '')] || null;
+    const hexMatch = /^#?([0-9a-f]{6})$/i.exec(String(options.color || '').trim());
+    const tint = hexMatch ? parseInt(hexMatch[1], 16) : 0x595a73;
+    const color = rgb(((tint >> 16) & 255) / 255, ((tint >> 8) & 255) / 255, (tint & 255) / 255);
+    const text = String(options.text || 'CONFIDENTIAL').slice(0, 60);
+    const size = Math.max(8, Math.min(200, Number(options.size) || 52));
+    const opacity = Math.max(0.05, Math.min(1, Number(options.opacity) || 0.18));
+    const angle = Math.max(-360, Math.min(360, Number(options.angle) || 45));
+    const xf = Math.max(0, Math.min(1, Number(options.x) || 0.5));
+    const yf = Math.max(0, Math.min(1, Number(options.y) || 0.5));
+    const underline = !!options.underline;
+    let font;
+    let watermarkImage;
+    let imageWidth;
+    let imageHeight;
+    if (fontName) {
+      font = await pdf.embedFont(StandardFonts[fontName]);
+    } else {
+      const family = String(options.fontFamily || '').trim();
+      if (!family) throw new Error('Choose a supported watermark font.');
+      const weight = Math.max(100, Math.min(900, Number(options.fontWeight) || 400));
+      await loadWatermarkFont(family, text, weight, size);
+      const scale = Math.min(4, 8192 / (size * 96 / 72 * Math.max(1, [...text].length) * 2));
+      const fontSize = size * 96 / 72 * scale;
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Could not create the watermark preview image.');
+      context.font = `${weight} ${fontSize}px "${family}"`;
+      const measured = context.measureText(text);
+      canvas.width = Math.ceil(measured.width + fontSize * 0.4);
+      canvas.height = Math.ceil(fontSize * 1.6);
+      const drawContext = canvas.getContext('2d');
+      if (!drawContext) throw new Error('Could not create the watermark preview image.');
+      drawContext.font = `${weight} ${fontSize}px "${family}"`;
+      drawContext.fillStyle = `#${tint.toString(16).padStart(6, '0')}`;
+      drawContext.textAlign = 'center';
+      drawContext.textBaseline = 'middle';
+      drawContext.fillText(text, canvas.width / 2, canvas.height / 2);
+      if (underline) {
+        const measuredWidth = drawContext.measureText(text).width;
+        const underlineY = canvas.height / 2 + fontSize * 0.36;
+        drawContext.fillRect((canvas.width - measuredWidth) / 2, underlineY, measuredWidth, Math.max(1, fontSize * 0.06));
+      }
+      const imageBlob = await new Promise((resolve, reject) => canvas.toBlob(blob => {
+        if (blob) resolve(blob);
+        else reject(new Error('Could not encode the watermark font image.'));
+      }, 'image/png'));
+      watermarkImage = await pdf.embedPng(await imageBlob.arrayBuffer());
+      imageWidth = canvas.width * 72 / (96 * scale);
+      imageHeight = canvas.height * 72 / (96 * scale);
+      canvas.width = 1;
+      canvas.height = 1;
+    }
+    progress?.({ percent: 60, label: 'Watermarking pages…' });
+    pdf.getPages().forEach(page => {
+      const { width, height } = page.getSize();
+      // Preview coordinates are top-down (y=0 at top); PDF coordinates are bottom-up
+      // (y=0 at bottom), so invert Y so the placed position matches the preview.
+      const cx = xf * width;
+      const cy = height - yf * height;
+      if (font) {
+        const textWidth = font.widthOfTextAtSize(text, size);
+        const left = cx - textWidth / 2;
+        const baseline = cy - size / 2;
+        page.drawText(text, {
+          x: left,
+          y: baseline,
+          size, font, opacity, rotate: degrees(angle), color
+        });
+        if (underline) {
+          page.drawLine({
+            start: { x: left, y: baseline - size * 0.13 },
+            end: { x: left + textWidth, y: baseline - size * 0.13 },
+            thickness: Math.max(0.5, size * 0.05),
+            color, opacity, rotate: degrees(angle)
+          });
+        }
+      } else {
+        const radians = angle * Math.PI / 180;
+        page.drawImage(watermarkImage, {
+          x: cx - (imageWidth * Math.cos(radians) - imageHeight * Math.sin(radians)) / 2,
+          y: cy - (imageWidth * Math.sin(radians) + imageHeight * Math.cos(radians)) / 2,
+          width: imageWidth, height: imageHeight, opacity, rotate: degrees(angle)
+        });
+      }
+    });
+    const bytes = await pdf.save();
+    return { blob: new Blob([bytes], { type: 'application/pdf' }), name: `${safeBaseName(file.name)}-watermarked.pdf`, details: `${pdf.getPageCount()} page(s)` };
+  }
+
+  async function organizePdfPages(file, order, progress) {
+    const { PDFDocument } = await getPdfLib();
+    const source = await PDFDocument.load(await file.arrayBuffer());
+    const count = source.getPageCount();
+    const indexes = parsePageOrder(order, count);
+    progress?.({ percent: 60, label: 'Rebuilding pages…' });
+    const out = await PDFDocument.create();
+    const pages = await out.copyPages(source, indexes);
+    pages.forEach(page => out.addPage(page));
+    const bytes = await out.save();
+    return { blob: new Blob([bytes], { type: 'application/pdf' }), name: `${safeBaseName(file.name)}-organized.pdf`, details: `${indexes.length} page(s)` };
+  }
+  
+  const COMPRESSION_LEVELS = {
+    extreme: { dpi: 72, quality: 0.38 },
+    recommended: { dpi: 100, quality: 0.58 },
+    less: { dpi: 150, quality: 0.8 }
+  };
+  
+  async function compressPdf(file, options, progress) {
+    const { PDFDocument } = await getPdfLib();
+    const { loadPdfDocument, renderPageToBlob } = await Promise.resolve(window.iLoveMyFilesModules['pdf-render']);
+    const level = COMPRESSION_LEVELS[options.level] || COMPRESSION_LEVELS.recommended;
+    const doc = await loadPdfDocument(file);
+    const out = await PDFDocument.create();
+    try {
+      const total = doc.numPages;
+      for (let index = 1; index <= total; index++) {
+        progress?.({ percent: Math.round((index - 1) / total * 90), label: `Compressing page ${index} of ${total}…` });
+        const page = await doc.getPage(index);
+        const base = page.getViewport({ scale: 1 });
+        const { blob } = await renderPageToBlob(page, level.dpi / 72, 'image/jpeg', level.quality);
+        const image = await out.embedJpg(await blob.arrayBuffer());
+        const target = out.addPage([base.width, base.height]);
+        target.drawImage(image, { x: 0, y: 0, width: base.width, height: base.height });
+        page.cleanup?.();
+      }
+    } finally { await doc.destroy?.(); }
+    progress?.({ percent: 95, label: 'Building compressed PDF…' });
+    const compressed = new Blob([await out.save()], { type: 'application/pdf' });
+    if (compressed.size >= file.size) {
+      return { blob: file, name: `${safeBaseName(file.name)}-compressed.pdf`, details: `Already optimized - kept original (${formatBytes(file.size)})`, unchanged: true };
+    }
+    const saved = Math.round((1 - compressed.size / file.size) * 100);
+    return { blob: compressed, name: `${safeBaseName(file.name)}-compressed.pdf`, details: `${formatBytes(file.size)} → ${formatBytes(compressed.size)} · −${saved}%` };
+  }
+  
+  async function pdfToImages(file, options, progress) {
+    const { loadPdfDocument, renderPageToBlob } = await Promise.resolve(window.iLoveMyFilesModules['pdf-render']);
+    const type = IMAGE_EXT[options.type] ? options.type : 'image/png';
+    const dpi = Math.max(36, Math.min(400, Number(options.dpi) || 150));
+    const scale = dpi / 72;
+    const doc = await loadPdfDocument(file);
+    try {
+      const count = doc.numPages;
+      const pages = options.pages?.trim() ? parsePageSelection(options.pages, count) : [...Array(count).keys()];
+      if (!pages.length) throw new Error('No pages selected.');
+      const outputs = [];
+      for (let index = 0; index < pages.length; index++) {
+        progress?.({ percent: Math.round(index / pages.length * 95), label: `Rendering page ${pages[index] + 1} of ${count}…` });
+        const page = await doc.getPage(pages[index] + 1);
+        const { blob, width, height } = await renderPageToBlob(page, scale, type, 0.92);
+        outputs.push({
+          blob,
+          name: `${safeBaseName(file.name)}-page-${String(pages[index] + 1).padStart(3, '0')}.${IMAGE_EXT[type]}`,
+          details: `${width} × ${height} · ${formatBytes(blob.size)}`
+        });
+        page.cleanup?.();
+      }
+      return outputs;
+    } finally { await doc.destroy?.(); }
+  }
+  
+  async function splitPdf(file, mode, selection, progress) {
+    const { PDFDocument } = await getPdfLib();
+    const source = await PDFDocument.load(await file.arrayBuffer());
+    const pageCount = source.getPageCount();
+    if (!pageCount) throw new Error('This PDF has no pages.');
+    if (mode === 'selected') {
+      const indexes = parsePageSelection(selection, pageCount);
+      const out = await PDFDocument.create();
+      const pages = await out.copyPages(source, indexes);
+      pages.forEach(page => out.addPage(page));
+      const bytes = await out.save();
+      return [{ blob: new Blob([bytes], { type: 'application/pdf' }), name: `${safeBaseName(file.name)}-pages.pdf`, details: `${indexes.length} page(s) extracted` }];
+    }
+    const JSZip = (await getZip()).default;
+    const zip = new JSZip();
+    for (let index = 0; index < pageCount; index++) {
+      progress?.({ percent: Math.round(index / pageCount * 90), label: `Extracting page ${index + 1} of ${pageCount}…` });
+      const out = await PDFDocument.create();
+      const [page] = await out.copyPages(source, [index]);
+      out.addPage(page);
+      zip.file(`${safeBaseName(file.name)}-page-${String(index + 1).padStart(3, '0')}.pdf`, await out.save());
+    }
+    progress?.({ percent: 95, label: 'Creating ZIP archive…' });
+    const blob = await zip.generateAsync({ type: 'blob' });
+    return [{ blob, name: `${safeBaseName(file.name)}-pages.zip`, details: `${pageCount} PDF files in ZIP` }];
+  }
+      window.iLoveMyFilesModules['pdf-tools'] = { PDF_PAGE_SIZES, imagesToPdf, mergePdfs, mergePdfPages, deletePdfPages, normalizeAngle, rotatePdfPages, resizePdfPages, addPageNumbers, addPdfWatermark, loadWatermarkFont, organizePdfPages, COMPRESSION_LEVELS, compressPdf, pdfToImages, splitPdf };
+  });
+</script>

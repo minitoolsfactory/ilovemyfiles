@@ -1,0 +1,174 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+      const { safeBaseName, formatBytes, canvasToBlob } = window.iLoveMyFilesModules['file-utils'];
+  const OUTPUT_QUALITY = {
+    low: { type: 'image/jpeg', quality: 0.6 },
+    medium: { type: 'image/jpeg', quality: 0.8 },
+    high: { type: 'image/jpeg', quality: 0.92 },
+    lossless: { type: 'image/png', quality: 1 }
+  };
+  
+  const MIN_DPI = 72;
+  const MAX_DPI = 300;
+  const MAX_BYTES = 250 * 1024 * 1024;
+  
+  function resolveDpi(value) {
+    return Math.max(MIN_DPI, Math.min(MAX_DPI, Math.round(Number(value) || 150)));
+  }
+  
+  function guardSize(file) {
+    if (file.size > MAX_BYTES) {
+      throw new Error(`This file is very large (${formatBytes(file.size)}). PDF text-layer conversion works best under 250 MB — compress the PDF first or split it into smaller files.`);
+    }
+  }
+  
+  function encodeCanvas(canvas, preset) {
+    return canvasToBlob(canvas, preset.type, preset.quality);
+  }
+  
+  function collectWords(blocks) {
+    const words = [];
+    for (const block of blocks || []) {
+      for (const paragraph of block.paragraphs || []) {
+        for (const line of paragraph.lines || []) {
+          for (const word of line.words || []) words.push(word);
+        }
+      }
+    }
+    return words;
+  }
+  
+  async function makeSearchablePdf(file, options, progress) {
+    const { PDFDocument, StandardFonts } = await import('pdf-lib');
+    const { loadPdfDocument, renderPageToCanvas } = await Promise.resolve(window.iLoveMyFilesModules['pdf-render']);
+    const { createWorker } = await import('tesseract.js');
+  
+    guardSize(file);
+    const lang = options.lang || 'eng';
+    const dpi = resolveDpi(options.dpi);
+    const preset = OUTPUT_QUALITY[options.quality] || OUTPUT_QUALITY.high;
+    const scale = dpi / 72;
+  
+    const doc = await loadPdfDocument(file);
+    const out = await PDFDocument.create();
+    const font = await out.embedFont(StandardFonts.Helvetica);
+    let recognized = 0;
+    let skipped = 0;
+    let currentPage = 1;
+  
+    progress?.({ percent: 2, label: 'Starting the OCR engine (first run downloads it)…' });
+    const worker = await createWorker(lang, 1, {
+      logger: message => {
+        if (!message.status) return;
+        const within = typeof message.progress === 'number' ? message.progress : 0;
+        const percent = Math.min(94, Math.round(((currentPage - 1 + 0.15 + within * 0.85) / doc.numPages) * 100));
+        progress?.({ percent, label: message.status });
+      }
+    });
+  
+    try {
+      const total = doc.numPages;
+      for (let index = 1; index <= total; index++) {
+        currentPage = index;
+        progress?.({ percent: Math.round((index - 1) / total * 92), label: `Rendering page ${index} of ${total}…` });
+        const page = await doc.getPage(index);
+        const point = page.getViewport({ scale: 1 });
+        const canvas = await renderPageToCanvas(page, scale, true);
+        page.cleanup?.();
+  
+        let data;
+        try {
+          ({ data } = await worker.recognize(canvas, { rotateAuto: false }, { text: true, blocks: true }));
+        } catch (error) {
+          canvas.width = 1; canvas.height = 1;
+          throw new Error(`OCR failed on page ${index} of ${total}: ${error?.message || 'the engine could not read this page'}. Try a lower render resolution.`);
+        }
+  
+        const outPage = out.addPage([point.width, point.height]);
+        const bytes = await (await encodeCanvas(canvas, preset)).arrayBuffer();
+        const image = preset.type === 'image/png' ? await out.embedPng(bytes) : await out.embedJpg(bytes);
+        outPage.drawImage(image, { x: 0, y: 0, width: point.width, height: point.height });
+  
+        for (const word of collectWords(data.blocks)) {
+          const text = (word.text || '').replace(/\s+/g, ' ').trim();
+          if (!text || !word.bbox) continue;
+          const b = word.bbox;
+          const x = b.x0 / scale;
+          const y = point.height - b.y1 / scale;
+          const size = Math.max(1, Math.min(400, (b.y1 - b.y0) / scale * 0.8));
+          try {
+            outPage.drawText(text, { x, y, size, font, opacity: 0 });
+            recognized++;
+          } catch { skipped++; }
+        }
+        canvas.width = 1; canvas.height = 1;
+      }
+    } finally {
+      await doc.destroy?.();
+      await worker.terminate();
+    }
+  
+    progress?.({ percent: 96, label: 'Saving searchable PDF…' });
+    const blob = new Blob([await out.save()], { type: 'application/pdf' });
+    if (!recognized) {
+      throw new Error('No selectable text could be added — the pages may be blank or the language may not match the document.');
+    }
+    const note = skipped ? ` · ${skipped} word(s) skipped (non-Latin script)` : '';
+    return {
+      blob,
+      name: `${safeBaseName(file.name)}-searchable.pdf`,
+      details: `${doc.numPages} page(s) · ${formatBytes(blob.size)} · text layer added${note}`
+    };
+  }
+  
+  async function flattenPdf(file, options, progress) {
+    const { PDFDocument } = await import('pdf-lib');
+    const { loadPdfDocument, renderPageToCanvas } = await Promise.resolve(window.iLoveMyFilesModules['pdf-render']);
+  
+    guardSize(file);
+    const dpi = resolveDpi(options.dpi);
+    const preset = OUTPUT_QUALITY[options.quality] || OUTPUT_QUALITY.high;
+    const scale = dpi / 72;
+  
+    const doc = await loadPdfDocument(file);
+    const out = await PDFDocument.create();
+    try {
+      const total = doc.numPages;
+      for (let index = 1; index <= total; index++) {
+        progress?.({ percent: Math.round((index - 1) / total * 92), label: `Flattening page ${index} of ${total}…` });
+        const page = await doc.getPage(index);
+        const point = page.getViewport({ scale: 1 });
+        let canvas;
+        try {
+          canvas = await renderPageToCanvas(page, scale, true);
+        } catch (error) {
+          throw new Error(`Page ${index} of ${total} could not be rendered: ${error?.message || 'unknown error'}. Try a lower output resolution.`);
+        }
+        page.cleanup?.();
+        const bytes = await (await encodeCanvas(canvas, preset)).arrayBuffer();
+        const image = preset.type === 'image/png' ? await out.embedPng(bytes) : await out.embedJpg(bytes);
+        out.addPage([point.width, point.height])
+          .drawImage(image, { x: 0, y: 0, width: point.width, height: point.height });
+        canvas.width = 1; canvas.height = 1;
+      }
+    } finally {
+      await doc.destroy?.();
+    }
+  
+    progress?.({ percent: 96, label: 'Saving flattened PDF…' });
+    const blob = new Blob([await out.save()], { type: 'application/pdf' });
+    const trend = blob.size > file.size
+      ? `increased from ${formatBytes(file.size)}`
+      : `reduced from ${formatBytes(file.size)}`;
+    return {
+      blob,
+      name: `${safeBaseName(file.name)}-flattened.pdf`,
+      details: `${doc.numPages} page(s) · ${formatBytes(blob.size)} · ${trend}`
+    };
+  }
+      window.iLoveMyFilesModules['pdf-textlayer'] = { OUTPUT_QUALITY, makeSearchablePdf, flattenPdf };
+  });
+</script>

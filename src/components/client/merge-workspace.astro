@@ -1,0 +1,804 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+      const { loadPdfDocument, renderPageToBlob } = window.iLoveMyFilesModules['pdf-render'];
+      const { PDF_PAGE_SIZES } = window.iLoveMyFilesModules['pdf-tools'];
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = text;
+    return node;
+  }
+  
+  function createMergeWorkspace(container, { onAddFiles, onPageSelect, onResetFiles } = {}) {
+    let files = [];
+    let orderModel = [];
+    let defaultSettings = { size: 'original', orientation: 'auto', margin: 0 };
+    let pageSettings = new Map();
+    let manual = false;
+    let activeNode = null;
+    let dragTile = null;
+    let destroyed = false;
+    let loadVersion = 0;
+    const docs = new Map();
+    const docPromises = new Map();
+    const docErrors = new Map();
+    const docLastUsed = new Map();
+    const activeDocumentRenders = new Map();
+    const counts = new Map();
+    const fileIds = new Map();
+    let nextFileId = 1;
+    const nodes = new Map();
+    const thumbnailCache = new Map();
+    const thumbnailInflight = new Map();
+    const THUMBNAIL_CACHE_LIMIT = 300;
+    const renderQueue = [];
+    const activeRenderTasks = new Map();
+    let activeRenders = 0;
+    const MAX_CONCURRENT_RENDERS = 6;
+    const MAX_CONCURRENT_DOCUMENT_LOADS = 4;
+    const MAX_OPEN_DOCUMENTS = 12;
+    let boardObs = null;
+    let previewObs = null;
+  
+    container.innerHTML = '';
+    let _onPageSelect = onPageSelect || null;
+    let _onResetFiles = onResetFiles || null;
+  
+    const bar = el('div', 'merge-bar');
+    const label = el('span', 'merge-label', 'Merged preview');
+    const summary = el('span', 'merge-summary', '');
+    const add = el('button', 'merge-add');
+    add.type = 'button';
+    const addIcon = el('span', 'merge-btn-icon', '➕');
+    const addText = el('span', 'merge-btn-text', 'Add PDFs');
+    add.append(addIcon, addText);
+    add.addEventListener('click', () => onAddFiles?.());
+    const reset = el('button', 'merge-reset');
+    reset.type = 'button';
+    const resetIcon = el('span', 'merge-btn-icon', '↺');
+    const resetText = el('span', 'merge-btn-text', 'Reset order');
+    reset.append(resetIcon, resetText);
+    reset.addEventListener('click', () => { orderModel = defaultOrder(); manual = false; activeNode = null; renderOrder(); });
+    const resetFiles = el('button', 'merge-reset-files', '🗑');
+    resetFiles.type = 'button';
+    resetFiles.title = 'Clear selected PDFs and choose again';
+    resetFiles.setAttribute('aria-label', 'Clear selected PDFs and choose again');
+    resetFiles.addEventListener('click', () => {
+      clearWorkspaceFiles();
+      files = [];
+      orderModel = [];
+      pageSettings.clear();
+      activeNode = null;
+      manual = false;
+      renderOrder();
+      if (_onResetFiles) _onResetFiles();
+    });
+    bar.append(label, summary, add, reset, resetFiles);
+  
+    const panes = el('div', 'merge-panes');
+    const preview = el('div', 'merge-preview');
+    preview.setAttribute('aria-label', 'Merged document preview');
+    const board = el('div', 'merge-board');
+    board.setAttribute('role', 'list');
+    board.setAttribute('aria-label', 'Page order');
+    panes.append(preview, board);
+  
+    const status = el('div', 'merge-status');
+    status.hidden = true;
+  
+    container.append(bar, panes, status);
+  
+    function setStatus(text, kind = '') {
+      if (!text) { status.hidden = true; status.textContent = ''; status.className = 'merge-status'; return; }
+      status.className = `merge-status${kind ? ' merge-status-' + kind : ''}`;
+      status.textContent = text;
+      status.hidden = false;
+    }
+  
+    function fileId(file) {
+      let id = fileIds.get(file);
+      if (id == null) { id = nextFileId++; fileIds.set(file, id); }
+      return id;
+    }
+
+    function markPreviewError(placeholder, text = 'Preview unavailable') {
+      if (!placeholder) return;
+      placeholder.classList.remove('merge-placeholder-hidden');
+      placeholder.classList.add('merge-placeholder-error');
+      placeholder.textContent = text;
+    }
+  
+    function defaultOrder() {
+      const list = [];
+      files.forEach(file => { const n = counts.get(file) || 0; for (let page = 1; page <= n; page++) list.push({ file, page }); });
+      return list;
+    }
+  
+    function updateSummary() {
+      const total = orderModel.length;
+      summary.textContent = `${total} page${total === 1 ? '' : 's'} · ${files.length} file${files.length === 1 ? '' : 's'}`;
+    }
+  
+    function updateLabels(node, index) {
+      const fileIndex = files.indexOf(node.file);
+      const badge = `PDF ${fileIndex + 1}`;
+      node.tileBadge.textContent = badge;
+      node.pageBadge.textContent = badge;
+      const pg = `p${node.page}`;
+      node.tilePage.textContent = pg;
+      node.pageNo.textContent = pg;
+      node.pagePos.textContent = `Page ${index + 1} of ${orderModel.length}`;
+      node.tile.setAttribute('aria-label', `PDF ${fileIndex + 1} page ${node.page}, position ${index + 1}`);
+      node.pageEl.setAttribute('aria-label', `Page ${index + 1}: PDF ${fileIndex + 1} page ${node.page}`);
+    }
+  
+    function getNode(entry) {
+      const key = `${fileId(entry.file)}:${entry.page}`;
+      let node = nodes.get(key);
+      if (!node) { node = makeNode(entry, key); nodes.set(key, node); }
+      return node;
+    }
+  
+    function makeNode(entry, key) {
+      const node = {
+        key, file: entry.file, page: entry.page, tileDone: false, previewQuality: 0, tileQuality: 0,
+        wantsHighPreview: false,
+        previewObjectUrl: null, tileObjectUrl: null,
+        tile: null, page_el: null
+      };
+  
+      const tile = el('div', 'merge-tile');
+      tile.setAttribute('role', 'listitem');
+      tile.draggable = true;
+      tile.tabIndex = 0;
+      tile._node = node;
+      const holder = el('div', 'merge-thumb');
+      const placeholder = el('span', 'merge-placeholder', String(node.page));
+      const timg = document.createElement('img');
+      timg.loading = 'lazy';
+      timg.decoding = 'async';
+      timg.alt = ''; timg.decoding = 'async';
+      timg.style.opacity = '0';
+      holder.append(placeholder, timg);
+      timg.addEventListener('load', () => {
+        if (timg.naturalWidth > 0) {
+          timg.style.opacity = '1';
+          placeholder.classList.add('merge-placeholder-hidden');
+          placeholder.classList.remove('merge-placeholder-error');
+        }
+      });
+      timg.addEventListener('error', () => {
+        if (!isNodeCurrent(node)) return;
+        if (node.tileObjectUrl && timg.currentSrc !== node.tileObjectUrl) return;
+        node.tileQuality = 0;
+        node.tileDone = false;
+        timg.dataset.failed = 'true';
+        timg.style.opacity = '0';
+        markPreviewError(placeholder, 'Thumbnail unavailable');
+      });
+      node.placeholder = placeholder;
+      const moves = el('div', 'merge-moves');
+      const left = el('button', 'merge-move', '‹');
+      left.type = 'button'; left.title = 'Move earlier'; left.setAttribute('aria-label', 'Move page earlier');
+      const right = el('button', 'merge-move', '›');
+      right.type = 'button'; right.title = 'Move later'; right.setAttribute('aria-label', 'Move page later');
+      left.addEventListener('click', event => { event.stopPropagation(); moveNode(node, -1); });
+      right.addEventListener('click', event => { event.stopPropagation(); moveNode(node, 1); });
+      moves.append(left, right);
+      const foot = el('div', 'merge-foot');
+      const tileBadge = el('span', 'merge-badge', 'PDF');
+      const tilePage = el('span', 'merge-pageno', '');
+      foot.append(tileBadge, tilePage);
+      const remove = el('button', 'merge-remove', '×');
+      remove.type = 'button';
+      remove.title = 'Remove this page';
+      remove.setAttribute('aria-label', 'Remove this page from the merge');
+      remove.addEventListener('click', event => { event.stopPropagation(); removeNode(node); });
+      tile.append(holder, foot, moves, remove);
+      tile.addEventListener('click', () => focusNode(node));
+  
+      const pageEl = el('div', 'merge-preview-page');
+      pageEl._node = node;
+      const head = el('div', 'merge-preview-head');
+      const pageBadge = el('span', 'merge-badge', 'PDF');
+      const pageNo = el('span', 'merge-pageno', '');
+      const pagePos = el('span', 'merge-preview-pos', '');
+      head.append(pageBadge, pageNo, pagePos);
+      const body = el('div', 'merge-preview-body');
+      const pimg = document.createElement('img');
+      pimg.loading = 'lazy';
+      pimg.decoding = 'async';
+      pimg.alt = ''; pimg.decoding = 'async';
+      pimg.style.opacity = '0';
+      const pplaceholder = el('span', 'merge-placeholder', String(node.page));
+      body.append(pplaceholder, pimg);
+      pimg.addEventListener('load', () => {
+        if (pimg.naturalWidth > 0) {
+          pimg.style.opacity = '1';
+          pplaceholder.classList.add('merge-placeholder-hidden');
+          pplaceholder.classList.remove('merge-placeholder-error');
+        }
+      });
+      pimg.addEventListener('error', () => {
+        if (!isNodeCurrent(node)) return;
+        if (node.previewObjectUrl && pimg.currentSrc !== node.previewObjectUrl) return;
+        node.previewQuality = 0;
+        pimg.dataset.failed = 'true';
+        pimg.style.opacity = '0';
+        markPreviewError(pplaceholder, 'Preview unavailable');
+      });
+      node.pplaceholder = pplaceholder;
+      pageEl.append(head, body);
+      pageEl.addEventListener('click', () => focusNode(node, true, false));
+  
+      node.tile = tile; node.timg = timg; node.holder = holder;
+      node.tileBadge = tileBadge; node.tilePage = tilePage;
+      node.pageEl = pageEl; node.pimg = pimg; node.pageBadge = pageBadge; node.pageNo = pageNo; node.pagePos = pagePos;
+      return node;
+    }
+  
+    function enqueueRender(node, isPreview, quality = 1) {
+      return new Promise(resolve => {
+        const taskKey = `${node.key}:${isPreview ? 'preview' : 'tile'}`;
+        const queued = renderQueue.find(task => task.key === taskKey && !task.settled);
+        if (queued) {
+          if (quality > queued.quality) {
+            queued.quality = quality;
+            queued.priority = isPreview ? (quality === 2 ? 3 : 2) : 1;
+            renderQueue.sort((a, b) => b.priority - a.priority);
+          }
+          queued.resolvers.push(resolve);
+          return;
+        }
+        const active = activeRenderTasks.get(taskKey);
+        if (active && !active.settled && active.quality >= quality) {
+          active.resolvers.push(resolve);
+          return;
+        }
+        const priority = isPreview ? (quality === 2 ? 3 : 2) : 1;
+        renderQueue.push({ key: taskKey, node, isPreview, quality, priority, resolvers: [resolve], settled: false });
+        renderQueue.sort((a, b) => b.priority - a.priority);
+        drainRenderQueue();
+      });
+    }
+
+    function settleRenderTask(task) {
+      if (task.settled) return;
+      task.settled = true;
+      task.resolvers.splice(0).forEach(resolve => resolve());
+    }
+
+    function drainRenderQueue() {
+      while (!destroyed && activeRenders < MAX_CONCURRENT_RENDERS && renderQueue.length) {
+        const taskIndex = renderQueue.findIndex(task => !activeRenderTasks.has(task.key));
+        if (taskIndex < 0) return;
+        const [task] = renderQueue.splice(taskIndex, 1);
+        activeRenderTasks.set(task.key, task);
+        activeRenders++;
+        renderNode(task.node, task.isPreview, task.quality)
+          .catch(error => {
+            if (!isNodeCurrent(task.node)) return;
+            console.error('merge render failed', error);
+            if (task.isPreview && task.quality > 1) {
+              task.node.wantsHighPreview = false;
+              if (task.node.previewQuality >= 1) {
+                setStatus(`High-quality preview failed for ${task.node.file.name} page ${task.node.page}; the existing preview is retained.`, 'error');
+                return;
+              }
+            }
+            const placeholder = task.isPreview ? task.node.pplaceholder : task.node.placeholder;
+            const visibleQuality = task.isPreview ? task.node.previewQuality : task.node.tileQuality;
+            if (!visibleQuality) markPreviewError(placeholder, task.isPreview ? 'Preview unavailable' : 'Thumbnail unavailable');
+            setStatus(`Preview failed for ${task.node.file.name} page ${task.node.page}: ${error?.message || error || 'Unknown PDF error'}`, 'error');
+          })
+          .finally(() => {
+            activeRenders--;
+            if (activeRenderTasks.get(task.key) === task) activeRenderTasks.delete(task.key);
+            settleRenderTask(task);
+            drainRenderQueue();
+          });
+      }
+    }
+
+    function isNodeCurrent(node) {
+      return !destroyed && files.includes(node.file) &&
+        nodes.get(node.key) === node &&
+        orderModel.some(entry => entry.file === node.file && entry.page === node.page) &&
+        node.pageEl.isConnected && node.tile.isConnected;
+    }
+
+    function revokeNodeImage(node, isPreview) {
+      const property = isPreview ? 'previewObjectUrl' : 'tileObjectUrl';
+      const image = isPreview ? node.pimg : node.timg;
+      const url = node[property];
+      node[property] = null;
+      image?.removeAttribute('src');
+      if (url) URL.revokeObjectURL(url);
+    }
+
+    function disposeNode(node) {
+      revokeNodeImage(node, true);
+      revokeNodeImage(node, false);
+      node.wantsHighPreview = false;
+      for (let index = renderQueue.length - 1; index >= 0; index--) {
+        const task = renderQueue[index];
+        if (task.node !== node) continue;
+        renderQueue.splice(index, 1);
+        settleRenderTask(task);
+      }
+      for (const task of activeRenderTasks.values()) {
+        if (task.node === node) settleRenderTask(task);
+      }
+      node.tile.remove();
+      node.pageEl.remove();
+    }
+
+    function clearFileThumbnailCache(file) {
+      const prefix = `${fileId(file)}:`;
+      for (const key of thumbnailCache.keys()) {
+        if (key.startsWith(prefix)) thumbnailCache.delete(key);
+      }
+    }
+
+    function clearWorkspaceFiles() {
+      for (const node of nodes.values()) disposeNode(node);
+      nodes.clear();
+      for (const task of renderQueue.splice(0)) settleRenderTask(task);
+      for (const task of activeRenderTasks.values()) settleRenderTask(task);
+      for (const [file, doc] of docs) doc?.destroy?.();
+      docs.clear();
+      docPromises.clear();
+      docErrors.clear();
+      docLastUsed.clear();
+      counts.clear();
+      thumbnailCache.clear();
+      board.textContent = '';
+      preview.textContent = '';
+    }
+
+    function evictPdfDocuments(exceptFile = null) {
+      const openDocs = [...docs].filter(([, doc]) => doc);
+      if (openDocs.length <= MAX_OPEN_DOCUMENTS) return;
+      const pendingFiles = new Set(renderQueue.map(task => task?.node?.file).filter(Boolean));
+      openDocs.sort(([fileA], [fileB]) => (docLastUsed.get(fileA) || 0) - (docLastUsed.get(fileB) || 0));
+      let openCount = openDocs.length;
+      for (const [file, doc] of openDocs) {
+        if (openCount <= MAX_OPEN_DOCUMENTS) break;
+        if (file === exceptFile || activeDocumentRenders.has(file) || pendingFiles.has(file)) continue;
+        doc.destroy?.();
+        docs.delete(file);
+        docLastUsed.delete(file);
+        openCount--;
+      }
+    }
+
+    async function renderWithFallback(pageObj, widths, jpegQuality) {
+      const base = pageObj.getViewport({ scale: 1 });
+      let lastError = null;
+      for (const width of widths) {
+        try {
+          const scale = Math.max(0.1, width / base.width);
+          const rendered = await renderPageToBlob(pageObj, scale, 'image/jpeg', jpegQuality);
+          if (rendered?.blob && rendered.width > 0) return rendered;
+          lastError = new Error('Page renderer returned an empty preview image.');
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      throw lastError || new Error('Page rendering failed.');
+    }
+
+    async function renderNode(node, isPreview, quality) {
+      activeDocumentRenders.set(node.file, (activeDocumentRenders.get(node.file) || 0) + 1);
+      try {
+        const doc = await loadDocument(node.file);
+        if (!doc || !isNodeCurrent(node)) return;
+        const pageObj = await doc.getPage(node.page);
+        if (!isNodeCurrent(node)) return;
+        const viewport = pageObj.getViewport({ scale: 1 });
+        node.pageSize = { width: viewport.width, height: viewport.height };
+        const widths = isPreview ? [quality === 2 ? 800 : 200] : [64, 48, 32];
+        const jpegQuality = isPreview ? (quality === 2 ? 0.75 : 0.35) : 0.3;
+        const cacheKey = `${fileId(node.file)}:${node.page}:${isPreview ? `preview:${quality}` : 'tile'}`;
+        let result = thumbnailCache.get(cacheKey);
+        if (result) {
+          thumbnailCache.delete(cacheKey);
+          thumbnailCache.set(cacheKey, result);
+        } else {
+          let renderPromise = thumbnailInflight.get(cacheKey);
+          if (!renderPromise) {
+            renderPromise = renderWithFallback(pageObj, widths, jpegQuality);
+            thumbnailInflight.set(cacheKey, renderPromise);
+          }
+          try {
+            result = await renderPromise;
+          } finally {
+            if (thumbnailInflight.get(cacheKey) === renderPromise) thumbnailInflight.delete(cacheKey);
+          }
+          if (result?.blob && isNodeCurrent(node)) {
+            while (thumbnailCache.size >= THUMBNAIL_CACHE_LIMIT) {
+              const oldestKey = thumbnailCache.keys().next().value;
+              thumbnailCache.delete(oldestKey);
+            }
+            thumbnailCache.set(cacheKey, { blob: result.blob, width: result.width, height: result.height });
+          }
+        }
+        const blob = result?.blob;
+        if (!isNodeCurrent(node)) return;
+        if (!blob) throw new Error('Page renderer returned an empty preview image.');
+        const image = isPreview ? node.pimg : node.timg;
+        const placeholder = isPreview ? node.pplaceholder : node.placeholder;
+        const urlProperty = isPreview ? 'previewObjectUrl' : 'tileObjectUrl';
+        const url = URL.createObjectURL(blob);
+        const previousUrl = node[urlProperty];
+        const probe = new Image();
+        probe.src = url;
+        try {
+          await probe.decode();
+          if (!isNodeCurrent(node)) {
+            URL.revokeObjectURL(url);
+            return;
+          }
+          image.src = url;
+          image.onerror = () => {
+            if (node[urlProperty] || image.getAttribute('src') !== url) return;
+            image.removeAttribute('src');
+            URL.revokeObjectURL(url);
+          };
+          await image.decode();
+          if (!isNodeCurrent(node)) {
+            URL.revokeObjectURL(url);
+            return;
+          }
+        } catch (error) {
+          if (image.getAttribute('src') === url) {
+            if (previousUrl) image.src = previousUrl;
+            else image.removeAttribute('src');
+          }
+          URL.revokeObjectURL(url);
+          throw new Error(`Could not decode preview image: ${error?.message || error}`);
+        }
+        node[urlProperty] = url;
+        if (previousUrl) URL.revokeObjectURL(previousUrl);
+        image.style.opacity = '1';
+        image.dataset.quality = String(quality);
+        image.dataset.failed = 'false';
+        placeholder.classList.add('merge-placeholder-hidden');
+        if (isPreview) {
+          node.pageEl.classList.add('ready');
+          node.previewQuality = quality;
+          if (quality >= 2) node.wantsHighPreview = false;
+          try { applyPreviewSettings(node); } catch { /* sizing fallback, image still shows */ }
+        } else {
+          node.holder.classList.add('ready');
+          node.tileQuality = quality;
+          node.tileDone = true;
+        }
+        if (status.textContent.startsWith(`Preview failed for ${node.file.name} page ${node.page}:`) || status.textContent.startsWith(`Could not render page ${node.page} from ${node.file.name}.`)) setStatus('');
+      } finally {
+        const activeCount = (activeDocumentRenders.get(node.file) || 1) - 1;
+        if (activeCount > 0) activeDocumentRenders.set(node.file, activeCount);
+        else activeDocumentRenders.delete(node.file);
+        evictPdfDocuments(node.file);
+      }
+    }
+
+    function ensureRendered(node, isPreview = false, quality = 1) {
+      const requested = isPreview ? node.previewQuality : node.tileQuality;
+      if (isPreview) {
+        if (quality === 2) node.wantsHighPreview = true;
+        if (requested >= quality && !node.pimg.dataset.failed) return Promise.resolve();
+      } else if (requested >= quality && !node.timg.dataset.failed) return Promise.resolve();
+      if (!counts.get(node.file)) return null;
+      const placeholder = isPreview ? node.pplaceholder : node.placeholder;
+      const hasVisiblePreview = isPreview ? node.previewQuality > 0 : node.tileQuality > 0;
+      if (placeholder && !hasVisiblePreview) {
+        placeholder.classList.remove('merge-placeholder-hidden', 'merge-placeholder-error');
+        placeholder.textContent = String(node.page);
+      }
+      const requestedQuality = isPreview ? (quality === 2 ? 2 : 1) : 1;
+      return enqueueRender(node, isPreview, requestedQuality).then(async () => {
+        if (isPreview && node.wantsHighPreview && node.previewQuality < 2 && !destroyed) {
+          node.wantsHighPreview = false;
+          return ensureRendered(node, true, 2);
+        }
+      });
+    }
+  
+    function makeObserver(root, isPreview) {
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => { if (entry.isIntersecting) { ensureRendered(entry.target._node, isPreview); observer.unobserve(entry.target); } });
+      }, { root, rootMargin: isPreview ? '180px' : '300px' });
+      return observer;
+    }
+  
+    function observeLazy() {
+      boardObs?.disconnect();
+      previewObs?.disconnect();
+      boardObs = makeObserver(board, false);
+      previewObs = makeObserver(preview, true);
+      const tiles = [...board.querySelectorAll('.merge-tile')];
+      const pages = [...preview.querySelectorAll('.merge-preview-page')];
+      pages.forEach((page, index) => { if (index < 1) ensureRendered(page._node, true, 1); else previewObs.observe(page); });
+      tiles.forEach((tile, index) => { if (index < 6) ensureRendered(tile._node, false); else boardObs.observe(tile); });
+    }
+  
+    function applyPreviewSettings(node) {
+      if (!node || !node.pageEl) return;
+      const body = node.pageEl.querySelector('.merge-preview-body');
+      const img = node.pimg;
+      if (!body || !img) return;
+      const settings = pageSettings.get(node.key) || defaultSettings;
+      const orig = node.pageSize || { width: 612, height: 792 };
+      const sizeKey = settings.size || 'original';
+      const orientation = settings.orientation || 'auto';
+      let width = orig.width, height = orig.height;
+      if (sizeKey !== 'original' && PDF_PAGE_SIZES[sizeKey]) {
+        [width, height] = PDF_PAGE_SIZES[sizeKey];
+        const landscape = orientation === 'landscape' || (orientation === 'auto' && orig.width > orig.height);
+        if (landscape) [width, height] = [height, width];
+      }
+      const m = Math.max(0, Number(settings.margin) || 0);
+      const availW = Math.max(1, width - m * 2);
+      const availH = Math.max(1, height - m * 2);
+      const scale = Math.min(availW / orig.width, availH / orig.height);
+      body.style.aspectRatio = `${width} / ${height}`;
+      img.style.width = `${(orig.width * scale / width) * 100}%`;
+      img.style.height = 'auto';
+    }
+  
+    function renderOrder() {
+      const tiles = document.createDocumentFragment();
+      const pages = document.createDocumentFragment();
+      orderModel.forEach((entry, index) => {
+        const node = getNode(entry);
+        updateLabels(node, index);
+        tiles.append(node.tile);
+        pages.append(node.pageEl);
+      });
+      board.textContent = '';
+      preview.textContent = '';
+      board.append(tiles);
+      preview.append(pages);
+      updateSummary();
+      observeLazy();
+      if (activeNode) { activeNode.tile.classList.add('active'); activeNode.pageEl.classList.add('active'); }
+    }
+  
+    function focusNode(node, scroll = true, toNode = true) {
+      nodes.forEach(n => { n.tile.classList.remove('active'); n.pageEl.classList.remove('active'); });
+      activeNode = node;
+      node.tile.classList.add('active');
+      node.pageEl.classList.add('active');
+      ensureRendered(node, true, 2);
+      ensureRendered(node, false);
+      if (toNode) node.tile.focus({ preventScroll: true });
+      if (scroll) node.pageEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      applyPreviewSettings(node);
+      if (_onPageSelect) _onPageSelect(node);
+    }
+  
+    function modelFromDom() {
+      return [...board.querySelectorAll('.merge-tile')].map(tile => ({ file: tile._node.file, page: tile._node.page }));
+    }
+  
+    function moveNode(node, direction) {
+      const from = orderModel.findIndex(entry => entry.file === node.file && entry.page === node.page);
+      const to = from + direction;
+      if (from < 0 || to < 0 || to >= orderModel.length) return;
+      const [moved] = orderModel.splice(from, 1);
+      orderModel.splice(to, 0, moved);
+      manual = true;
+      renderOrder();
+      focusNode(node, true, false);
+    }
+  
+    function removeNode(node) {
+      disposeNode(node);
+      orderModel = orderModel.filter(entry => !(entry.file === node.file && entry.page === node.page));
+      nodes.delete(node.key);
+      pageSettings.delete(node.key);
+      if (activeNode === node) activeNode = null;
+      manual = true;
+      renderOrder();
+      if (_onPageSelect) _onPageSelect(activeNode);
+    }
+  
+    function afterElement(x, y) {
+      const tiles = [...board.querySelectorAll('.merge-tile:not(.dragging)')];
+      let best = null, bestDist = Infinity;
+      for (const tile of tiles) {
+        const r = tile.getBoundingClientRect();
+        const dist = Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2));
+        if (dist < bestDist) { bestDist = dist; best = tile; }
+      }
+      if (!best) return null;
+      const r = best.getBoundingClientRect();
+      const past = (y > r.top + r.height / 2) || (Math.abs(y - (r.top + r.height / 2)) < r.height / 2 && x > r.left + r.width / 2);
+      return past ? best.nextElementSibling : best;
+    }
+  
+    board.addEventListener('dragstart', event => {
+      const tile = event.target.closest('.merge-tile');
+      if (!tile) return;
+      dragTile = tile;
+      tile.classList.add('dragging');
+      if (event.dataTransfer) { event.dataTransfer.effectAllowed = 'move'; try { event.dataTransfer.setData('text/plain', ''); } catch { /* ignore */ } }
+    });
+    board.addEventListener('dragend', () => {
+      dragTile?.classList.remove('dragging');
+      dragTile = null;
+      orderModel = modelFromDom();
+      manual = true;
+      renderOrder();
+    });
+    board.addEventListener('dragover', event => {
+      if (!dragTile) return;
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+      const after = afterElement(event.clientX, event.clientY);
+      if (after == null) board.append(dragTile);
+      else board.insertBefore(dragTile, after);
+    });
+    board.addEventListener('drop', event => event.preventDefault());
+  
+    reset.addEventListener('click', () => { orderModel = defaultOrder(); manual = false; activeNode = null; renderOrder(); });
+  
+    async function loadDocument(file) {
+      if (docs.has(file)) {
+        const doc = docs.get(file);
+        if (!doc && docErrors.has(file)) throw new Error(docErrors.get(file));
+        if (doc) docLastUsed.set(file, Date.now());
+        return doc;
+      }
+      let promise = docPromises.get(file);
+      if (!promise) {
+        promise = loadPdfDocument(file).then(doc => {
+          if (destroyed || !files.includes(file)) {
+            doc.destroy?.();
+            return null;
+          }
+          docs.set(file, doc);
+          counts.set(file, doc.numPages);
+          docLastUsed.set(file, Date.now());
+          docErrors.delete(file);
+          return doc;
+        }).finally(() => docPromises.delete(file));
+        docPromises.set(file, promise);
+      }
+      return promise;
+    }
+
+    function rebuildOrderModel() {
+      if (!manual) {
+        orderModel = defaultOrder();
+        return;
+      }
+      orderModel = orderModel.filter(entry => files.includes(entry.file) && entry.page <= (counts.get(entry.file) || 0));
+      const present = new Set(orderModel.map(entry => `${fileId(entry.file)}:${entry.page}`));
+      files.forEach(file => {
+        const pageCount = counts.get(file) || 0;
+        for (let page = 1; page <= pageCount; page++) {
+          const key = `${fileId(file)}:${page}`;
+          if (!present.has(key)) orderModel.push({ file, page });
+        }
+      });
+    }
+
+    async function load(nextFiles) {
+      const requestVersion = ++loadVersion;
+      const loadStart = performance.now();
+      files = [...nextFiles];
+      const loadErrors = [];
+      for (const [file, doc] of [...docs]) {
+        if (!files.includes(file)) {
+          for (const [key, node] of [...nodes]) {
+            if (node.file !== file) continue;
+            disposeNode(node);
+            nodes.delete(key);
+          }
+          clearFileThumbnailCache(file);
+          doc?.destroy?.();
+          docs.delete(file);
+          counts.delete(file);
+          docErrors.delete(file);
+          docLastUsed.delete(file);
+        }
+      }
+      for (const [key, node] of [...nodes]) {
+        if (files.includes(node.file)) continue;
+        disposeNode(node);
+        nodes.delete(key);
+      }
+      if (activeNode && !files.includes(activeNode.file)) activeNode = null;
+      const filesToLoad = [...files];
+      let loadedCount = 0;
+      const loadFile = async (file, index) => {
+        if (destroyed || requestVersion !== loadVersion) return;
+        fileId(file);
+        setStatus(`Reading PDFs · ${loadedCount} of ${filesToLoad.length} ready`);
+        if (!docs.has(file)) {
+          try {
+            const doc = await loadDocument(file);
+            if (destroyed || requestVersion !== loadVersion) return;
+            if (!doc) {
+              loadErrors.push(`${file.name}: The file is no longer selected.`);
+              counts.set(file, 0);
+            }
+          } catch (error) {
+            docs.set(file, null);
+            counts.set(file, 0);
+            const message = error?.message || 'The PDF could not be read.';
+            docErrors.set(file, message);
+            loadErrors.push(`${file.name}: ${message}`);
+          }
+        } else if (!docs.get(file) && docErrors.has(file)) {
+          loadErrors.push(`${file.name}: ${docErrors.get(file)}`);
+        }
+        loadedCount++;
+        rebuildOrderModel();
+        if (loadedCount === 1 || loadedCount % 4 === 0 || loadedCount === filesToLoad.length) renderOrder();
+        evictPdfDocuments();
+      };
+      if (filesToLoad.length) await loadFile(filesToLoad[0], 0);
+      let nextIndex = 1;
+      const workers = Array.from(
+        { length: Math.min(MAX_CONCURRENT_DOCUMENT_LOADS, Math.max(0, filesToLoad.length - 1)) },
+        async () => {
+          while (!destroyed && requestVersion === loadVersion && nextIndex < filesToLoad.length) {
+            const index = nextIndex++;
+            await loadFile(filesToLoad[index], index);
+          }
+        }
+      );
+      await Promise.all(workers);
+      if (destroyed || requestVersion !== loadVersion) return;
+      rebuildOrderModel();
+      if (loadedCount !== filesToLoad.length) renderOrder();
+      setStatus(loadErrors.length ? `Could not open ${loadErrors.join('; ')}` : '');
+      console.debug(`[ilovemyfiles-merge] loaded ${loadedCount} files in ${Math.round(performance.now() - loadStart)}ms`);
+    }
+  
+    function getOrder() {
+      return [...board.querySelectorAll('.merge-tile')].map(tile => {
+        const node = tile._node;
+        const settings = pageSettings.get(node.key) || defaultSettings;
+        return { fileIndex: files.indexOf(node.file), page: node.page, size: settings.size, orientation: settings.orientation, margin: settings.margin };
+      }).filter(entry => entry.fileIndex >= 0);
+    }
+  
+    function destroy() {
+      destroyed = true;
+      loadVersion++;
+      boardObs?.disconnect();
+      previewObs?.disconnect();
+      boardObs = previewObs = null;
+      clearWorkspaceFiles();
+      activeDocumentRenders.clear();
+      fileIds.clear();
+      pageSettings.clear();
+      container.innerHTML = '';
+    let _onPageSelect = onPageSelect || null;
+    let _onResetFiles = onResetFiles || null;
+    }
+  
+    return { load, getOrder, destroy, getPageCount: () => orderModel.length,
+      getDefaultSettings: () => ({ ...defaultSettings }),
+      setDefaultSettings: (settings) => { defaultSettings = { ...defaultSettings, ...settings }; },
+      getActiveKey: () => activeNode ? activeNode.key : null,
+      getActiveSettings: () => activeNode ? { ...(pageSettings.get(activeNode.key) || defaultSettings) } : { ...defaultSettings },
+      refreshActivePreview: () => { if (activeNode) applyPreviewSettings(activeNode); },
+      setActiveSettings: (patch) => {
+        if (!activeNode) { defaultSettings = { ...defaultSettings, ...patch }; return; }
+        const current = pageSettings.get(activeNode.key) || { ...defaultSettings };
+        pageSettings.set(activeNode.key, { ...current, ...patch });
+      },
+      setPageSelectHandler: (fn) => { _onPageSelect = fn || null; }
+    };
+  }
+      window.iLoveMyFilesModules['merge-workspace'] = { createMergeWorkspace };
+  });
+</script>

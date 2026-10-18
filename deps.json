@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "gifenc": "^1.0.3",
+    "jsbarcode": "^3.12.3",
+    "jszip": "^3.10.1",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.10.38",
+    "qrcode-generator": "^2.0.4",
+    "tesseract.js": "^7.0.0"
+  }
+}

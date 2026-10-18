@@ -1,0 +1,30 @@
+{
+  "name": "ilovemyfiles",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "npm run build && wrangler dev",
+    "astro": "astro",
+    "deploy": "npm run build && wrangler pages deploy dist",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "12",
+    "astro": "^5.18.2",
+    "gifenc": "^1.0.3",
+    "jsbarcode": "^3.12.3",
+    "jszip": "^3.10.2",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.4.299",
+    "qrcode-generator": "^2.0.4",
+    "tesseract.js": "^7.0.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.151.1"
+  }
+}

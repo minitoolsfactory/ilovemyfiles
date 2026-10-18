@@ -1,0 +1,267 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+    const registry = window.iLoveMyFilesModules['font-registry'];
+
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = text;
+    return node;
+  }
+
+  const CHEVRON = '<svg class="font-picker-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+
+  // innerHTML on a template parses markup into real elements (append() would
+  // insert a string as a text node, which renders the raw markup).
+  function fromHtml(html) {
+    const template = document.createElement('template');
+    template.innerHTML = html.trim();
+    return template.content.firstElementChild;
+  }
+
+  // Compact, scrollable, searchable font picker. Every option is rendered in its
+  // own typeface so the choice is obvious before it is made.
+  function createFontPicker(root, options = {}) {
+    let {
+      value = 'Helvetica',
+      fonts = registry.ALL_FONTS.filter(font => !font.symbolOnly),
+      label = 'Font',
+      onChange = null
+    } = options;
+
+    let current = value;
+    let open = false;
+    let activeIndex = 0;
+    let flat = [];
+
+    const RECENT_KEY = 'ilovemyfiles:recent-fonts';
+    const RECENT_LIMIT = 6;
+
+    function readRecent() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+        if (!Array.isArray(stored)) return [];
+        return stored.filter(id => registry.getFont(id));
+      } catch { return []; }
+    }
+
+    function rememberFont(id) {
+      if (!registry.getFont(id)) return;
+      const next = [id, ...readRecent().filter(entry => entry !== id)].slice(0, RECENT_LIMIT);
+      try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* storage unavailable */ }
+    }
+
+    root.classList.add('font-picker');
+    root.textContent = '';
+
+    const trigger = el('button', 'font-picker-trigger');
+    trigger.type = 'button';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.setAttribute('aria-label', label);
+    const currentLabel = el('span', 'font-picker-current');
+    trigger.append(currentLabel, fromHtml(CHEVRON));
+
+    const panel = el('div', 'font-picker-panel');
+    panel.hidden = true;
+    const search = el('input', 'font-picker-search');
+    search.type = 'search';
+    search.placeholder = `Search ${fonts.length} fonts…`;
+    search.setAttribute('aria-label', `Search ${label}`);
+    search.autocomplete = 'off';
+    const list = el('ul', 'font-picker-list');
+    list.setAttribute('role', 'listbox');
+    list.setAttribute('aria-label', label);
+    const empty = el('li', 'font-picker-empty', 'No matching fonts');
+    empty.hidden = true;
+    panel.append(search, list, empty);
+    root.append(trigger, panel);
+
+    // Kept in sync so any existing consumer can keep reading a plain input value.
+    const hidden = options.targetInput ? document.querySelector(options.targetInput) : null;
+
+    function fontStyleFor(font, px = 15) {
+      return `${font.style || 'normal'} ${font.weight || 400} ${px}px ${font.css}`;
+    }
+
+    function paintTrigger() {
+      const font = registry.getFont(current);
+      const px = options.triggerPx || 14;
+      currentLabel.textContent = font ? font.label : current;
+      currentLabel.style.font = fontStyleFor(font || { css: 'inherit' }, px);
+    }
+
+    function matches(font, query) {
+      if (!query) return true;
+      return font.label.toLowerCase().includes(query);
+    }
+
+    // Recently used first, then the built-in PDF standard fonts we use by default,
+// then everything else alphabetically.
+    function buildSections() {
+      const query = search.value.trim().toLowerCase();
+      const sections = [];
+
+      const recent = readRecent()
+        .map(id => registry.getFont(id))
+        .filter(font => font && matches(font, query));
+      if (recent.length) sections.push({ title: 'Recently used', fonts: recent });
+
+      const used = new Set(recent.map(font => font.id));
+      const rest = fonts
+        .filter(font => !used.has(font.id) && matches(font, query))
+        .sort((a, b) => a.label.localeCompare(b.label));
+
+      const standard = rest.filter(font => font.category === 'Standard');
+      if (standard.length) sections.push({ title: 'Standard', fonts: standard });
+
+      const others = rest.filter(font => font.category !== 'Standard');
+      if (others.length) sections.push({ title: 'All fonts', fonts: others });
+
+      return sections;
+    }
+
+    function renderList() {
+      const sections = buildSections();
+      list.textContent = '';
+      flat = [];
+      sections.forEach(section => {
+        const head = el('li', 'font-picker-group', section.title);
+        head.setAttribute('role', 'presentation');
+        list.append(head);
+        section.fonts.forEach(font => {
+          const position = flat.length;
+          const item = el('li', 'font-picker-option', font.label);
+          item.setAttribute('role', 'option');
+          item.id = `font-picker-opt-${position}`;
+          item.dataset.value = font.id;
+          item.style.font = fontStyleFor(font, options.optionPx || 16);
+          if (font.id === current) {
+            item.classList.add('is-selected');
+            item.setAttribute('aria-selected', 'true');
+          }
+          item.addEventListener('click', () => { select(font.id); });
+          item.addEventListener('mousemove', () => { setActive(position, false); });
+          flat.push(font);
+          list.append(item);
+        });
+      });
+
+      empty.hidden = flat.length > 0;
+      if (!flat.length) { list.setAttribute('aria-activedescendant', ''); return; }
+      const selectedPosition = flat.findIndex(font => font.id === current);
+      activeIndex = selectedPosition >= 0 ? selectedPosition : 0;
+      paintActive();
+    }
+
+    function paintActive() {
+      const items = list.querySelectorAll('.font-picker-option');
+      for (let i = 0; i < items.length; i++) items[i].classList.toggle('is-active', i === activeIndex);
+      const active = items[activeIndex];
+      if (active) {
+        list.setAttribute('aria-activedescendant', active.id);
+        active.scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    function setActive(index, scroll = true) {
+      if (!flat.length) return;
+      const items = list.querySelectorAll('.font-picker-option');
+      if (!items.length) return;
+      activeIndex = Math.max(0, Math.min(items.length - 1, index));
+      paintActive();
+      if (scroll) items[activeIndex].scrollIntoView({ block: 'nearest' });
+    }
+
+    function commit(id) {
+      current = id;
+      paintTrigger();
+      if (hidden) hidden.value = id;
+      if (onChange) onChange(id);
+    }
+
+    function select(id) {
+      rememberFont(id);
+      commit(id);
+      setOpen(false);
+      trigger.focus();
+    }
+
+    function setOpen(next) {
+      if (open === next) return;
+      open = next;
+      panel.hidden = !open;
+      trigger.setAttribute('aria-expanded', String(open));
+      root.classList.toggle('is-open', open);
+      if (open) {
+        registry.ensureWebFonts();
+        search.value = '';
+        renderList();
+        setActive(Math.max(0, flat.findIndex(font => font.id === current)));
+        // Flip above the trigger when there is not enough room below it.
+        requestAnimationFrame(() => {
+          const box = panel.getBoundingClientRect();
+          const flips = box.bottom > window.innerHeight - 8 && box.top > box.bottom - window.innerHeight;
+          root.classList.toggle('drop-up', flips);
+        });
+        search.focus();
+      }
+    }
+
+    trigger.addEventListener('click', () => setOpen(!open));
+
+    search.addEventListener('input', () => { renderList(); });
+
+    search.addEventListener('keydown', event => {
+      if (event.key === 'ArrowDown') { event.preventDefault(); setActive(activeIndex + 1); }
+      else if (event.key === 'ArrowUp') { event.preventDefault(); setActive(activeIndex - 1); }
+      else if (event.key === 'Home') { event.preventDefault(); setActive(0); }
+      else if (event.key === 'End') { event.preventDefault(); setActive(list.children.length - 1); }
+      else if (event.key === 'Enter') {
+        event.preventDefault();
+        const font = flat[activeIndex];
+        if (font) select(font.id);
+      } else if (event.key === 'Escape') { event.preventDefault(); setOpen(false); trigger.focus(); }
+    });
+
+    trigger.addEventListener('keydown', event => {
+      if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        setOpen(true);
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setOpen(true);
+        setActive(Math.max(0, flat.findIndex(font => font.id === current) - 1));
+      } else if (event.key === 'Escape') setOpen(false);
+    });
+
+    const onDocumentPointerDown = event => {
+      if (!open) return;
+      if (root.contains(event.target)) return;
+      setOpen(false);
+    };
+    document.addEventListener('pointerdown', onDocumentPointerDown, true);
+
+    commit(current);
+
+    return {
+      element: root,
+      get value() { return current; },
+      set value(next) { commit(next); },
+      setOptions(nextFonts) { fonts = nextFonts; if (open) renderList(); paintTrigger(); },
+      focus() { trigger.focus(); },
+      destroy() {
+        document.removeEventListener('pointerdown', onDocumentPointerDown, true);
+        open = false;
+        root.classList.remove('font-picker', 'is-open');
+        root.textContent = '';
+      }
+    };
+  }
+
+    window.iLoveMyFilesModules['font-picker'] = { createFontPicker };
+  });
+</script>

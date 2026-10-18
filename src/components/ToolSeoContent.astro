@@ -1,0 +1,45 @@
+---
+import toolData from '../data/tools.json';
+
+const { tool } = Astro.props;
+const { CATEGORIES, TOOLS } = toolData;
+const category = CATEGORIES.find(item => item.id === tool.category)?.label ?? 'Tool';
+const related = tool.seo.related.map(id => TOOLS.find(item => item.id === id)).filter(Boolean);
+const icon = (item, large = false) => `<span class="tool-icon icon-${item.icon}${large ? ' tool-icon-lg' : ''}"><svg viewBox="0 0 24 24">${item.svg}</svg></span>`;
+---
+
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/">Home</a><span>/</span><a href="/#tools">Tools</a><span>/</span><span aria-current="page">{tool.cardTitle}</span>
+</nav>
+<header class="tool-hero">
+  <span set:html={icon(tool, true)} />
+  <div class="tool-hero-copy">
+    <div class="eyebrow">{category}</div>
+    <h1>{tool.cardTitle}</h1>
+    <p>{tool.seo.intro}</p>
+    <a class="button button-primary" href={`/${tool.slug}/?open=1`} data-tool-id={tool.id}>Open {tool.cardTitle} tool <span aria-hidden="true">→</span></a>
+    <span class="micro-trust"><span class="status-dot"></span> Runs in your browser - files are never uploaded</span>
+  </div>
+</header>
+<div class="tool-content">
+  <div class="tool-main">
+    <h2>How to use it</h2>
+    <ol class="steps">
+      {tool.seo.steps.map(step => <li>{step}</li>)}
+    </ol>
+    <h2>Frequently asked questions</h2>
+    <div class="faq-list">
+      {tool.seo.faqs.map(([question, answer]) => (
+        <details class="faq"><summary>{question}</summary><p>{answer}</p></details>
+      ))}
+    </div>
+  </div>
+  <aside class="related-box">
+    <h3>Related tools</h3>
+    <div class="related-list">
+      {related.map(item => (
+        <a class="related-link" href={`/${item.slug}/`} data-tool-id={item.id}><span set:html={icon(item)} /><b>{item.cardTitle}</b></a>
+      ))}
+    </div>
+  </aside>
+</div>

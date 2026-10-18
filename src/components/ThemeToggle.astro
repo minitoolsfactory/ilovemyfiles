@@ -1,0 +1,42 @@
+---
+---
+<button
+  type="button"
+  class="theme-toggle"
+  id="theme-toggle"
+  aria-label="Switch to dark mode"
+  aria-pressed="false"
+>
+  <span aria-hidden="true">☾</span>
+</button>
+<script>
+  const button = document.getElementById('theme-toggle');
+  if (button) {
+  const root = document.documentElement;
+  const apply = (theme, persist) => {
+    root.dataset.theme = theme;
+    const dark = theme === 'dark';
+    button.setAttribute('aria-pressed', String(dark));
+    button.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+    button.firstElementChild.textContent = dark ? '☀' : '☾';
+    if (persist) { try { localStorage.setItem('ilovemyfiles-theme', theme); } catch { /* noop */ } }
+  };
+  let stored = null;
+  try { stored = localStorage.getItem('ilovemyfiles-theme'); } catch { stored = null; }
+  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  apply(stored ?? (prefersDark ? 'dark' : 'light'));
+  button.addEventListener('click', () => apply(root.dataset.theme === 'dark' ? 'light' : 'dark', true));
+  }
+</script>
+<style>
+  .theme-toggle {
+    border: 0;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+    color: inherit;
+    padding: 6px;
+    border-radius: 6px;
+  }
+  .theme-toggle:focus-visible { outline: 3px solid #aaa9ff; outline-offset: 3px; }
+</style>

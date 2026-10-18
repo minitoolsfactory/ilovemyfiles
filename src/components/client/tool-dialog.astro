@@ -1,0 +1,2134 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+      const { formatBytes, downloadBlob, safeBaseName, updateProgress, parsePageSelection, parsePageOrder } = window.iLoveMyFilesModules['file-utils'];
+      const { convertImage, compressImage, resizeImage, rotateImage, cropImage, watermarkImage, readImageDimensions } = window.iLoveMyFilesModules['image-tools'];
+      const { imagesToPdf, mergePdfs, mergePdfPages, splitPdf, deletePdfPages, rotatePdfPages, addPageNumbers, addPdfWatermark, loadWatermarkFont, organizePdfPages, pdfToImages, compressPdf, resizePdfPages, normalizeAngle, COMPRESSION_LEVELS, PDF_PAGE_SIZES } = window.iLoveMyFilesModules['pdf-tools'];
+      const { inspectPdfMetadata, removePdfMetadata } = window.iLoveMyFilesModules['metadata-tools'];
+      const { formatJson, base64Convert, hashText, hashFiles, countTextReport, jsonToCsv, csvToJson, convertUnits } = window.iLoveMyFilesModules['data-tools'];
+      const { generateQr, generateBarcode } = window.iLoveMyFilesModules['generator-tools'];
+      const { ocrFile } = window.iLoveMyFilesModules['ocr'];
+      const { makeSearchablePdf, flattenPdf } = window.iLoveMyFilesModules['pdf-textlayer'];
+      const { PreviewWorkspace } = window.iLoveMyFilesModules['preview-workspace'];
+      const { createCropEditor } = window.iLoveMyFilesModules['crop-editor'];
+      const { createMergeWorkspace } = window.iLoveMyFilesModules['merge-workspace'];
+      const { createFontPicker } = window.iLoveMyFilesModules['font-picker'];
+      const registry = window.iLoveMyFilesModules['font-registry'];
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const dialog = $('#tool-dialog');
+  const title = $('#dialog-title');
+  const description = $('#dialog-description');
+  const dropZone = $('#drop-zone');
+  const input = $('#file-input');
+  const selected = $('#selected-files');
+  const optionsBox = $('#tool-options');
+  const optionPanels = [...optionsBox.querySelectorAll('[data-tool-options]')];
+  const optionPanelTemplates = new Map(optionPanels.map(panel => [panel.dataset.toolOptions, panel.cloneNode(true)]));
+  const runButton = $('#run-tool');
+  const status = $('#status-message');
+  const results = $('#results');
+  const progressWrap = $('#progress-wrap');
+  const progressBar = $('#progress-bar');
+  const progressPercent = $('#progress-percent');
+  const progressLabel = $('#progress-label');
+  const closeButton = $('#close-dialog');
+  const previewDialog = $('#preview-dialog');
+  const previewTitle = $('#preview-title');
+  const previewStage = $('#preview-stage');
+  const previewClose = $('#preview-close');
+  const confirmDialog = $('#confirm-dialog');
+  const confirmBody = $('#confirm-body');
+  const confirmOk = $('#confirm-ok');
+  const confirmCancel = $('#confirm-cancel');
+  const confirmClose = $('#confirm-close');
+  const textWorkspace = $('#text-workspace');
+  const utilityInput = $('#utility-input');
+  const utilityResults = $('#utility-results');
+  const utilityOutput = $('#utility-output');
+  const utilityImage = $('#utility-image');
+  const utilityCopy = $('#utility-copy');
+  const utilityDownload = $('#utility-download');
+  let activeTool = null;
+  let files = [];
+  let imagePdfDefaultSettings = { pageSize: 'fit', orientation: 'portrait' };
+  let imagePdfSettings = new Map();
+  let busy = false;
+  let dragIndex = null;
+  let lastTrigger = null;
+  let previewUrl = null;
+  let selectedUrls = new Map();
+  let cropEditor = null;
+  let mergeBoard = null;
+  let toolConfig = null;
+  let utilityUrl = null;
+  let utilityBlob = null;
+  const previewHost = $('#preview-workspace');
+  const cropWorkspace = $('#crop-workspace');
+  const mergeHost = $('#merge-workspace');
+  const stage = $('#tool-dialog .wb-stage');
+  let workspace = null;
+  let workspaceKey = null;
+  let previewTimer = null;
+  let previewSeq = 0;
+  let wmPosition = { x: 0.5, y: 0.5 };
+  let wmDragActive = false;
+  let wmRefreshFrame = null;
+  let wmListeners = null;
+  let wmDialListeners = null;
+  let wmDialDragging = false;
+  let wmSyncingPos = false;
+  let wmPosListeners = null;
+  let wmAngleTouched = false;
+  let estimateTimer = null;
+  let previewIndex = 0;
+  let rotateStore = new Map();
+  const imagePreviewIds = new WeakMap();
+  const imagePreviewCache = new Map();
+  let nextImagePreviewId = 0;
+  let metadataInspection = null;
+  let metadataSeq = 0;
+  let metadataTimer = null;
+  
+  function activateToolOptions(tool) {
+    for (const panel of optionPanels) panel.hidden = panel.dataset.toolOptions !== tool;
+    const panel = optionPanels.find(item => item.dataset.toolOptions === tool);
+    const template = optionPanelTemplates.get(tool);
+    if (panel && template) panel.replaceChildren(...template.cloneNode(true).childNodes);
+    destroyFontPickers();
+    if (tool === 'pdf-watermark') mountFontPicker(panel, 'watermark', 'Watermark font');
+    if (tool === 'pdf-page-numbers') mountFontPicker(panel, 'numbers', 'Page-number font');
+  }
+
+  const fontPickers = new Map();
+
+  // Pickers own a document-level listener and a rendered list; drop the ones that
+  // belong to other tools so only the active panel is ever in the DOM.
+  function destroyFontPickers() {
+    for (const picker of fontPickers.values()) picker.destroy();
+    fontPickers.clear();
+  }
+
+  // Shared by every tool that lets the user choose a typeface.
+  function mountFontPicker(panel, prefix, label) {
+    const host = panel?.querySelector('#' + prefix + '-font-picker');
+    const target = panel?.querySelector('#' + prefix + '-font');
+    if (!host || !target) return;
+    const existing = fontPickers.get(prefix);
+    if (existing) existing.destroy();
+    fontPickers.set(prefix, createFontPicker(host, {
+      value: target.value || 'helvetica',
+      targetInput: '#' + prefix + '-font',
+      label,
+      onChange: () => schedulePreviewUpdate()
+    }));
+  }
+  
+  function activeOption(selector) {
+    return optionPanels.find(panel => panel.dataset.toolOptions === activeTool)?.querySelector(selector) ?? null;
+  }
+  
+  const previewTools = new Set([
+    'pdf-compress', 'pdf-rotate-pages', 'pdf-delete-pages', 'pdf-organize', 'pdf-watermark', 'pdf-page-numbers',
+    'pdf-to-images', 'pdf-remove-metadata', 'pdf-split', 'pdf-merge', 'pdf-ocr', 'pdf-flatten', 'ocr', 'pdf-resize-pages',
+    'image-convert', 'image-resize', 'image-compress', 'image-rotate', 'image-watermark', 'images-pdf'
+  ]);
+  const selectableInputs = { 'pdf-delete-pages': 'delete-pages', 'pdf-to-images': 'pti-pages', 'pdf-resize-pages': 'resize-pages' };
+  const imagePreviewTools = new Set(['image-convert', 'image-resize', 'image-compress', 'image-rotate', 'image-watermark']);
+  
+  const imageTools = new Set(['image-convert', 'image-compress', 'image-resize', 'image-rotate', 'image-watermark', 'images-pdf']);
+  const rotateTools = new Set(['image-rotate', 'pdf-rotate-pages']);
+  const singleFileTools = new Set(['image-crop', 'pdf-delete-pages', 'pdf-rotate-pages', 'pdf-page-numbers', 'pdf-watermark', 'pdf-remove-metadata', 'pdf-to-images', 'pdf-organize', 'pdf-compress', 'ocr', 'pdf-ocr', 'pdf-flatten', 'pdf-resize-pages']);
+  const textTools = new Set(['data-json', 'data-base64', 'data-wordcount', 'data-json-csv', 'data-units', 'qr-code', 'barcode']);
+  
+  const TEXT_HANDLERS = {
+    'data-json': async text => ({
+      output: formatJson(text, { minify: $('#json-mode').value === 'minify', indent: $('#json-indent').value }),
+      filename: 'formatted.json', message: 'Valid JSON. Copy or download the result.'
+    }),
+    'data-base64': async text => {
+      const decode = $('#base64-mode').value === 'decode';
+      return { output: base64Convert(text, { mode: decode ? 'decode' : 'encode' }), filename: decode ? 'decoded.txt' : 'encoded.txt' };
+    },
+    'data-hash': async text => {
+      const algorithm = $('#hash-algorithm').value;
+      return { output: await hashText(text, algorithm), filename: `${algorithm.toLowerCase()}.txt`, message: `${algorithm} hash generated.` };
+    },
+    'data-wordcount': async text => ({ output: countTextReport(text), filename: 'text-stats.txt' }),
+    'data-json-csv': async text => {
+      const toCsv = $('#jsoncsv-mode').value === 'json-to-csv';
+      return { output: toCsv ? jsonToCsv(text) : csvToJson(text), filename: toCsv ? 'data.csv' : 'data.json' };
+    },
+    'data-units': async text => ({ output: convertUnits(text, $('#units-category').value), filename: 'conversion.txt' }),
+    'qr-code': async text => ({ image: await generateQr(text, { level: $('#qr-level').value, size: $('#qr-size').value }), message: 'QR code generated - download the PNG below.' }),
+    'barcode': async text => ({ image: await generateBarcode(text, { format: $('#barcode-format').value, width: $('#barcode-width').value, height: $('#barcode-height').value }), message: 'Barcode generated - download the PNG below.' })
+  };
+  
+  const RECENT_TOOLS_KEY = 'ilovemyfiles-recent-tools';
+  const RECENT_TOOLS_LIMIT = 6;
+
+  // Per-browser/per-user history of the most recently opened tools, newest first.
+  // openTool() is the single funnel for every entry point (home cards, ?open=1 deep
+  // links, the ilovemyfiles:open-tool event), so recording here means recents work no
+  // matter how a tool was launched.
+  function rememberRecentTool(id) {
+    if (!id) return;
+    try {
+      const raw = JSON.parse(localStorage.getItem(RECENT_TOOLS_KEY) ?? '[]');
+      const list = Array.isArray(raw) ? raw.filter(entry => typeof entry === 'string') : [];
+      const next = [id, ...list.filter(entry => entry !== id)].slice(0, RECENT_TOOLS_LIMIT);
+      localStorage.setItem(RECENT_TOOLS_KEY, JSON.stringify(next));
+    } catch {
+      // Recent history is optional when browser storage is unavailable or blocked.
+    }
+  }
+
+  function openToolById(id) {
+    if (toolConfig) openTool(id, toolConfig);
+  }
+  
+  function initToolDialog(config) {
+    toolConfig = config;
+    closeButton.addEventListener('click', () => { if (!busy) dialog.close(); });
+    dialog.addEventListener('click', event => { if (event.target === dialog && !busy) dialog.close(); });
+    document.addEventListener('click', event => {
+      const button = event.target.closest('[data-tool-id]');
+      const id = button?.dataset.toolId;
+      if (!id || !toolConfig?.[id]) return;
+      event.preventDefault();
+      openTool(id, toolConfig);
+    });
+    document.addEventListener('ilovemyfiles:open-tool', event => {
+      const id = event.detail?.id;
+      if (id && toolConfig?.[id]) openTool(id, toolConfig);
+    });
+    dropZone.addEventListener('click', () => { input.value = ''; input.click(); });
+    dropZone.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); input.value = ''; input.click(); } });
+    input.addEventListener('change', () => addFiles([...input.files]));
+    ['dragenter', 'dragover'].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.add('dragging'); }));
+    ['dragleave', 'drop'].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.remove('dragging'); }));
+    dropZone.addEventListener('drop', event => addFiles([...event.dataTransfer.files]));
+    ['dragenter', 'dragover'].forEach(type => stage.addEventListener(type, event => { event.preventDefault(); stage.classList.add('dragging-over'); }));
+    ['dragleave', 'drop'].forEach(type => stage.addEventListener(type, event => { event.preventDefault(); stage.classList.remove('dragging-over'); }));
+    stage.addEventListener('drop', event => addFiles([...event.dataTransfer.files]));
+    runButton.addEventListener('click', runTool);
+    dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); });
+    dialog.addEventListener('close', () => { clearPreview(); mergeBoard?.destroy(); mergeBoard = null; if (!busy) lastTrigger?.focus?.(); });
+    document.addEventListener('paste', handlePaste);
+    previewClose.addEventListener('click', () => previewDialog.close());
+    previewDialog.addEventListener('click', event => { if (event.target === previewDialog) previewDialog.close(); });
+    previewDialog.addEventListener('close', closePreview);
+    utilityInput.addEventListener('input', () => { if (textTools.has(activeTool) || activeTool === 'data-hash') runButton.disabled = !canRun(); });
+    utilityCopy.addEventListener('click', copyUtilityOutput);
+    utilityDownload.addEventListener('click', () => {
+      const blob = utilityBlob || new Blob([utilityOutput.value], { type: 'text/plain' });
+      downloadBlob(blob, utilityDownload.dataset.filename || 'ilovemyfiles-output.txt');
+    });
+    optionsBox.addEventListener('change', event => {
+      if (activeTool === 'pdf-merge' && mergeBoard && (event.target.id === 'merge-page-size' || event.target.id === 'merge-orientation' || event.target.id === 'merge-margin')) {
+        const patch = { size: $('#merge-page-size')?.value || 'original', orientation: $('#merge-orientation')?.value || 'auto', margin: Number($('#merge-margin')?.value) || 0 };
+        if (mergeBoard.getActiveKey()) mergeBoard.setActiveSettings(patch);
+        else mergeBoard.setDefaultSettings(patch);
+        mergeBoard.refreshActivePreview?.();
+      }
+      if (activeTool === 'images-pdf' && (event.target.id === 'pdf-page-size' || event.target.id === 'pdf-page-orientation')) {
+        const patch = { pageSize: $('#pdf-page-size')?.value || 'fit', orientation: $('#pdf-page-orientation')?.value || 'portrait' };
+        if (files.length) {
+          const file = files[previewIndex];
+          const key = `${file.name}:${file.size}:${file.lastModified}`;
+          imagePdfSettings.set(key, { ...(imagePdfSettings.get(key) || imagePdfDefaultSettings), ...patch });
+        } else {
+          imagePdfDefaultSettings = { ...imagePdfDefaultSettings, ...patch };
+        }
+      }
+      if (event.target.matches?.('[data-meta-id]')) { updateMetadataSelection(); return; }
+      if (event.target.id === 'compress-mode') {
+        $('#quality-option').hidden = event.target.value !== 'quality';
+        $('#target-option').hidden = event.target.value !== 'target';
+      }
+      if (event.target.id === 'split-mode') $('#split-pages-wrap').hidden = event.target.value !== 'selected';
+      if (event.target.id === 'numbers-format') $('#numbers-custom-wrap').hidden = event.target.value !== 'custom';
+      if (event.target.id === 'resize-width' || event.target.id === 'resize-height') updateResizeDimension(event.target.id);
+      schedulePreviewUpdate();
+    });
+    optionsBox.addEventListener('input', event => {
+      if (event.target.id === 'quality') $('#quality-value').textContent = `${event.target.value}%`;
+      if (event.target.id === 'wm-opacity') $('#wm-opacity-value').textContent = `${Math.round(event.target.value * 100)}%`;
+      if (event.target.id?.includes('margin')) animateValue(event.target);
+      if (event.target.id === 'resize-width' || event.target.id === 'resize-height') updateResizeDimension(event.target.id);
+      if (activeTool === 'pdf-merge' && mergeBoard && (event.target.id === 'merge-page-size' || event.target.id === 'merge-orientation' || event.target.id === 'merge-margin')) {
+        const patch = { size: $('#merge-page-size')?.value || 'original', orientation: $('#merge-orientation')?.value || 'auto', margin: Number($('#merge-margin')?.value) || 0 };
+        if (mergeBoard.getActiveKey()) mergeBoard.setActiveSettings(patch);
+        else mergeBoard.setDefaultSettings(patch);
+        mergeBoard.refreshActivePreview?.();
+      }
+      syncMarginPresets(event.target);
+      schedulePreviewUpdate();
+    });
+    optionsBox.addEventListener('click', event => {
+      const chip = event.target.closest('.format-chip');
+      if (chip) {
+        const group = chip.closest('.format-grid') || chip.parentElement;
+        group.querySelectorAll('.format-chip').forEach(node => node.classList.toggle('active', node === chip));
+        const hidden = document.querySelector('#image-format');
+        if (hidden) hidden.value = chip.dataset.format;
+      }
+      const rotateAct = event.target.closest('[data-op]');
+      if (rotateAct) {
+        applyRotateOp(rotateAct.dataset.op);
+        return;
+      }
+      const stepBtn = event.target.closest('.stepper-btn');
+      if (stepBtn) {
+        const input = document.getElementById(stepBtn.dataset.target);
+        if (input) {
+          const step = Number(stepBtn.dataset.step) || 0;
+          const min = input.min !== '' ? Number(input.min) : -Infinity;
+          const max = input.max !== '' ? Number(input.max) : Infinity;
+          const next = Math.min(max, Math.max(min, (Number(input.value) || 0) + step));
+          input.value = String(next);
+          syncMarginPresets(input);
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+      const preset = event.target.closest('.margin-preset');
+      if (preset) {
+        const input = document.getElementById(preset.dataset.target);
+        if (input) { input.value = preset.dataset.value; input.dispatchEvent(new Event('input', { bubbles: true })); }
+      }
+      schedulePreviewUpdate(60);
+    });
+  }
+  
+  function isPdfFile(file) {
+    return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+  }
+  
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+  }
+  
+  function ensureWorkspace() {
+    if (!workspace) workspace = new PreviewWorkspace(previewHost);
+    return workspace;
+  }
+  
+  function compressLevel() {
+    return activeOption('input[name="compress-level"]:checked')?.value || 'recommended';
+  }
+  
+  function currentSelectionSet(tool) {
+    const set = new Set();
+    const inputId = selectableInputs[tool];
+    if (!inputId || !workspace) return set;
+    const value = $(`#${inputId}`)?.value?.trim();
+    if (value) {
+      try { parsePageSelection(value, workspace.pageCount).forEach(index => set.add(index + 1)); } catch { /* ignore invalid */ }
+    }
+    return set;
+  }
+  
+  function wireSelection(tool) {
+    const inputId = selectableInputs[tool];
+    if (!inputId || !workspace) return;
+    workspace.selectable = { set: currentSelectionSet(tool) };
+    workspace.setSelectListener(set => {
+      const target = $(`#${inputId}`);
+      if (target) target.value = [...set].sort((a, b) => a - b).join(', ');
+      schedulePreviewUpdate();
+    });
+  }
+  
+  function clearPreview() {
+    clearTimeout(previewTimer); clearTimeout(estimateTimer);
+    previewSeq++;
+    _wmDetachDrag();
+    _wmDetachDial();
+    _wmDetachPosInputs();
+    if (activeTool === 'pdf-watermark') {
+      wmAngleTouched = false;
+      wmPosition = { x: 0.5, y: 0.5 };
+      const angleInput = $('#watermark-angle');
+      if (angleInput) angleInput.value = 45;
+      _wmRenderDial(45);
+      _wmSyncPosInputs();
+    }
+    if (workspace) { workspace.setPageDraggable(false, null); workspace.setPageRemovable(false, null); workspace.clear(); }
+    if (previewHost) previewHost.hidden = true;
+    if (mergeHost) mergeHost.hidden = true;
+    stage?.classList.remove('previewing');
+    workspaceKey = null;
+  }
+  
+  function syncCropStage() {
+    if (!cropWorkspace) return;
+    const active = activeTool === 'image-crop' && files.length === 1;
+    cropWorkspace.hidden = !active;
+    if (active) {
+      dropZone.hidden = true;
+      if (previewHost) previewHost.hidden = true;
+      stage?.classList.remove('previewing');
+    } else if (!textTools.has(activeTool)) {
+      dropZone.hidden = false;
+    }
+  }
+  
+  function syncMergeStage() {
+    if (!mergeHost) return;
+    const active = activeTool === 'pdf-merge' && files.length > 0;
+    mergeHost.hidden = !active;
+    if (active) {
+      dropZone.hidden = true;
+      if (previewHost) previewHost.hidden = true;
+      stage?.classList.remove('previewing');
+    }
+  }
+  
+  function schedulePreviewUpdate(delay = 200) {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => { refreshPreview(); }, delay);
+  }
+  
+  async function refreshPreview({ reload = false } = {}) {
+    const enabled = previewTools.has(activeTool) && !textTools.has(activeTool) && files.length > 0;
+    if (!enabled) { clearPreview(); return; }
+    if (activeTool === 'pdf-merge') { await refreshMergePreview(); return; }
+    if (previewIndex > files.length - 1) previewIndex = Math.max(0, files.length - 1);
+    const file = files[previewIndex];
+    const key = `${file.name}:${file.size}:${file.lastModified}:${activeTool}`;
+    previewHost.hidden = false;
+    stage?.classList.add('previewing');
+      const ws = ensureWorkspace();
+      ws.setPageClickSelect(activeTool === 'pdf-rotate-pages' || activeTool === 'pdf-delete-pages');
+      try {
+      const kindMismatch = (isPdfFile(file) && ws.kind !== 'pdf') || (!isPdfFile(file) && ws.kind !== 'image');
+      if (reload || workspaceKey !== key || kindMismatch) {
+        workspaceKey = key;
+        if (isPdfFile(file)) {
+          const loadPromise = ws.loadPdf(file, { thumbnails: false });
+          await loadPromise;
+          wireSelection(activeTool);
+        }
+        else await ws.loadImage(file, { name: file.name });
+      }
+      else if (isPdfFile(file)) wireSelection(activeTool);
+      ws.setActivePageListener(pageNumber => {
+        if (activeTool === 'pdf-rotate-pages') {
+          const rotations = transformFor(file).pageRotations || {};
+          const pageRotation = normalizeAngle(rotations[pageNumber] || 0);
+          syncRotateControls();
+          ws.setNote(`Page ${pageNumber} selected · rotation ${pageRotation}°. Choose a rotation to update this page only.`);
+        } else syncRotateControls();
+      });
+      ws.setDocNav({
+        index: previewIndex,
+        total: files.length,
+        imageNavigation: !isPdfFile(file),
+        onPrev: () => setPreviewIndex(previewIndex - 1),
+        onNext: () => setPreviewIndex(previewIndex + 1)
+      });
+      ws.setAddFilesHandler(() => { input.value = ''; input.click(); }, { replace: singleFileTools.has(activeTool) });
+      if (activeTool === 'images-pdf') {
+        ws.setClearFilesHandler(() => {
+          files = [];
+          previewIndex = 0;
+          renderSelected();
+          runButton.disabled = true;
+          runButton.innerHTML = 'Choose files to start <span aria-hidden="true">→</span>';
+          results.hidden = true;
+          results.innerHTML = '';
+          input.value = '';
+          input.click();
+          schedulePreviewUpdate();
+        });
+      } else {
+        ws.setClearFilesHandler(null);
+      }
+      ws.setFileStrip(files.length > 1 ? files : null, previewIndex, index => setPreviewIndex(index), (from, to) => {
+        if (from === to) return;
+        const [moved] = files.splice(from, 1);
+        files.splice(to, 0, moved);
+        if (previewIndex === from) previewIndex = to;
+        else if (from < previewIndex && to >= previewIndex) previewIndex -= 1;
+        else if (from > previewIndex && to <= previewIndex) previewIndex += 1;
+        renderSelected();
+        runButton.disabled = !canRun();
+        showStatus(`Moved to position ${to + 1}.`, 'info');
+      }, index => {
+        if (index < 0 || index >= files.length) return;
+        files.splice(index, 1);
+        if (files.length === 0) previewIndex = 0;
+        else if (previewIndex >= files.length) previewIndex = files.length - 1;
+        else if (index < previewIndex) previewIndex -= 1;
+        renderSelected();
+        runButton.disabled = !canRun();
+        schedulePreviewUpdate();
+      }, () => {
+        files = [];
+        previewIndex = 0;
+        renderSelected();
+        runButton.disabled = true;
+        runButton.innerHTML = 'Choose files to start <span aria-hidden="true">→</span>';
+        results.hidden = true;
+        results.innerHTML = '';
+        input.value = '';
+        input.click();
+        schedulePreviewUpdate();
+      });
+      await applyToolPreview(file);
+    }
+    catch (error) {
+      const message = error?.message || 'Could not generate a preview for this file.';
+      ws.setNote(message, 'error');
+      showStatus(message, 'error');
+    }
+  }
+  
+  async function refreshMergePreview() {
+    if (previewHost) previewHost.hidden = true;
+    if (mergeHost) mergeHost.hidden = false;
+    dropZone.hidden = true;
+    stage?.classList.add('previewing');
+    if (!mergeBoard) return;
+    try { await mergeBoard.load(files); }
+    catch (error) { showStatus(error?.message || 'Could not read the PDF pages.', 'error'); }
+  }
+  
+  function syncImagePdfControls() {
+    if (activeTool !== 'images-pdf' || !files.length) return;
+    const file = files[previewIndex];
+    const key = `${file.name}:${file.size}:${file.lastModified}`;
+    const settings = imagePdfSettings.get(key) || imagePdfDefaultSettings;
+    const sizeEl = $('#pdf-page-size');
+    const orientEl = $('#pdf-page-orientation');
+    if (sizeEl) sizeEl.value = settings.pageSize || 'fit';
+    if (orientEl) orientEl.value = settings.orientation || 'portrait';
+  }
+  
+  function setPreviewIndex(index) {
+    const next = Math.max(0, Math.min(index, files.length - 1));
+    if (next === previewIndex) return;
+    workspace?.setImageTransition(next > previewIndex ? 'next' : 'previous');
+    previewIndex = next;
+    for (const row of selected.querySelectorAll('.selected-file[data-file-index]')) {
+      row.classList.toggle('preview-active', Number(row.dataset.fileIndex) === previewIndex);
+    }
+    syncRotateControls();
+    syncImagePdfControls();
+    schedulePreviewUpdate();
+  }
+
+  function imagePreviewCacheKey(file) {
+    let id = imagePreviewIds.get(file);
+    if (!id) { id = ++nextImagePreviewId; imagePreviewIds.set(file, id); }
+    const panel = optionPanels.find(item => item.dataset.toolOptions === activeTool);
+    const values = [...(panel?.querySelectorAll('input, select, textarea') || [])]
+      .map(control => [control.id, control.value, control.checked]);
+    const activeButtons = [...(panel?.querySelectorAll('button.active, button[aria-pressed="true"]') || [])]
+      .map(button => [button.dataset.ext || '', button.textContent.trim()]);
+    const transform = activeTool === 'image-rotate' ? transformFor(file) : null;
+    return `${id}:${activeTool}:${JSON.stringify([values, activeButtons, transform])}`;
+  }
+
+  function getCachedImagePreview(key) {
+    const cached = imagePreviewCache.get(key);
+    if (!cached) return null;
+    imagePreviewCache.delete(key);
+    imagePreviewCache.set(key, cached);
+    return cached;
+  }
+
+  function cacheImagePreview(key, result) {
+    if (!result?.blob || result.blob.size > 8 * 1024 * 1024) return;
+    imagePreviewCache.delete(key);
+    imagePreviewCache.set(key, { blob: result.blob, details: result.details });
+    while (imagePreviewCache.size > 6) imagePreviewCache.delete(imagePreviewCache.keys().next().value);
+  }
+  
+  async function applyToolPreview(file) {
+    const ws = workspace;
+    if (!ws) return;
+    previewSeq++;
+    ws.setRenderer(null); ws.setDecorator(null); ws.setRotation(null); ws.setHighlight(null); ws.setOrderLabels(null); ws.setSizeOverride(null);
+    ws.setModeLabel(''); ws.setNote('');
+    if (ws.kind === 'image') {
+      if (activeTool === 'ocr') { ws.clearImageProcessed(); ws.setNote('OCR will read the text from this image. The picture itself is unchanged.'); return; }
+      if (imagePreviewTools.has(activeTool)) { await previewImageTool(file); return; }
+      if (activeTool === 'images-pdf') {
+        ws.setModeLabel(`${files.length} image${files.length === 1 ? '' : 's'}`);
+        ws.setNote(`${files.length} image(s) will be combined into one PDF in the order shown.`);
+        await previewImagesPdf(file);
+        return;
+      }
+      ws.clearImageProcessed();
+      return;
+    }
+    await previewPdfTool(file);
+  }
+  
+  async function previewPdfTool(file) {
+    const ws = workspace;
+    switch (activeTool) {
+      case 'pdf-compress': return previewPdfCompress(file);
+      case 'pdf-rotate-pages': return previewPdfRotate();
+      case 'pdf-resize-pages': return previewPdfResize();
+      case 'pdf-delete-pages': return previewPdfDelete();
+      case 'pdf-organize': return previewPdfOrganize();
+      case 'pdf-watermark': return previewPdfWatermark();
+      case 'pdf-page-numbers': return previewPdfNumbers();
+      case 'pdf-to-images': {
+        const format = $('#pti-format').value === 'image/jpeg' ? 'JPG' : 'PNG';
+        ws.setModeLabel(`${ws.pageCount} page(s) → ${format}`);
+        ws.setNote(`Each page will be exported as a ${format} image at ${$('#pti-dpi').value} DPI.`);
+        ws.refresh();
+        return;
+      }
+      case 'pdf-split': {
+        const mode = $('#split-mode').value;
+        const scope = files.length > 1 ? ` ${files.length} files will each be split.` : '';
+        ws.setModeLabel(files.length > 1 ? `${files.length} files` : (mode === 'selected' ? 'Selected pages' : 'One PDF per page'));
+        ws.setNote(mode === 'selected' ? `Only the selected pages will be saved to a new PDF.${scope}` : `Each page will be saved as a separate PDF in a ZIP.${scope}`);
+        ws.refresh();
+        return;
+      }
+      case 'pdf-merge':
+        ws.setModeLabel(`${files.length} document(s)`);
+        ws.setNote(`Output order: ${files.map(item => item.name).map(escapeHtml).join(' → ')}`);
+        ws.refresh();
+        return;
+      case 'pdf-remove-metadata':
+        ws.setNote('Metadata is inspected in the side panel. Only the properties you tick are cleared - page content is never changed.');
+        ws.refresh();
+        return;
+      case 'pdf-ocr':
+        ws.setNote(`An invisible, selectable text layer will be added (${$('#pdf-ocr-lang').value}) at ${$('#pdf-ocr-dpi').value} DPI. Pages keep their original look.`);
+        ws.refresh();
+        return;
+      case 'pdf-flatten':
+        ws.setNote(`Pages become flat images at ${$('#flatten-dpi').value} DPI. The selectable text layer will be removed and the file may get larger.`);
+        ws.refresh();
+        return;
+      case 'ocr':
+        ws.setNote(`OCR will read the text from this document (${$('#ocr-lang')?.value || 'eng'}). The pages are unchanged.`);
+        ws.refresh();
+        return;
+      default:
+        ws.refresh();
+    }
+  }
+  
+  async function previewPdfCompress(file) {
+    const ws = workspace;
+    const level = compressLevel();
+    const preset = COMPRESSION_LEVELS[level] || COMPRESSION_LEVELS.recommended;
+    const { renderPageToBlob } = await Promise.resolve(window.iLoveMyFilesModules['pdf-render']);
+    const seq = ++previewSeq;
+    ws.setRenderer(async page => {
+      const { blob } = await renderPageToBlob(page, preset.dpi / 72, 'image/jpeg', preset.quality);
+      return { blob };
+    });
+    ws.setModeLabel(`Estimated preview · ${level}`);
+    ws.setNote(`Pages are re-rendered at ${preset.dpi} DPI with ${Math.round(preset.quality * 100)}% JPEG quality. The final file size may differ.`);
+    ws.refresh();
+    clearTimeout(estimateTimer);
+    estimateTimer = setTimeout(() => estimateCompressedSize(file, preset, seq), 320);
+  }
+  
+  async function estimateCompressedSize(file, preset, seq) {
+    const ws = workspace;
+    if (!ws?.doc) return;
+    try {
+      const total = ws.pageCount;
+      const page = await ws.doc.getPage(1);
+      const { renderPageToBlob } = await Promise.resolve(window.iLoveMyFilesModules['pdf-render']);
+      const { blob } = await renderPageToBlob(page, preset.dpi / 72, 'image/jpeg', preset.quality);
+      if (seq !== previewSeq) return;
+      const estimate = blob.size * total;
+      const saved = file.size ? Math.round((1 - estimate / file.size) * 100) : 0;
+      const savedText = saved > 0 ? ` · about ${saved}% smaller` : '';
+      ws.setNote(`Estimated output ≈ <b>${formatBytes(estimate)}</b> for ${total} page(s)${savedText}. Only pages you view are re-rendered, so the real file may differ.`);
+    }
+    catch { /* estimate is best-effort */ }
+  }
+  
+  function previewPdfRotate() {
+    const ws = workspace;
+    const rotations = transformFor(files[0]).pageRotations || {};
+    const changedPages = Object.keys(rotations).filter(page => normalizeAngle(rotations[page]) !== 0);
+    ws.setRotation(pageNumber => normalizeAngle(rotations[pageNumber] || 0));
+    ws.setModeLabel(changedPages.length ? `Rotating ${changedPages.length} page${changedPages.length === 1 ? '' : 's'}` : '');
+    ws.setNote(changedPages.length
+      ? `Preview shows individual rotations for ${changedPages.length} page${changedPages.length === 1 ? '' : 's'}. Select a page to view or change its rotation.`
+      : 'Select a page in the preview, then choose a rotation. Each page is rotated independently.');
+    ws.rerender();
+  }
+  
+  function previewPdfResize() {
+    const ws = workspace;
+    const sizeKey = $('#resize-page-size').value;
+    const dims = PDF_PAGE_SIZES[sizeKey];
+    if (!dims) return;
+    const orientation = $('#resize-orientation').value;
+    const margin = Math.max(0, Math.min(200, Number($('#resize-margin').value) || 0));
+    const input = $('#resize-pages').value.trim();
+    let set = null;
+    if (input) { try { set = new Set(parsePageSelection(input, ws.pageCount).map(index => index + 1)); } catch { set = null; } }
+    ws.setSizeOverride((num, src) => {
+      if (set && !set.has(num)) return null;
+      let [width, height] = dims;
+      const landscape = orientation === 'landscape' || (orientation === 'auto' && src.width > src.height);
+      if (landscape) [width, height] = [height, width];
+      return { width, height, inset: margin };
+    });
+    const label = sizeKey.toUpperCase();
+    const scope = input || 'all pages';
+    ws.setModeLabel(`${label} · ${orientation === 'auto' ? 'match' : orientation}`);
+    ws.setNote(`Pages (${scope}) are scaled to fit ${label}${orientation === 'auto' ? ' matched to each page' : ` ${orientation}`}${margin > 0 ? ` with a ${margin}pt margin` : ''}.`);
+    ws.reflow();
+  }
+  
+  function previewPdfDelete() {
+    const ws = workspace;
+    const input = $('#delete-pages').value.trim();
+    let set = new Set();
+    if (input) { try { set = new Set(parsePageSelection(input, ws.pageCount).map(index => index + 1)); } catch { /* ignore */ } }
+    ws.setHighlight(pageNumber => set.has(pageNumber));
+    ws.setModeLabel(set.size ? `${set.size} page(s) to remove` : 'No pages selected');
+    ws.setNote(set.size ? 'Highlighted pages will be removed. Click a page in the preview to toggle its selection, or edit the page numbers below.' : 'Click pages in the preview to select them for deletion, or enter page numbers below (for example 2, 5-7).');
+    ws.decorate();
+  }
+  
+  function previewPdfOrganize() {
+    const ws = workspace;
+    const input = $('#organize-order');
+    let order = null;
+    try { order = parsePageOrder(input.value.trim(), ws.pageCount); } catch { order = null; }
+    const labels = new Map();
+    if (order) order.forEach((index, position) => { const page = index + 1; if (!labels.has(page)) labels.set(page, `#${position + 1}`); });
+    ws.setOrderLabels(pageNumber => labels.get(pageNumber) || null);
+    ws.setModeLabel(order ? `${order.length} output page(s)` : 'Waiting for order');
+    ws.setNote(order ? 'Badges show each page’s position in the output. Repeated pages are duplicated; omitted pages are dropped. Drag the thumbnails below to reorder.' : 'Enter a new page order, such as 3, 1, 2, or drag the thumbnails below.');
+    ws.setPageDraggable(true, pages => {
+      if (!pages?.length) return;
+      input.value = pages.join(', ');
+      schedulePreviewUpdate();
+    });
+    ws.setPageRemovable(true, page => {
+      const max = ws.pageCount;
+      let order;
+      try { order = parsePageOrder(input.value.trim(), max).map(i => i + 1); }
+      catch { order = Array.from({ length: max }, (_, i) => i + 1); }
+      const next = order.filter(p => p !== page);
+      if (!next.length) return;
+      input.value = next.join(', ');
+      schedulePreviewUpdate();
+    });
+    ws.decorate();
+  }
+  
+  async function previewPdfWatermark() {
+    const ws = workspace;
+    const text = ($('#watermark-text')?.value || '').trim();
+    const size = Number($('#watermark-size')?.value) || 48;
+    const opacity = Number($('#watermark-opacity')?.value) || 0.18;
+    const selectedFont = $('#watermark-font')?.value || 'helvetica';
+    const bold = !!$('#watermark-bold')?.checked;
+    const italic = !!$('#watermark-italic')?.checked;
+    const fontKey = WM_FONTS[selectedFont]?.googleFamily
+      ? selectedFont
+      : wmFontKey(WM_FONTS[selectedFont]?.family || selectedFont, bold, italic);
+    const face = WM_FONTS[fontKey] || WM_FONTS.helvetica;
+    // Registry entries only carry weight/style when they are non-default, so fall back
+    // explicitly. An "undefined" here would produce an invalid font shorthand that the
+    // canvas silently rejects, leaving the previous font in place.
+    const weight = Number(face.weight) || (bold ? 700 : 400);
+    const style = face.style || (italic ? 'italic' : 'normal');
+    // A web font that cannot be fetched must not break the preview: fall back to a
+    // standard face so the watermark still renders and stays editable.
+    let css = face.css;
+    if (face.googleFamily) {
+      try {
+        await loadWatermarkFont(face.googleFamily, text, weight, size, style);
+      } catch {
+        const fallback = WM_FONTS[wmFontKey('helvetica', bold, italic)] || WM_FONTS.helvetica;
+        css = fallback.css;
+      }
+    }
+    const underline = !!$('#watermark-underline')?.checked;
+    const rgb = wmHexToRgb($('#watermark-color')?.value);
+    const angle = Number($('#watermark-angle')?.value) || 45;
+    const rad = (angle * Math.PI) / 180;
+    _wmReadPosInputs();
+    _wmRenderDial(angle);
+    ws.setDecorator((context, info) => {
+      if (!text) return;
+      const px = size * info.scale;
+      context.save();
+      context.translate(wmPosition.x * info.canvas.width, wmPosition.y * info.canvas.height);
+      context.rotate(-rad);
+      context.font = `${style} ${weight} ${px}px ${css}`;
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${Math.min(1, opacity)})`;
+      context.fillText(text, 0, 0);
+      if (underline) {
+        const textWidth = context.measureText(text).width;
+        context.strokeStyle = context.fillStyle;
+        context.lineWidth = Math.max(1, px / 18);
+        context.beginPath();
+        context.moveTo(-textWidth / 2, px * 0.34);
+        context.lineTo(textWidth / 2, px * 0.34);
+        context.stroke();
+      }
+      context.restore();
+    });
+    ws.setModeLabel('Live watermark preview');
+    ws.setNote(`Drag the watermark on the page to move it, or set X and Y here. Angle: ${angle}°. Position: ${Math.round(wmPosition.x * 100)}%, ${Math.round(wmPosition.y * 100)}%. Applies to every page.`);
+    _wmAttachDrag(ws);
+    _wmAttachDial();
+    _wmAttachPosInputs();
+    if (!(ws.rendered?.size && ws.repaintDecorations?.())) ws.refresh();
+  }
+
+  function _wmReadPosInputs() {
+    if (wmSyncingPos) return;
+    const xEl = $('#watermark-pos-x');
+    const yEl = $('#watermark-pos-y');
+    if (xEl && xEl.value !== '') wmPosition.x = Math.max(0, Math.min(1, Number(xEl.value) / 100));
+    if (yEl && yEl.value !== '') wmPosition.y = Math.max(0, Math.min(1, Number(yEl.value) / 100));
+    _wmSyncPosInputs();
+  }
+
+  function _wmSyncPosInputs() {
+    const xEl = $('#watermark-pos-x');
+    const yEl = $('#watermark-pos-y');
+    wmSyncingPos = true;
+    if (xEl) xEl.value = Math.round(wmPosition.x * 100);
+    if (yEl) yEl.value = Math.round(wmPosition.y * 100);
+    wmSyncingPos = false;
+  }
+
+  function _wmAttachPosInputs() {
+    if (wmPosListeners) return;
+    const posHandler = () => {
+      if (wmSyncingPos) return;
+      _wmReadPosInputs();
+      const ws = workspace;
+      if (ws) {
+        ws.setNote(`Drag the watermark on the page to move it, or set X and Y here. Position: ${Math.round(wmPosition.x * 100)}%, ${Math.round(wmPosition.y * 100)}%. Applies to every page.`);
+      }
+      _wmScheduleRefresh();
+    };
+    const angleHandler = () => {
+      const el = $('#watermark-angle');
+      if (!el) return;
+      let angle = Number(el.value);
+      if (!Number.isFinite(angle)) angle = 0;
+      angle = Math.max(0, Math.min(360, Math.round(angle)));
+      wmAngleTouched = true;
+      _wmRenderDial(angle);
+      const ws = workspace;
+      if (ws) {
+        ws.setNote(`Drag around the dial or type an angle. Angle: ${angle}°. Position: ${Math.round(wmPosition.x * 100)}%, ${Math.round(wmPosition.y * 100)}%. Applies to every page.`);
+      }
+      _wmScheduleRefresh();
+    };
+    const bind = (id, fn) => { const el = $(id); if (el) el.addEventListener('input', fn); };
+    bind('#watermark-pos-x', posHandler);
+    bind('#watermark-pos-y', posHandler);
+    bind('#watermark-angle', angleHandler);
+    const stepWrap = $('.angle-stepper');
+    let stepRepeat = null;
+    const stepFromEvent = event => {
+      const btn = event.target.closest('.angle-step-btn');
+      if (!btn) return null;
+      return Number(btn.dataset.dir) || 0;
+    };
+    const applyStep = step => {
+      const el = $('#watermark-angle');
+      if (!el) return;
+      let angle = Number(el.value);
+      if (!Number.isFinite(angle)) angle = 0;
+      angle = Math.max(0, Math.min(360, Math.round(angle + step)));
+      el.value = angle;
+      angleHandler();
+    };
+    const stepDownHandler = event => {
+      const step = stepFromEvent(event);
+      if (step === null) return;
+      event.preventDefault();
+      applyStep(step);
+      clearInterval(stepRepeat);
+      stepRepeat = setInterval(() => applyStep(step), 90);
+    };
+    const stopStep = () => { clearInterval(stepRepeat); stepRepeat = null; };
+    if (stepWrap) {
+      stepWrap.addEventListener('pointerdown', stepDownHandler);
+      stepWrap.addEventListener('pointerup', stopStep);
+      stepWrap.addEventListener('pointerleave', stopStep);
+      stepWrap.addEventListener('pointercancel', stopStep);
+      stepWrap.addEventListener('contextmenu', e => e.preventDefault());
+    }
+    wmPosListeners = { posHandler, angleHandler, stepDownHandler, stopStep };
+  }
+
+  function _wmDetachPosInputs() {
+    if (!wmPosListeners) return;
+    const unbind = (id, fn) => { const el = $(id); if (el) el.removeEventListener('input', fn); };
+    unbind('#watermark-pos-x', wmPosListeners.posHandler);
+    unbind('#watermark-pos-y', wmPosListeners.posHandler);
+    unbind('#watermark-angle', wmPosListeners.angleHandler);
+    const stepWrap = $('.angle-stepper');
+    if (stepWrap && wmPosListeners.stepDownHandler) {
+      stepWrap.removeEventListener('pointerdown', wmPosListeners.stepDownHandler);
+      stepWrap.removeEventListener('pointerup', wmPosListeners.stopStep);
+      stepWrap.removeEventListener('pointerleave', wmPosListeners.stopStep);
+      stepWrap.removeEventListener('pointercancel', wmPosListeners.stopStep);
+    }
+    wmPosListeners = null;
+  }
+
+  function _wmAttachDrag(ws) {
+    if (wmListeners) return;
+    const down = e => {
+      const cv = document.elementFromPoint(e.clientX, e.clientY)?.closest('.pv-page-canvas');
+      if (!cv) return;
+      wmDragActive = true;
+      e.preventDefault();
+      _wmApplyDrag(e);
+    };
+    const move = e => {
+      if (!wmDragActive) return;
+      e.preventDefault();
+      _wmApplyDrag(e);
+    };
+    const up = e => {
+      if (!wmDragActive) return;
+      wmDragActive = false;
+      _wmScheduleRefresh();
+    };
+    document.addEventListener('pointerdown', down, { passive: false });
+    document.addEventListener('pointermove', move, { passive: false });
+    document.addEventListener('pointerup', up);
+    document.addEventListener('pointercancel', up);
+    wmListeners = { down, move, up };
+  }
+
+  function _wmDetachDrag() {
+    if (!wmListeners) return;
+    document.removeEventListener('pointerdown', wmListeners.down);
+    document.removeEventListener('pointermove', wmListeners.move);
+    document.removeEventListener('pointerup', wmListeners.up);
+    document.removeEventListener('pointercancel', wmListeners.up);
+    wmListeners = null;
+    wmDragActive = false;
+    if (wmRefreshFrame) { cancelAnimationFrame(wmRefreshFrame); wmRefreshFrame = null; }
+  }
+
+  function _wmScheduleRefresh() {
+    if (wmRefreshFrame) return;
+    wmRefreshFrame = requestAnimationFrame(() => {
+      wmRefreshFrame = null;
+      const ws = workspace;
+      if (!ws) return;
+      // Style-only change: repaint the decoration on the existing canvases so the
+      // document does not visibly reload. Fall back to a full refresh when nothing
+      // has been painted yet.
+      if (ws.rendered?.size && ws.repaintDecorations?.()) return;
+      ws.refresh();
+    });
+  }
+
+  function _wmApplyDrag(e) {
+    const cv = document.elementFromPoint(e.clientX, e.clientY)?.closest('.pv-page-canvas');
+    if (!cv) return;
+    const r = cv.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) return;
+    let fx = (e.clientX - r.left) / r.width;
+    let fy = (e.clientY - r.top) / r.height;
+    fx = Math.max(0, Math.min(1, fx));
+    fy = Math.max(0, Math.min(1, fy));
+    wmPosition.x = fx;
+    wmPosition.y = fy;
+    _wmSyncPosInputs();
+    const ws = workspace;
+    if (ws) {
+      ws.setNote(`Drag the watermark on the page to move it, or set X and Y here. Position: ${Math.round(fx * 100)}%, ${Math.round(fy * 100)}%. Applies to every page.`);
+    }
+    _wmScheduleRefresh();
+  }
+
+  // Font metadata comes from the shared registry so every tool uses one source of truth.
+  const WM_FONTS = Object.fromEntries(
+    registry.ALL_FONTS.map(font => [font.id, font])
+  );
+
+
+  function wmHexToRgb(value) {
+    const match = /^#?([0-9a-f]{6})$/i.exec(String(value || '').trim());
+    if (!match) return { r: 89, g: 90, b: 115 };
+    const n = parseInt(match[1], 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  }
+
+  function wmFontKey(family, bold, italic) {
+    if (family === 'times') return italic ? (bold ? 'times-bold-italic' : 'times-italic') : (bold ? 'times-bold' : 'times');
+    if (family === 'courier') return italic ? (bold ? 'courier-bold-oblique' : 'courier-oblique') : (bold ? 'courier-bold' : 'courier');
+    return italic ? (bold ? 'helvetica-bold-oblique' : 'helvetica-oblique') : (bold ? 'helvetica-bold' : 'helvetica');
+  }
+
+  function _wmArcPath(angle, cx = 50, cy = 50, r = 40) {
+    const a = ((angle % 360) + 360) % 360;
+    if (a <= 0) return '';
+    const rad = (a * Math.PI) / 180;
+    const endX = cx + r * Math.sin(rad);
+    const endY = cy - r * Math.cos(rad);
+    const large = a > 180 ? 1 : 0;
+    return `M ${cx} ${cy - r} A ${r} ${r} 0 ${large} 1 ${endX.toFixed(1)} ${endY.toFixed(1)}`;
+  }
+
+  function _wmHandlePos(angle, cx = 50, cy = 50, r = 40) {
+    const a = ((angle % 360) + 360) % 360;
+    const rad = (a * Math.PI) / 180;
+    return { x: cx + r * Math.sin(rad), y: cy - r * Math.cos(rad) };
+  }
+
+  function _wmRenderDial(angle) {
+    const progress = $('#watermark-angle-progress');
+    const handle = $('#watermark-angle-handle');
+    const input = $('#watermark-angle');
+    if (progress) progress.setAttribute('d', _wmArcPath(angle));
+    const pos = _wmHandlePos(angle);
+    if (handle) { handle.setAttribute('cx', pos.x.toFixed(1)); handle.setAttribute('cy', pos.y.toFixed(1)); }
+    if (input && document.activeElement !== input) input.value = Math.round(angle);
+  }
+
+  function _wmAttachDial() {
+    const dial = $('#watermark-angle-dial');
+    if (!dial || wmDialListeners) return;
+    const down = e => {
+      wmDialDragging = true;
+      e.preventDefault();
+      _wmSetDialAngle(e.clientX, e.clientY);
+    };
+    const move = e => {
+      if (!wmDialDragging) return;
+      e.preventDefault();
+      _wmSetDialAngle(e.clientX, e.clientY);
+    };
+    const up = () => { wmDialDragging = false; };
+    dial.addEventListener('pointerdown', down, { passive: false });
+    dial.addEventListener('pointermove', move, { passive: false });
+    document.addEventListener('pointerup', up);
+    document.addEventListener('pointercancel', up);
+    wmDialListeners = { down, move, up };
+  }
+
+  function _wmDetachDial() {
+    if (!wmDialListeners) return;
+    const dial = $('#watermark-angle-dial');
+    if (dial) { dial.removeEventListener('pointerdown', wmDialListeners.down); dial.removeEventListener('pointermove', wmDialListeners.move); }
+    document.removeEventListener('pointerup', wmDialListeners.up);
+    document.removeEventListener('pointercancel', wmDialListeners.up);
+    wmDialListeners = null;
+    wmDialDragging = false;
+  }
+
+  function _wmSetDialAngle(mx, my) {
+    const svg = $('#watermark-angle-dial svg');
+    if (!svg) return;
+    const rct = svg.getBoundingClientRect();
+    const cx = rct.left + rct.width / 2;
+    const cy = rct.top + rct.height / 2;
+    const dx = mx - cx;
+    const dy = my - cy;
+    const dist = Math.hypot(dx, dy);
+    const outer = rct.width / 2 * 1.08;
+    const inner = rct.width / 2 * 0.62;
+    if (dist > outer) return;
+    if (dist < inner) return;
+    let angle = ((Math.atan2(dy, dx) + Math.PI / 2 + 2 * Math.PI) % (2 * Math.PI)) * 180 / Math.PI;
+    angle = Math.round(angle);
+    if (angle === 360) angle = 0;
+    wmAngleTouched = true;
+    const input = $('#watermark-angle');
+    if (input) input.value = angle;
+    _wmRenderDial(angle);
+    const ws = workspace;
+    if (ws) {
+      ws.setNote(`Drag around the dial or type an angle. Angle: ${angle}°. Position: ${Math.round(wmPosition.x * 100)}%, ${Math.round(wmPosition.y * 100)}%. Applies to every page.`);
+    }
+    _wmScheduleRefresh();
+  }
+
+  async function previewPdfNumbers() {
+    const ws = workspace;
+    const start = Number($('#numbers-start')?.value) || 1;
+    const position = $('#numbers-position')?.value || 'bottom-center';
+    const format = $('#numbers-format')?.value || 'number';
+    const custom = String($('#numbers-custom')?.value || '').trim();
+    const size = Math.min(72, Math.max(6, Number($('#numbers-size')?.value) || 11));
+    const color = $('#numbers-color')?.value || '#383d52';
+    const selectedFont = $('#numbers-font')?.value || 'helvetica';
+    const bold = !!$('#numbers-bold')?.checked;
+    const italic = !!$('#numbers-italic')?.checked;
+    const underline = !!$('#numbers-underline')?.checked;
+    const fontKey = WM_FONTS[selectedFont]?.googleFamily
+      ? selectedFont
+      : wmFontKey(WM_FONTS[selectedFont]?.family || selectedFont, bold, italic);
+    const face = WM_FONTS[fontKey] || WM_FONTS.helvetica;
+    const weight = Number(face.weight) || (bold ? 700 : 400);
+    const slant = face.style || (italic ? 'italic' : 'normal');
+    const label = number => {
+      const n = String(number);
+      if (format === 'page') return `Page ${n}`;
+      if (format === 'pg') return `Pg ${n}`;
+      if (format === 'dash') return `- ${n} -`;
+      if (format === 'custom') return custom ? custom.replaceAll('{n}', n) : n;
+      return n;
+    };
+    let fontCss = face.css;
+    if (face.googleFamily) {
+      try {
+        await loadWatermarkFont(face.googleFamily, label(start), weight, size, slant);
+      } catch {
+        fontCss = (WM_FONTS[wmFontKey('helvetica', bold, italic)] || WM_FONTS.helvetica).css;
+      }
+    }
+    ws.setDecorator((context, info) => {
+      const text = label(start + info.pageNumber - 1);
+      const scale = info.scale;
+      const px = Math.max(1, size * scale);
+      context.font = `${slant} ${weight} ${px}px ${fontCss}`;
+      context.fillStyle = color;
+      context.textBaseline = 'middle';
+      // Real font metrics instead of a guess, so the visible gap is identical for
+      // every font/size and matches what the exported PDF produces.
+      const metrics = context.measureText(text);
+      const measured = metrics.width;
+      const ascent = metrics.actualBoundingBoxAscent || px * 0.7;
+      const descent = metrics.actualBoundingBoxDescent || px * 0.2;
+      // 22pt margin, never more than 8% of the page.
+      const pad = Math.min(22 * scale, Math.min(info.canvas.width, info.canvas.height) * 0.08);
+      // 'middle' baseline puts the text centre at y, so offset by half the ink height.
+      const y = position.includes('top')
+        ? pad + (ascent + descent) / 2
+        : info.canvas.height - pad - (ascent + descent) / 2;
+      let x = info.canvas.width / 2;
+      if (position.includes('left')) {
+        context.textAlign = 'left';
+        x = pad;
+        if (measured > info.canvas.width - pad * 2) x = Math.max(0, (info.canvas.width - measured) / 2);
+      } else if (position.includes('right')) {
+        context.textAlign = 'right';
+        x = info.canvas.width - pad;
+        if (measured > info.canvas.width - pad * 2) x = info.canvas.width - Math.max(0, (info.canvas.width - measured) / 2);
+      } else {
+        context.textAlign = 'center';
+        if (measured > info.canvas.width - pad * 2) {
+          context.textAlign = 'left';
+          x = Math.max(0, (info.canvas.width - measured) / 2);
+        }
+      }
+      context.fillText(text, x, y);
+      if (underline) {
+        const width = context.measureText(text).width;
+        const from = context.textAlign === 'center' ? x - width / 2
+          : context.textAlign === 'right' ? x - width : x;
+        context.strokeStyle = color;
+        context.lineWidth = Math.max(1, px / 18);
+        context.beginPath();
+        context.moveTo(from, y + px * 0.34);
+        context.lineTo(from + width, y + px * 0.34);
+        context.stroke();
+      }
+    });
+    ws.setModeLabel('Live page-number preview');
+    ws.setNote(`Format “${label(start)}” in ${face.label}, size ${size}, placed at ${position.replace('-', ' ')}.`);
+    if (!(ws.rendered?.size && ws.repaintDecorations?.())) ws.refresh();
+  }
+  
+  async function previewImageTool(file) {
+    const ws = workspace;
+    const seq = ++previewSeq;
+    const cacheKey = imagePreviewCacheKey(file);
+    try {
+      const cached = getCachedImagePreview(cacheKey);
+      if (cached) {
+        ws.setImageProcessed({ ...cached, cacheKey });
+        ws.setModeLabel('Live result preview');
+        ws.setNote(`Live result · original ${formatBytes(file.size)} → output ${formatBytes(cached.blob.size)} · ${cached.details}`);
+        return;
+      }
+      let result;
+      if (activeTool === 'image-convert') result = await convertImage(file, $('#image-format').value, Number($('#convert-margin')?.value) || 0, activeOption('.format-chip.active')?.dataset.ext || null);
+      else if (activeTool === 'image-resize') {
+        const width = Number($('#resize-width').value), height = Number($('#resize-height').value);
+        if (!(width > 0 && height > 0)) { ws.setNote('Enter a width and height to preview the resized result.'); return; }
+        result = await resizeImage(file, width, height, $('#keep-ratio').checked, $('#resize-format').value, Number($('#image-resize-margin')?.value) || 0);
+      }
+      else if (activeTool === 'image-compress') result = await compressImage(file, {
+        type: $('#compress-format').value,
+        mode: $('#compress-mode').value,
+        quality: $('#quality')?.value,
+        targetKb: $('#target-kb')?.value
+      });
+      else if (activeTool === 'image-rotate') {
+        const entry = transformFor(file);
+        const margin = Number($('#rotate-image-margin')?.value) || 0;
+        if (!entry.rotation && !entry.flipH && !entry.flipV && !margin) { ws.clearImageProcessed(); ws.setNote('Rotate, flip or add a margin to preview the result.'); return; }
+        result = await rotateImage(file, {
+          rotation: entry.rotation, flipH: entry.flipH, flipV: entry.flipV, type: $('#rotate-format').value, margin
+        });
+      }
+      else if (activeTool === 'image-watermark') {
+        if (!$('#wm-text').value.trim()) { ws.clearImageProcessed(); ws.setNote('Enter watermark text to preview the result.'); return; }
+        result = await watermarkImage(file, {
+          text: $('#wm-text').value, position: $('#wm-position').value, color: $('#wm-color').value,
+          opacity: $('#wm-opacity').value, scale: $('#wm-size').value, type: $('#wm-format').value
+        });
+      }
+      if (seq !== previewSeq) return;
+      if (result) {
+        cacheImagePreview(cacheKey, result);
+        ws.setImageProcessed({ blob: result.blob, details: result.details, cacheKey });
+        const saved = file.size && result.blob.size ? Math.round((1 - result.blob.size / file.size) * 100) : 0;
+        const savedText = saved > 0 ? ` · ${saved}% smaller` : (saved < 0 ? ` · ${Math.abs(saved)}% larger` : '');
+        const transformText = activeTool === 'image-rotate'
+          ? ` · rotation ${transformFor(file).rotation || 0}° · margin ${Math.max(0, Math.round(Number($('#rotate-image-margin')?.value) || 0))} px`
+          : '';
+        ws.setNote(`Live result · original ${formatBytes(file.size)} → output ${formatBytes(result.blob.size)}${savedText} · ${result.details}${transformText}`);
+        ws.setModeLabel('Live result preview');
+      }
+    }
+    catch (error) {
+      if (seq === previewSeq) ws.setNote(error?.message || 'Could not preview with these settings.', 'error');
+    }
+  }
+  
+  async function previewImagesPdf(file) {
+    const ws = workspace;
+    const margin = Math.max(0, Number($('#pdf-margin')?.value) || 0);
+    const pageSize = $('#pdf-page-size')?.value || 'fit';
+    const orientation = $('#pdf-page-orientation')?.value || 'portrait';
+    const cacheKey = imagePreviewCacheKey(file);
+    const standard = PDF_PAGE_SIZES[pageSize];
+    if (!margin && !standard) { ws.clearImageProcessed(); return; }
+    try {
+      const cached = getCachedImagePreview(cacheKey);
+      if (cached) {
+        ws.setImageProcessed({ ...cached, cacheKey });
+        return;
+      }
+      const image = ws.getImageElement();
+      if (!image) throw new Error('The selected image is not ready for preview.');
+      await image.decode();
+      let pageWidth = image.naturalWidth + margin * 2, pageHeight = image.naturalHeight + margin * 2;
+      if (standard) {
+        let [widthPt, heightPt] = standard;
+        const landscape = orientation === 'landscape' || (orientation === 'auto' && image.naturalWidth > image.naturalHeight);
+        if (landscape) [widthPt, heightPt] = [heightPt, widthPt];
+        pageWidth = widthPt; pageHeight = heightPt;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(pageWidth));
+      canvas.height = Math.max(1, Math.round(pageHeight));
+      const context = canvas.getContext('2d');
+      context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height);
+      const scale = Math.min((pageWidth - margin * 2) / image.naturalWidth, (pageHeight - margin * 2) / image.naturalHeight);
+      const drawWidth = image.naturalWidth * scale, drawHeight = image.naturalHeight * scale;
+      context.drawImage(image, (pageWidth - drawWidth) / 2, (pageHeight - drawHeight) / 2, drawWidth, drawHeight);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      canvas.width = 1; canvas.height = 1;
+      if (!blob) throw new Error('Could not create the image-to-PDF preview.');
+      const result = { blob, details: `${Math.round(pageWidth)} × ${Math.round(pageHeight)} pt · ${margin}pt margin` };
+      cacheImagePreview(cacheKey, result);
+      ws.setImageProcessed({ ...result, cacheKey });
+    }
+    catch (error) {
+      ws.clearImageProcessed();
+      ws.setNote(error?.message || 'Could not generate this image-to-PDF preview.', 'error');
+    }
+  }
+  
+  function openTool(tool, config) {
+    rememberRecentTool(tool);
+    activeTool = tool;   files = []; busy = false; dragIndex = null; previewIndex = 0; lastTrigger = document.activeElement; input.value = '';
+    rotateStore.clear();
+    selectedUrls.forEach(URL.revokeObjectURL); selectedUrls.clear();
+    clearPreview();
+    metadataInspection = null; metadataSeq++; clearTimeout(metadataTimer);
+    if (previewDialog.open) previewDialog.close();
+    const settings = config[tool];
+    const textMode = settings.mode === 'text' || textTools.has(tool);
+    title.textContent = settings.title; description.textContent = settings.description;
+    $('#file-hint').textContent = settings.hint || '';
+    input.accept = settings.accept || '';
+    input.multiple = !singleFileTools.has(tool);
+    cropEditor?.destroy(); cropEditor = null;
+    mergeBoard?.destroy(); mergeBoard = null;
+    if (mergeHost) mergeHost.hidden = true;
+    activateToolOptions(tool);
+    syncRotateControls();
+    cropWorkspace.hidden = true;
+    if (tool === 'images-pdf') { imagePdfSettings.clear(); imagePdfDefaultSettings = { pageSize: 'fit', orientation: 'portrait' }; }
+    if (tool === 'image-crop') { const editor = $('#crop-editor'); if (editor) cropEditor = createCropEditor(editor); }
+    if (tool === 'pdf-merge' && mergeHost) {
+      let board;
+      board = createMergeWorkspace(mergeHost, {
+        onAddFiles: () => { input.value = ''; input.click(); },
+        onResetFiles: () => {
+          files = [];
+          input.value = '';
+          renderSelected();
+          runButton.disabled = true;
+          runButton.innerHTML = 'Choose files to start <span aria-hidden="true">→</span>';
+          results.hidden = true;
+          results.innerHTML = '';
+          input.value = '';
+          input.click();
+        },
+        onPageSelect: node => {
+          const settings = node ? board.getActiveSettings() : board.getDefaultSettings();
+          const sizeEl = $('#merge-page-size');
+          const orientEl = $('#merge-orientation');
+          const marginEl = $('#merge-margin');
+          if (sizeEl) sizeEl.value = settings.size || 'original';
+          if (orientEl) orientEl.value = settings.orientation || 'auto';
+          if (marginEl) marginEl.value = settings.margin ?? 0;
+        }
+      });
+      mergeBoard = board;
+    }
+    selected.innerHTML = ''; results.innerHTML = ''; results.hidden = true;
+    status.hidden = true; progressWrap.hidden = true;
+    dropZone.hidden = textMode;
+    dropZone.classList.remove('compact');
+    textWorkspace.hidden = !textMode;
+    utilityInput.value = ''; utilityOutput.value = ''; utilityResults.hidden = true;
+    if (utilityUrl) { URL.revokeObjectURL(utilityUrl); utilityUrl = null; }
+    utilityBlob = null;
+    if (utilityImage) { utilityImage.hidden = true; utilityImage.removeAttribute('src'); }
+    utilityOutput.hidden = false; utilityCopy.hidden = false;
+    const pasteHint = $('#drop-paste');
+    if (pasteHint) pasteHint.hidden = textMode || !imageTools.has(tool);
+    runButton.disabled = true;
+    runButton.innerHTML = textMode ? 'Run tool <span aria-hidden="true">→</span>' : 'Choose files to start <span aria-hidden="true">→</span>';
+    dialog.showModal();
+  }
+  
+  function addFiles(incoming) {
+    if (busy || !incoming.length) return;
+    const accept = toolConfig?.[activeTool]?.accept || '';
+    const acceptsPdf = accept.includes('pdf');
+    const acceptsImage = accept.includes('image');
+    const valid = incoming.filter(file => {
+      if (activeTool === 'data-hash') return true;
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      if (isPdf) return acceptsPdf;
+      return acceptsImage && file.type.startsWith('image/');
+    });
+    if (!valid.length) return showStatus('Choose files in a supported format.', 'error');
+    if (singleFileTools.has(activeTool)) files = [valid[0]];
+    else {
+      const seen = new Set(files.map(file => `${file.name}:${file.size}:${file.lastModified}`));
+      files.push(...valid.filter(file => !seen.has(`${file.name}:${file.size}:${file.lastModified}`)));
+    }
+    if (activeTool === 'images-pdf') {
+      valid.forEach(file => {
+        const key = `${file.name}:${file.size}:${file.lastModified}`;
+        if (!imagePdfSettings.has(key)) imagePdfSettings.set(key, { ...imagePdfDefaultSettings });
+      });
+    }
+    if (activeTool === 'pdf-merge' && files.length < 2) showStatus('Add at least two PDF files to merge.', 'info');
+    else status.hidden = true;
+    renderSelected();
+    runButton.disabled = !canRun();
+    runButton.innerHTML = 'Process files <span aria-hidden="true">→</span>';
+    results.hidden = true;
+  }
+  
+  function handlePaste(event) {
+    if (!dialog.open || busy || !imageTools.has(activeTool)) return;
+    const items = [...(event.clipboardData?.items || [])];
+    const pasted = items
+      .filter(item => item.kind === 'file' && item.type.startsWith('image/'))
+      .map(item => item.getAsFile())
+      .filter(Boolean);
+    if (!pasted.length) return;
+    event.preventDefault();
+    addFiles(pasted);
+  }
+  
+  function openPreview({ name, blob }) {
+    closePreview();
+    previewStage.innerHTML = '';
+    previewTitle.textContent = name;
+    previewUrl = URL.createObjectURL(blob);
+    const isPdf = blob.type === 'application/pdf' || name.toLowerCase().endsWith('.pdf');
+    if (isPdf) {
+      const frame = document.createElement('iframe');
+      frame.className = 'preview-frame';
+      frame.title = `Preview of ${name}`;
+      frame.src = previewUrl;
+      previewStage.append(frame);
+    } else {
+      const image = document.createElement('img');
+      image.className = 'preview-image';
+      image.alt = name;
+      image.src = previewUrl;
+      previewStage.append(image);
+    }
+    if (!previewDialog.open) previewDialog.showModal();
+  }
+  
+  function closePreview() {
+    previewStage.innerHTML = '';
+    if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
+  }
+  
+  function canRun() {
+    if (activeTool === 'data-hash') return files.length > 0 || utilityInput.value.trim().length > 0;
+    if (activeTool === 'data-wordcount') return true;
+    if (textTools.has(activeTool)) return utilityInput.value.trim().length > 0;
+    if (!files.length) return false;
+    if (activeTool === 'pdf-merge') return files.length >= 2;
+    if (singleFileTools.has(activeTool)) return files.length === 1;
+    return true;
+  }
+  
+  function moveFile(from, to) {
+    if (to < 0 || to >= files.length) return;
+    const [moved] = files.splice(from, 1);
+    files.splice(to, 0, moved);
+    renderSelected();
+    runButton.disabled = !canRun();
+  }
+  
+  function makeReorderButton(label, aria, onClick) {
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'reorder-file'; button.textContent = label;
+    button.setAttribute('aria-label', aria);
+    button.addEventListener('click', onClick);
+    return button;
+  }
+  
+  function renderSelected() {
+    const currentFiles = new Set(files);
+    for (const [file, url] of selectedUrls) {
+      if (currentFiles.has(file)) continue;
+      URL.revokeObjectURL(url);
+      selectedUrls.delete(file);
+    }
+    dropZone.classList.toggle('compact', files.length > 0);
+    if (previewIndex > files.length - 1) previewIndex = Math.max(0, files.length - 1);
+    const multiple = files.length > 1 && previewTools.has(activeTool) && !textTools.has(activeTool);
+    selected.innerHTML = '';
+    files.forEach((file, index) => {
+      const row = document.createElement('div'); row.className = 'selected-file'; row.draggable = true;
+      row.dataset.fileIndex = String(index);
+      if (multiple) {
+        row.classList.toggle('preview-active', index === previewIndex);
+        row.addEventListener('click', event => { if (!event.target.closest('button')) setPreviewIndex(index); });
+      }
+      row.addEventListener('dragstart', event => {
+        dragIndex = index; row.classList.add('dragging');
+        if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+      });
+      row.addEventListener('dragend', () => { dragIndex = null; row.classList.remove('dragging'); });
+      row.addEventListener('dragover', event => { event.preventDefault(); row.classList.add('drop-target'); });
+      row.addEventListener('dragleave', () => row.classList.remove('drop-target'));
+      row.addEventListener('drop', event => {
+        event.preventDefault(); row.classList.remove('drop-target');
+        if (dragIndex === null || dragIndex === index) return;
+        const [moved] = files.splice(dragIndex, 1);
+        files.splice(index, 0, moved);
+        renderSelected(); runButton.disabled = !canRun();
+      });
+      const pdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      const thumb = document.createElement('button');
+      thumb.type = 'button'; thumb.className = 'file-mini-icon file-thumb-btn';
+      thumb.setAttribute('aria-label', `Preview ${file.name}`);
+      if (pdf) thumb.textContent = 'PDF';
+      else {
+        let url = selectedUrls.get(file);
+        if (!url) { url = URL.createObjectURL(file); selectedUrls.set(file, url); }
+        const image = document.createElement('img');
+        image.className = 'file-thumb'; image.alt = ''; image.loading = 'lazy'; image.src = url;
+        thumb.classList.add('has-thumb'); thumb.append(image);
+      }
+      thumb.addEventListener('click', () => openPreview({ name: file.name, blob: file }));
+      const details = document.createElement('span'); details.className = 'selected-file-info';
+      const name = document.createElement('b'); name.textContent = file.name; name.title = file.name;
+      const meta = document.createElement('small'); meta.textContent = formatBytes(file.size);
+      details.append(name, meta);
+      const controls = document.createElement('span'); controls.className = 'file-controls';
+      if (files.length > 1) {
+        controls.append(
+          makeReorderButton('↑', `Move ${file.name} up`, () => moveFile(index, index - 1)),
+          makeReorderButton('↓', `Move ${file.name} down`, () => moveFile(index, index + 1))
+        );
+      }
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'remove-file'; remove.textContent = '×'; remove.setAttribute('aria-label', `Remove ${file.name}`);
+      remove.addEventListener('click', () => {
+        files.splice(index, 1);
+        rotateStore.delete(file);
+        input.value = '';
+        results.innerHTML = '';
+        results.hidden = true;
+        status.hidden = true;
+        renderSelected();
+        runButton.disabled = !canRun();
+        runButton.innerHTML = files.length ? 'Process files <span aria-hidden="true">→</span>' : 'Choose files to start <span aria-hidden="true">→</span>';
+      });
+      row.append(thumb, details, controls, remove); selected.append(row);
+    });
+    if (files.length > 1) {
+      const clear = document.createElement('button');
+      clear.type = 'button'; clear.className = 'clear-files'; clear.textContent = 'Clear all';
+      clear.addEventListener('click', () => {
+        files = []; results.innerHTML = ''; results.hidden = true; input.value = '';
+        rotateStore.clear();
+        renderSelected(); runButton.disabled = true;
+        runButton.innerHTML = 'Choose files to start <span aria-hidden="true">→</span>';
+        schedulePreviewUpdate();
+      });
+      selected.append(clear);
+    }
+    if (activeTool === 'image-resize' && files.length === 1) {
+      readImageDimensions(files[0]).then(({ width, height }) => {
+        if (!$('#resize-width')) return;
+        $('#resize-width').value = width; $('#resize-height').value = height;
+      }).catch(() => {});
+    }
+    if (activeTool === 'image-crop') {
+      if (files.length === 1) cropEditor?.load(files[0]).catch(error => showStatus(error.message, 'error'));
+      else cropEditor?.clear();
+    }
+    if (activeTool === 'pdf-remove-metadata') scheduleMetadataInspect();
+    syncCropStage();
+    syncMergeStage();
+    syncRotateControls();
+    schedulePreviewUpdate();
+  }
+  
+  function transformFor(file) {
+    if (!file) return { rotation: 0, flipH: false, flipV: false, pageRotations: {} };
+    let entry = rotateStore.get(file);
+    if (!entry) { entry = { rotation: 0, flipH: false, flipV: false, pageRotations: {} }; rotateStore.set(file, entry); }
+    if (!entry.pageRotations) entry.pageRotations = {};
+    return entry;
+  }
+  
+  function activeTransform() {
+    return transformFor(files[previewIndex]);
+  }
+  
+  function activeTransformApplied(file) {
+    const entry = rotateStore.get(file);
+    return !!entry && (entry.rotation || entry.flipH || entry.flipV || Object.values(entry.pageRotations || {}).some(rotation => normalizeAngle(rotation) !== 0));
+  }
+  
+  function applyRotateOp(op) {
+    if (!files.length) return;
+    const entry = activeTransform();
+    if (activeTool === 'pdf-rotate-pages') {
+      const pageNumber = workspace?.currentPage || 1;
+      const current = normalizeAngle(entry.pageRotations[pageNumber] || 0);
+      if (op === 'cw') entry.pageRotations[pageNumber] = normalizeAngle(current + 90);
+      else if (op === 'ccw') entry.pageRotations[pageNumber] = normalizeAngle(current - 90);
+      else if (op === '180') entry.pageRotations[pageNumber] = normalizeAngle(current + 180);
+      else if (op === 'reset') entry.pageRotations[pageNumber] = 0;
+    } else if (op === 'cw') entry.rotation = (entry.rotation + 90) % 360;
+    else if (op === 'ccw') entry.rotation = (entry.rotation + 270) % 360;
+    else if (op === '180') entry.rotation = (entry.rotation + 180) % 360;
+    else if (op === 'flip-h') entry.flipH = !entry.flipH;
+    else if (op === 'flip-v') entry.flipV = !entry.flipV;
+    else if (op === 'reset') {
+      if (activeTool === 'pdf-rotate-pages') entry.pageRotations[workspace?.currentPage || 1] = 0;
+      else { entry.rotation = 0; entry.flipH = false; entry.flipV = false; }
+    }
+    syncRotateControls();
+    schedulePreviewUpdate(40);
+  }
+  
+  function syncRotateControls() {
+    if (!rotateTools.has(activeTool)) return;
+    const entry = activeTransform();
+    const readout = $('#rotate-readout');
+    if (readout) setAnimatedText(readout, `${entry.rotation || 0}°`);
+    const pdfReadout = $('#rotate-readout-pdf');
+    if (pdfReadout) {
+      const pageNumber = workspace?.currentPage || 1;
+      setAnimatedText(pdfReadout, `${normalizeAngle(entry.pageRotations?.[pageNumber] || 0)}°`);
+    }
+    const flipH = activeOption('.flip-act[data-op="flip-h"]');
+    const flipV = activeOption('.flip-act[data-op="flip-v"]');
+    if (flipH) flipH.classList.toggle('active', entry.flipH);
+    if (flipV) flipV.classList.toggle('active', entry.flipV);
+  }
+
+  const valueAnimationTimers = new WeakMap();
+
+  function animateValue(element) {
+    if (!element) return;
+    clearTimeout(valueAnimationTimers.get(element));
+    element.classList.remove('control-value-updated');
+    void element.offsetWidth;
+    element.classList.add('control-value-updated');
+    valueAnimationTimers.set(element, setTimeout(() => element.classList.remove('control-value-updated'), 480));
+  }
+
+  function setAnimatedText(element, value) {
+    if (!element || element.textContent === value) return;
+    element.textContent = value;
+    animateValue(element);
+  }
+  
+  function syncMarginPresets(input) {
+    if (!input || !input.id) return;
+    const control = input.closest?.('.margin-control');
+    if (!control) return;
+    const value = Number(input.value) || 0;
+    control.querySelectorAll('.margin-preset').forEach(btn => btn.classList.toggle('active', Number(btn.dataset.value) === value));
+  }
+  
+  function updateResizeDimension(changed) {
+    if (!$('#keep-ratio')?.checked || files.length !== 1) return;
+    readImageDimensions(files[0]).then(({ width, height }) => {
+      const w = Number($('#resize-width').value), h = Number($('#resize-height').value);
+      if (changed === 'resize-width' && w > 0) $('#resize-height').value = Math.max(1, Math.round(w * height / width));
+      if (changed === 'resize-height' && h > 0) $('#resize-width').value = Math.max(1, Math.round(h * width / height));
+    }).catch(() => {});
+  }
+  
+  function showStatus(message, type = 'info') {
+    status.textContent = message; status.className = `status-message status-${type}`; status.hidden = false;
+  }
+  
+  function revealResults() {
+    if (!results.hidden) requestAnimationFrame(() => {
+      const scroller = results.closest('.wb-side-scroll');
+      if (scroller) scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' });
+    });
+  }
+  
+  function scheduleMetadataInspect() {
+    clearTimeout(metadataTimer);
+    metadataTimer = setTimeout(() => { inspectMetadataForFiles(); }, 60);
+  }
+  
+  async function inspectMetadataForFiles() {
+    if (activeTool !== 'pdf-remove-metadata') return;
+    const panel = $('#metadata-panel');
+    if (!panel) return;
+    const seq = ++metadataSeq;
+    metadataInspection = null;
+    if (!files.length) {
+      panel.innerHTML = '<p class="meta-empty">Add a PDF to inspect its metadata. Nothing is removed until you review the properties and confirm.</p>';
+      if (!busy) runButton.disabled = true;
+      return;
+    }
+    panel.innerHTML = '<div class="meta-loading"><span class="meta-spinner"></span>Inspecting metadata…</div>';
+    if (!busy) runButton.disabled = true;
+    try {
+      const info = await inspectPdfMetadata(files[0]);
+      if (seq !== metadataSeq || activeTool !== 'pdf-remove-metadata') return;
+      metadataInspection = info;
+      renderMetadataPanel(info);
+    } catch (error) {
+      if (seq !== metadataSeq || activeTool !== 'pdf-remove-metadata') return;
+      panel.innerHTML = '';
+      const warn = document.createElement('p');
+      warn.className = 'meta-warn';
+      warn.textContent = error?.message || 'This PDF could not be read.';
+      panel.append(warn);
+      if (!busy) runButton.disabled = true;
+    }
+  }
+  
+  function renderMetadataPanel(info) {
+    const panel = $('#metadata-panel');
+    if (!panel) return;
+    panel.innerHTML = '';
+    const scale = document.createElement('p');
+    scale.className = 'meta-note';
+    scale.textContent = `PDF ${info.version || 'version unknown'} · ${info.pageCount} page(s) · ${info.encrypted ? 'encrypted' : 'not encrypted'}`;
+    panel.append(scale);
+  
+    if (info.encrypted) {
+      const warn = document.createElement('p');
+      warn.className = 'meta-warn';
+      warn.textContent = 'This PDF is encrypted. Metadata cannot be reliably removed while encryption is active, so processing is disabled.';
+      panel.append(warn);
+      if (!busy) runButton.disabled = true;
+      return;
+    }
+  
+    const removable = info.items.filter(item => item.removable && item.set);
+    if (!removable.length) {
+      panel.innerHTML = '';
+      const empty = document.createElement('p');
+      empty.className = 'meta-empty';
+      empty.textContent = 'No removable metadata was found in this PDF. There is nothing to clear.';
+      panel.append(empty);
+      if (!busy) runButton.disabled = true;
+      return;
+    }
+  
+    const toolbar = document.createElement('div');
+    toolbar.className = 'meta-toolbar';
+    const selectAll = document.createElement('button');
+    selectAll.type = 'button'; selectAll.className = 'meta-mini'; selectAll.textContent = 'Select all';
+    const clearAll = document.createElement('button');
+    clearAll.type = 'button'; clearAll.className = 'meta-mini'; clearAll.textContent = 'Clear';
+    const count = document.createElement('span');
+    count.className = 'meta-count';
+    toolbar.append(selectAll, clearAll, count);
+    panel.append(toolbar);
+  
+    const scroll = document.createElement('div');
+    scroll.className = 'meta-scroll';
+    const table = document.createElement('table');
+    table.className = 'meta-table';
+    table.innerHTML = '<thead><tr><th scope="col">Property</th><th scope="col">Value</th><th scope="col">Remove</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+    info.items.forEach(item => {
+      const tr = document.createElement('tr');
+      const prop = document.createElement('td');
+      prop.className = 'meta-prop';
+      prop.textContent = item.label;
+      if (item.custom) {
+        const badge = document.createElement('span');
+        badge.className = 'meta-badge'; badge.textContent = 'CUSTOM';
+        prop.append(badge);
+      }
+      const val = document.createElement('td');
+      if (item.set) { val.className = 'meta-value'; val.textContent = item.value; }
+      else { val.className = 'meta-notset'; val.textContent = 'Not set'; }
+      const act = document.createElement('td');
+      if (item.removable && item.set) {
+        const label = document.createElement('label');
+        label.className = 'meta-check';
+        const box = document.createElement('input');
+        box.type = 'checkbox'; box.dataset.metaId = item.id;
+        if (item.group === 'info') box.dataset.key = item.key;
+        box.setAttribute('aria-label', `Remove ${item.label}`);
+        box.title = `Remove ${item.label}`;
+        label.append(box);
+        act.append(label);
+      } else {
+        const muted = document.createElement('span');
+        muted.className = 'meta-muted';
+        muted.textContent = item.removable ? 'Not set' : 'Info only';
+        act.append(muted);
+      }
+      tr.append(prop, val, act);
+      tbody.append(tr);
+    });
+    table.append(tbody);
+    scroll.append(table);
+    panel.append(scroll);
+  
+    if (info.xmp.present) {
+      const details = document.createElement('details');
+      details.className = 'meta-adv';
+      const summary = document.createElement('summary');
+      summary.textContent = 'View raw XMP metadata';
+      const pre = document.createElement('pre');
+      pre.textContent = info.xmp.raw || '(empty)';
+      details.append(summary, pre);
+      panel.append(details);
+    }
+  
+    selectAll.addEventListener('click', () => {
+      panel.querySelectorAll('[data-meta-id]:not(:disabled)').forEach(box => { box.checked = true; });
+      updateMetadataSelection();
+    });
+    clearAll.addEventListener('click', () => {
+      panel.querySelectorAll('[data-meta-id]').forEach(box => { box.checked = false; });
+      updateMetadataSelection();
+    });
+    updateMetadataSelection();
+  }
+  
+  function updateMetadataSelection() {
+    const panel = $('#metadata-panel');
+    if (!panel) return;
+    const boxes = [...panel.querySelectorAll('[data-meta-id]')];
+    const checked = boxes.filter(box => box.checked).length;
+    const count = panel.querySelector('.meta-count');
+    if (count) count.textContent = `${checked} of ${boxes.length} selected`;
+    if (activeTool === 'pdf-remove-metadata' && !busy) runButton.disabled = checked === 0;
+  }
+  
+  function metadataSelection() {
+    const keys = [];
+    let removeXmp = false;
+    let removeLang = false;
+    const panel = $('#metadata-panel');
+    panel?.querySelectorAll('[data-meta-id]:checked').forEach(box => {
+      if (box.dataset.key) keys.push(box.dataset.key);
+      else if (box.dataset.metaId === 'xmp') removeXmp = true;
+      else if (box.dataset.metaId === 'lang') removeLang = true;
+    });
+    return { keys, removeXmp, removeLang };
+  }
+  
+  function askConfirm(labels, fileName) {
+    if (!confirmDialog) return Promise.resolve(true);
+    confirmBody.innerHTML = '';
+    const message = document.createElement('p');
+    message.className = 'meta-note';
+    message.textContent = `You are about to remove ${labels.length} propert${labels.length === 1 ? 'y' : 'ies'} from “${fileName}”.`;
+    const list = document.createElement('ul');
+    list.className = 'meta-list';
+    labels.forEach(text => { const li = document.createElement('li'); li.textContent = text; list.append(li); });
+    confirmBody.append(message, list);
+    return new Promise(resolve => {
+      let settled = false;
+      const finish = value => {
+        if (settled) return;
+        settled = true;
+        confirmOk.removeEventListener('click', onOk);
+        confirmCancel.removeEventListener('click', onCancel);
+        confirmClose.removeEventListener('click', onCancel);
+        confirmDialog.removeEventListener('close', onClose);
+        if (confirmDialog.open) confirmDialog.close();
+        resolve(value);
+      };
+      const onOk = () => finish(true);
+      const onCancel = () => finish(false);
+      const onClose = () => finish(false);
+      confirmOk.addEventListener('click', onOk);
+      confirmCancel.addEventListener('click', onCancel);
+      confirmClose.addEventListener('click', onCancel);
+      confirmDialog.addEventListener('close', onClose);
+      confirmDialog.showModal();
+    });
+  }
+  
+  async function runMetadataTool() {
+    if (!metadataInspection) return;
+    const selection = metadataSelection();
+    if (!selection.keys.length && !selection.removeXmp && !selection.removeLang) {
+      showStatus('Select at least one property to remove.', 'error');
+      return;
+    }
+    const labels = [];
+    metadataInspection.items.forEach(item => {
+      if (!item.set) return;
+      if (item.id === 'xmp' && selection.removeXmp) labels.push('XMP metadata stream');
+      else if (item.id === 'lang' && selection.removeLang) labels.push('Document language');
+      else if (item.group === 'info' && selection.keys.includes(item.key)) labels.push(item.label);
+    });
+    if (!(await askConfirm(labels, files[0].name))) return;
+    setBusy(true); status.hidden = true; results.hidden = true; results.innerHTML = '';
+    progressWrap.hidden = false; setProgress({ percent: 0, label: 'Preparing…' });
+    try {
+      const output = await removePdfMetadata(files[0], { ...selection, before: metadataInspection }, setProgress);
+      setProgress({ percent: 100, label: 'Done' });
+      renderMetadataResults(output);
+      showStatus(output.partial ? 'Finished with warnings. Review the before/after table below.' : 'Finished. Your cleaned PDF is ready to download.', output.partial ? 'info' : 'success');
+      revealResults();
+    } catch (error) {
+      showStatus(error?.message || 'Could not remove metadata.', 'error');
+    } finally { setBusy(false); }
+  }
+  
+  function renderMetadataResults(output) {
+    results.innerHTML = ''; results.hidden = false;
+    const row = document.createElement('div'); row.className = 'result-row';
+    const icon = document.createElement('span'); icon.className = 'result-check'; icon.textContent = '✓';
+    const info = document.createElement('span'); info.className = 'result-info';
+    const name = document.createElement('b'); name.textContent = output.name;
+    const meta = document.createElement('small'); meta.textContent = output.details || formatBytes(output.blob.size);
+    info.append(name, meta);
+    const preview = document.createElement('button');
+    preview.type = 'button'; preview.className = 'button button-small preview-button'; preview.textContent = 'Preview';
+    preview.addEventListener('click', () => openPreview({ name: output.name, blob: output.blob }));
+    const download = document.createElement('button');
+    download.type = 'button'; download.className = 'button button-small'; download.textContent = 'Download';
+    download.addEventListener('click', () => downloadBlob(output.blob, output.name));
+    const actions = document.createElement('span'); actions.className = 'result-actions';
+    actions.append(preview, download);
+    row.append(icon, info, actions);
+    results.append(row);
+  
+    const pillLabels = { removed: 'Removed', remaining: 'Still present', untouched: 'Kept', 'was-empty': 'Was empty', info: 'Info' };
+    const scroll = document.createElement('div'); scroll.className = 'compare-scroll';
+    const table = document.createElement('table'); table.className = 'meta-table';
+    table.innerHTML = '<thead><tr><th scope="col">Property</th><th scope="col">Before</th><th scope="col">After</th><th scope="col">Result</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+    output.comparison.forEach(item => {
+      const tr = document.createElement('tr');
+      const prop = document.createElement('td'); prop.className = 'meta-prop'; prop.textContent = item.label;
+      const before = document.createElement('td');
+      before.className = item.before === 'Not set' ? 'meta-notset' : 'meta-value';
+      before.textContent = item.before;
+      const after = document.createElement('td');
+      after.className = item.after === 'Not set' ? 'meta-notset' : 'meta-value';
+      after.textContent = item.after;
+      const result = document.createElement('td');
+      const pill = document.createElement('span');
+      pill.className = `result-pill ${item.result}`;
+      pill.textContent = pillLabels[item.result] || item.result;
+      result.append(pill);
+      tr.append(prop, before, after, result);
+      tbody.append(tr);
+    });
+    table.append(tbody); scroll.append(table);
+    results.append(scroll);
+  
+    const again = document.createElement('button');
+    again.type = 'button'; again.className = 'button button-small button-full'; again.textContent = 'Process another PDF';
+    again.addEventListener('click', () => {
+      files = []; metadataInspection = null;
+      results.innerHTML = ''; results.hidden = true;
+      renderSelected(); runButton.disabled = true;
+      runButton.innerHTML = 'Choose files to start <span aria-hidden="true">→</span>';
+      inspectMetadataForFiles();
+    });
+    results.append(again);
+  }
+  
+  function setProgress({ percent, label }) {
+    progressWrap.hidden = false;
+    progressBar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+    progressPercent.textContent = `${percent}%`;
+    progressLabel.textContent = label || 'Processing files…';
+  }
+  
+  function setBusy(value) {
+    busy = value; runButton.disabled = value || !canRun(); closeButton.disabled = value;
+    const idle = textTools.has(activeTool) ? 'Run tool <span aria-hidden="true">→</span>' : 'Process files <span aria-hidden="true">→</span>';
+    runButton.innerHTML = value ? 'Working…' : idle;
+  }
+  
+  async function copyUtilityOutput() {
+    if (!utilityOutput.value) return;
+    try { await navigator.clipboard.writeText(utilityOutput.value); }
+    catch { utilityOutput.select(); document.execCommand?.('copy'); }
+    showStatus('Copied to clipboard.', 'success');
+  }
+  
+  async function runTextTool() {
+    setBusy(true); status.hidden = true; utilityResults.hidden = true;
+    try {
+      const result = (activeTool === 'data-hash' && files.length)
+        ? await (async () => {
+            const algorithm = $('#hash-algorithm').value;
+            const output = await hashFiles(files, algorithm);
+            return { output, filename: `${algorithm.toLowerCase()}-hashes.txt`, message: `${files.length} file${files.length === 1 ? '' : 's'} hashed with ${algorithm}.` };
+          })()
+        : await TEXT_HANDLERS[activeTool](utilityInput.value);
+      if (utilityUrl) { URL.revokeObjectURL(utilityUrl); utilityUrl = null; }
+      if (result.image) {
+        utilityBlob = result.image.blob;
+        utilityUrl = URL.createObjectURL(result.image.blob);
+        utilityImage.src = utilityUrl;
+        utilityImage.hidden = false;
+        utilityOutput.hidden = true;
+        utilityCopy.hidden = true;
+        utilityDownload.dataset.filename = result.image.name || 'ilovemyfiles-image.png';
+      } else {
+        utilityBlob = new Blob([result.output], { type: 'text/plain' });
+        utilityOutput.value = result.output;
+        utilityOutput.hidden = false;
+        utilityImage.hidden = true;
+        utilityCopy.hidden = false;
+        utilityDownload.dataset.filename = result.filename || 'ilovemyfiles-output.txt';
+      }
+      utilityResults.hidden = false;
+      showStatus(result.message || 'Done. Copy or download the result.', 'success');
+    } catch (error) {
+      showStatus(error?.message || 'Could not process the input.', 'error');
+    } finally { setBusy(false); }
+  }
+  
+  async function runTool() {
+    if (!canRun() || busy) return;
+    if (activeTool === 'data-hash' || textTools.has(activeTool)) return runTextTool();
+    if (activeTool === 'pdf-remove-metadata') return runMetadataTool();
+    setBusy(true); status.hidden = true; results.hidden = true; results.innerHTML = '';
+    progressWrap.hidden = false; setProgress({ percent: 0, label: 'Preparing…' });
+    try {
+      let outputs = [];
+      if (activeTool === 'image-convert') {
+        const type = $('#image-format').value;
+        const margin = Number($('#convert-margin')?.value) || 0;
+        const ext = activeOption('.format-chip.active')?.dataset.ext || null;
+        outputs = await processMany(file => convertImage(file, type, margin, ext));
+      } else if (activeTool === 'image-compress') {
+        const type = $('#compress-format').value;
+        const mode = $('#compress-mode').value;
+        outputs = await processMany(file => compressImage(file, { type, mode, quality: $('#quality')?.value, targetKb: $('#target-kb')?.value }));
+      } else if (activeTool === 'image-resize') {
+        const width = Number($('#resize-width').value), height = Number($('#resize-height').value);
+        if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 20000 || height > 20000) throw new Error('Enter width and height between 1 and 20,000 pixels.');
+        const keep = $('#keep-ratio').checked, type = $('#resize-format').value, margin = Number($('#image-resize-margin')?.value) || 0;
+        outputs = await processMany(file => resizeImage(file, width, height, keep, type, margin));
+      } else if (activeTool === 'image-rotate') {
+        const type = $('#rotate-format').value;
+        const margin = Number($('#rotate-image-margin')?.value) || 0;
+        if (!margin && !files.some(activeTransformApplied)) throw new Error('Rotate or flip at least one image, or add a margin.');
+        outputs = await processMany(file => {
+          const entry = transformFor(file);
+          return rotateImage(file, { rotation: entry.rotation, flipH: entry.flipH, flipV: entry.flipV, type, margin });
+        });
+      } else if (activeTool === 'image-crop') {
+        const area = cropEditor?.getCropRect();
+        if (!area || area.width < 1 || area.height < 1) throw new Error('Select a crop area first.');
+        const type = $('#crop-format').value;
+        const margin = Number($('#crop-margin')?.value) || 0;
+        outputs = await processMany(file => cropImage(file, area, type, margin));
+      } else if (activeTool === 'image-watermark') {
+        const options = {
+          text: $('#wm-text').value, position: $('#wm-position').value, color: $('#wm-color').value,
+          opacity: $('#wm-opacity').value, scale: $('#wm-size').value, type: $('#wm-format').value
+        };
+        if (!options.text.trim()) throw new Error('Enter watermark text first.');
+        outputs = await processMany(file => watermarkImage(file, options));
+      } else if (activeTool === 'images-pdf') {
+        const fileSettings = files.map(file => {
+          const key = `${file.name}:${file.size}:${file.lastModified}`;
+          const s = imagePdfSettings.get(key) || imagePdfDefaultSettings;
+          return { pageSize: s.pageSize, orientation: s.orientation };
+        });
+        outputs = [await imagesToPdf(files, { pageSize: $('#pdf-page-size').value, orientation: $('#pdf-page-orientation').value, margin: $('#pdf-margin').value, fileSettings }, setProgress)];
+      } else if (activeTool === 'pdf-merge') {
+        const order = mergeBoard?.getOrder?.() || [];
+        const mergeMargin = Number($('#merge-margin')?.value) || 0;
+        const mergeSize = $('#merge-page-size')?.value || 'original';
+        const mergeOrientation = $('#merge-orientation')?.value || 'auto';
+        const mergeOptions = { margin: mergeMargin, size: mergeSize, orientation: mergeOrientation };
+        const mergeQuality = $('#merge-quality')?.value || 'original';
+        let mergeResult = order.length ? await mergePdfPages(files, order, setProgress, mergeOptions) : await mergePdfs(files, setProgress, mergeOptions);
+        if (mergeQuality && mergeQuality !== 'original') {
+          const mergedFile = new File([mergeResult.blob], 'ilovemyfiles-merged.pdf', { type: 'application/pdf' });
+          mergeResult = await compressPdf(mergedFile, { level: mergeQuality }, setProgress);
+        }
+        outputs = [mergeResult];
+      } else if (activeTool === 'pdf-split') {
+        const mode = $('#split-mode').value;
+        const selection = $('#split-pages')?.value || '';
+        outputs = [];
+        for (let index = 0; index < files.length; index++) {
+          const file = files[index];
+          const parts = await splitPdf(file, mode, selection, step => setProgress({
+            percent: Math.round((index + (step?.percent || 0) / 100) / files.length * 100),
+            label: files.length > 1 ? `${file.name}: ${step?.label || ''}` : step?.label
+          }));
+          outputs.push(...parts);
+        }
+      } else if (activeTool === 'pdf-delete-pages') {
+        outputs = [await deletePdfPages(files[0], $('#delete-pages').value, setProgress)];
+      } else if (activeTool === 'pdf-rotate-pages') {
+        const rotations = transformFor(files[0]).pageRotations || {};
+        const changedPages = Object.entries(rotations).filter(([, rotation]) => normalizeAngle(rotation) !== 0);
+        if (!changedPages.length) throw new Error('Select a page and choose a rotation before processing.');
+        outputs = [await rotatePdfPages(files[0], rotations, '', setProgress)];
+      } else if (activeTool === 'pdf-resize-pages') {
+        outputs = [await resizePdfPages(files[0], { size: $('#resize-page-size').value, orientation: $('#resize-orientation').value, margin: $('#resize-margin').value, pages: $('#resize-pages').value }, setProgress)];
+      } else if (activeTool === 'pdf-page-numbers') {
+        const selectedFont = $('#numbers-font')?.value || 'helvetica';
+        const bold = !!$('#numbers-bold')?.checked;
+        const italic = !!$('#numbers-italic')?.checked;
+        const fontKey = WM_FONTS[selectedFont]?.googleFamily
+          ? selectedFont
+          : wmFontKey(WM_FONTS[selectedFont]?.family || selectedFont, bold, italic);
+        outputs = [await addPageNumbers(files[0], { position: $('#numbers-position').value, start: $('#numbers-start').value, format: $('#numbers-format').value, custom: $('#numbers-custom').value, font: fontKey, fontFamily: WM_FONTS[fontKey]?.googleFamily || null, fontWeight: Number(WM_FONTS[fontKey]?.weight) || (bold ? 700 : 400), fontStyle: WM_FONTS[fontKey]?.style || (italic ? 'italic' : 'normal'), underline: !!$('#numbers-underline')?.checked, size: $('#numbers-size').value, color: $('#numbers-color').value }, setProgress)];
+      } else if (activeTool === 'pdf-watermark') {
+        const selectedFont = $('#watermark-font')?.value || 'helvetica';
+        const bold = !!$('#watermark-bold')?.checked;
+        const italic = !!$('#watermark-italic')?.checked;
+const fontKey = WM_FONTS[selectedFont]?.googleFamily
+      ? selectedFont
+      : wmFontKey(WM_FONTS[selectedFont]?.family || selectedFont, bold, italic);
+        const face = WM_FONTS[fontKey] || WM_FONTS.helvetica;
+        outputs = [await addPdfWatermark(files[0], { text: $('#watermark-text').value, size: $('#watermark-size').value, opacity: $('#watermark-opacity').value, font: fontKey, fontFamily: face.googleFamily, fontWeight: Number(face.weight) || (bold ? 700 : 400), fontStyle: face.style || (italic ? 'italic' : 'normal'), underline: $('#watermark-underline')?.checked, color: $('#watermark-color')?.value, angle: $('#watermark-angle').value, x: wmPosition.x, y: wmPosition.y }, setProgress)];
+      } else if (activeTool === 'pdf-to-images') {
+        outputs = await pdfToImages(files[0], { type: $('#pti-format').value, dpi: $('#pti-dpi').value, pages: $('#pti-pages').value }, setProgress);
+      } else if (activeTool === 'pdf-organize') {
+        outputs = [await organizePdfPages(files[0], $('#organize-order').value, setProgress)];
+      } else if (activeTool === 'pdf-compress') {
+        const level = activeOption('input[name="compress-level"]:checked')?.value || 'recommended';
+        outputs = [await compressPdf(files[0], { level }, setProgress)];
+      } else if (activeTool === 'ocr') {
+        outputs = [await ocrFile(files[0], { lang: $('#ocr-lang').value }, setProgress)];
+      } else if (activeTool === 'pdf-ocr') {
+        outputs = [await makeSearchablePdf(files[0], { lang: $('#pdf-ocr-lang').value, dpi: $('#pdf-ocr-dpi').value, quality: $('#pdf-ocr-quality').value }, setProgress)];
+      } else if (activeTool === 'pdf-flatten') {
+        outputs = [await flattenPdf(files[0], { dpi: $('#flatten-dpi').value, quality: $('#flatten-quality').value }, setProgress)];
+      }
+      setProgress({ percent: 100, label: 'Done' });
+      renderResults(outputs);
+      showStatus('Finished. Your files are ready to download.', 'success');
+      revealResults();
+    } catch (error) {
+      showStatus(error?.message || 'Something went wrong while processing the files.', 'error');
+    } finally { setBusy(false); }
+  }
+  
+  async function processMany(callback) {
+    const outputs = [];
+    for (let index = 0; index < files.length; index++) {
+      setProgress({ percent: Math.round(index / files.length * 90), label: `Processing ${files[index].name}…` });
+      outputs.push(await callback(files[index]));
+    }
+    return outputs;
+  }
+  
+  function renderResults(outputs) {
+    results.innerHTML = ''; results.hidden = false;
+    outputs.forEach(output => {
+      const row = document.createElement('div'); row.className = 'result-row';
+      const icon = document.createElement('span'); icon.className = 'result-check'; icon.textContent = '✓';
+      const info = document.createElement('span'); info.className = 'result-info';
+      const name = document.createElement('b'); name.textContent = output.name;
+      const meta = document.createElement('small'); meta.textContent = output.details || formatBytes(output.blob.size);
+      info.append(name, meta);
+      const previewable = output.blob.type.startsWith('image/') || output.blob.type === 'application/pdf';
+      const download = document.createElement('button'); download.className = 'button button-small'; download.type = 'button'; download.textContent = 'Download';
+      download.addEventListener('click', () => downloadBlob(output.blob, output.name));
+      const actions = document.createElement('span'); actions.className = 'result-actions';
+      if (previewable) {
+        const preview = document.createElement('button'); preview.className = 'button button-small preview-button'; preview.type = 'button'; preview.textContent = 'Preview';
+        preview.addEventListener('click', () => openPreview({ name: output.name, blob: output.blob }));
+        actions.append(preview);
+      }
+      actions.append(download);
+      row.append(icon, info, actions); results.append(row);
+      if (output.text) {
+        const details = document.createElement('details'); details.className = 'result-text';
+        const summary = document.createElement('summary'); summary.textContent = 'Recognized text';
+        const pre = document.createElement('pre'); pre.textContent = output.text || '(no text found)';
+        const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'button button-small'; copy.textContent = 'Copy text';
+        copy.addEventListener('click', async () => {
+          try { await navigator.clipboard.writeText(output.text); } catch { /* clipboard unavailable */ }
+          copy.textContent = 'Copied';
+          window.setTimeout(() => { copy.textContent = 'Copy text'; }, 1500);
+        });
+        details.append(summary, pre, copy);
+        results.append(details);
+      }
+    });
+    if (outputs.length > 1) {
+      const downloadAll = document.createElement('button'); downloadAll.type = 'button'; downloadAll.className = 'button button-primary button-full'; downloadAll.textContent = 'Download all as ZIP';
+      downloadAll.addEventListener('click', async () => {
+        try {
+          downloadAll.disabled = true; downloadAll.textContent = 'Preparing ZIP…';
+          const JSZip = (await import('jszip')).default; const zip = new JSZip();
+          outputs.forEach(output => zip.file(output.name, output.blob));
+          const blob = await zip.generateAsync({ type: 'blob' });
+          downloadBlob(blob, 'ilovemyfiles-results.zip');
+        } catch (error) { showStatus(error.message || 'Could not create ZIP.', 'error'); }
+        finally { downloadAll.disabled = false; downloadAll.textContent = 'Download all as ZIP'; }
+      });
+      results.append(downloadAll);
+    }
+  }
+      window.iLoveMyFilesModules['tool-dialog'] = { openToolById, initToolDialog };
+  });
+</script>

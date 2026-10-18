@@ -1,0 +1,104 @@
+---
+---
+<script>
+  const grid = document.querySelector('#tool-grid');
+  const tabs = document.querySelector('#category-tabs');
+  const search = document.querySelector('#tool-search');
+  const noResults = document.querySelector('#no-results');
+
+  let activeCategory = 'all';
+  let term = '';
+
+  if (grid && tabs && !tabs.dataset.initialized) {
+  tabs.dataset.initialized = 'true';
+
+  function filterTools() {
+    let visible = 0;
+    for (const card of grid?.querySelectorAll('.tool-card') ?? []) {
+      const matches = (activeCategory === 'all' || card.dataset.category === activeCategory)
+        && (card.dataset.search ?? '').includes(term);
+      card.hidden = !matches;
+      if (matches) visible++;
+    }
+    if (noResults) noResults.hidden = visible > 0;
+  }
+
+  tabs?.addEventListener('click', event => {
+    const button = event.target.closest('button[data-filter]');
+    if (!button) return;
+    activeCategory = button.dataset.filter ?? 'all';
+    tabs.querySelectorAll('button[data-filter]').forEach(tab => {
+      const active = tab === button;
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-pressed', String(active));
+    });
+    filterTools();
+  });
+
+  search?.addEventListener('input', () => {
+    term = search.value.trim().toLowerCase();
+    filterTools();
+  });
+  filterTools();
+  }
+
+  // ---- Recently used -------------------------------------------------
+  // Recorded centrally in openTool() (every entry point funnels through it) and
+  // stored per browser profile, so the list is specific to this user only.
+  const RECENT_KEY = 'ilovemyfiles-recent-tools';
+  const RECENT_LIMIT = 6;
+  const recentSection = document.querySelector('#recent-section');
+  const recentGrid = document.querySelector('#recent-grid');
+  const recentCount = document.querySelector('#recent-count');
+  const recentClear = document.querySelector('[data-clear-recent]');
+
+  function readRecentIds() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]');
+      if (!Array.isArray(raw)) return [];
+      return [...new Set(raw.filter(id => typeof id === 'string'))].slice(0, RECENT_LIMIT);
+    } catch {
+      return [];
+    }
+  }
+
+  function renderRecent() {
+    if (!recentGrid) return 0;
+    recentGrid.textContent = '';
+    let shown = 0;
+    for (const id of readRecentIds()) {
+      // Always read from the canonical tool grid: popular-strip entries are a
+      // different markup shape, and cloning those produced mixed-size cards.
+      const source = grid?.querySelector('.tool-card[data-tool="' + CSS.escape(id) + '"]')
+        || document.querySelector('[data-tool="' + CSS.escape(id) + '"]');
+      if (!source) continue;
+      const card = document.createElement('a');
+      card.className = 'quick-card recent-card';
+      card.href = source.getAttribute('href') || '/';
+      card.dataset.tool = id;
+      card.dataset.toolId = id;
+      const iconNode = source.querySelector('.tool-icon');
+      if (iconNode) card.append(iconNode.cloneNode(true));
+      const title = document.createElement('b');
+      title.textContent = source.querySelector('b')?.textContent?.trim() || id;
+      card.append(title);
+      recentGrid.append(card);
+      shown++;
+    }
+    if (recentCount) recentCount.textContent = shown ? String(shown) : '';
+    if (recentSection) recentSection.hidden = shown === 0;
+    if (recentClear) recentClear.hidden = shown === 0;
+    return shown;
+  }
+
+  renderRecent();
+
+  recentClear?.addEventListener('click', () => {
+    try { localStorage.removeItem(RECENT_KEY); } catch { /* storage unavailable */ }
+    renderRecent();
+  });
+
+  // Keep the strip in step when tools are opened from another tab/page.
+  window.addEventListener('pageshow', renderRecent);
+  window.addEventListener('storage', event => { if (event.key === RECENT_KEY) renderRecent(); });
+</script>

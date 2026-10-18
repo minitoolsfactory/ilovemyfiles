@@ -1,0 +1,243 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+      const { safeBaseName, formatBytes } = window.iLoveMyFilesModules['file-utils'];
+  const MAX_BYTES = 250 * 1024 * 1024;
+  
+  const INFO_FIELDS = [
+    { key: 'Title', label: 'Title', hint: 'Document title' },
+    { key: 'Author', label: 'Author', hint: 'Author or creator name' },
+    { key: 'Subject', label: 'Subject', hint: 'Subject or description' },
+    { key: 'Keywords', label: 'Keywords', hint: 'Search keywords' },
+    { key: 'Creator', label: 'Creator application', hint: 'Application that created the source' },
+    { key: 'Producer', label: 'PDF producer', hint: 'Application that produced the PDF' },
+    { key: 'CreationDate', label: 'Creation date', hint: 'When the document was created' },
+    { key: 'ModDate', label: 'Modification date', hint: 'When the document was last modified' }
+  ];
+  
+  const XMP_PATTERNS = [
+    ['dc:title', 'Title', /<dc:title[^>]*>[\s\S]*?<rdf:li[^>]*>([\s\S]*?)<\/rdf:li>/i],
+    ['dc:creator', 'Creator', /<dc:creator[^>]*>[\s\S]*?<rdf:li[^>]*>([\s\S]*?)<\/rdf:li>/i],
+    ['dc:description', 'Description', /<dc:description[^>]*>[\s\S]*?<rdf:li[^>]*>([\s\S]*?)<\/rdf:li>/i],
+    ['pdf:Keywords', 'Keywords', /<pdf:Keywords[^>]*>([\s\S]*?)<\/pdf:Keywords>/i],
+    ['xmp:CreatorTool', 'Creator tool', /<xmp:CreatorTool[^>]*>([\s\S]*?)<\/xmp:CreatorTool>/i],
+    ['pdf:Producer', 'Producer', /<pdf:Producer[^>]*>([\s\S]*?)<\/pdf:Producer>/i],
+    ['xmp:CreateDate', 'Create date', /<xmp:CreateDate[^>]*>([\s\S]*?)<\/xmp:CreateDate>/i],
+    ['xmp:ModifyDate', 'Modify date', /<xmp:ModifyDate[^>]*>([\s\S]*?)<\/xmp:ModifyDate>/i],
+    ['xmp:MetadataDate', 'Metadata date', /<xmp:MetadataDate[^>]*>([\s\S]*?)<\/xmp:MetadataDate>/i],
+    ['dc:language', 'Language', /<dc:language[^>]*>[\s\S]*?<rdf:li[^>]*>([\s\S]*?)<\/rdf:li>/i],
+    ['pdf:PDFVersion', 'PDF version', /<pdf:PDFVersion[^>]*>([\s\S]*?)<\/pdf:PDFVersion>/i]
+  ];
+  
+  let libPromise = null;
+  function getLib() {
+    if (!libPromise) libPromise = import('pdf-lib');
+    return libPromise;
+  }
+  
+  function stripTags(value) {
+    return String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+  
+  function readVersion(bytes) {
+    const head = new TextDecoder('latin1').decode(bytes.subarray(0, 1024));
+    const match = /%PDF-(\d+\.\d+)/.exec(head);
+    return match ? match[1] : '';
+  }
+  
+  function formatPdfDate(value) {
+    const match = /^D:(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?/.exec(String(value || '').trim());
+    if (!match) return value;
+    const [, year, month = '01', day = '01', hour = '00', minute = '00', second = '00'] = match;
+    const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second)));
+    if (Number.isNaN(date.getTime())) return value;
+    try { return date.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+    catch { return date.toISOString(); }
+  }
+  
+  function decodeValue(lib, value) {
+    if (value == null) return '';
+    const { PDFHexString, PDFString, PDFName, PDFNumber, PDFBool, PDFArray, PDFNull } = lib;
+    try {
+      if (value instanceof PDFHexString) return value.decodeText();
+      if (value instanceof PDFString) return value.decodeText();
+      if (value instanceof PDFName) return value.decodeText();
+      if (value instanceof PDFNumber) return String(value.asNumber());
+      if (value instanceof PDFBool) return value.asBoolean() ? 'true' : 'false';
+      if (value === PDFNull) return '';
+      if (value instanceof PDFArray) return value.asArray().map(item => decodeValue(lib, item)).filter(Boolean).join(', ');
+    } catch { return ''; }
+    return '';
+  }
+  
+  function parseXmp(text) {
+    const fields = [];
+    for (const [term, label, pattern] of XMP_PATTERNS) {
+      const match = pattern.exec(text);
+      const value = match ? stripTags(match[1]) : '';
+      if (value) fields.push({ term, label, value });
+    }
+    return fields;
+  }
+  
+  function buildResult(base, lib, context) {
+    const { PDFName, PDFRawStream, decodePDFRawStream } = lib;
+    const doc = context.doc;
+    const catalog = doc.catalog;
+    const infoRef = doc.context.trailerInfo.Info;
+    const info = infoRef ? doc.context.lookup(infoRef) : null;
+  
+    const fields = [];
+    for (const field of INFO_FIELDS) {
+      let raw = '';
+      if (info && info.get) raw = decodeValue(lib, info.get(PDFName.of(field.key)));
+      const isDate = field.key === 'CreationDate' || field.key === 'ModDate';
+      const value = raw ? (isDate ? formatPdfDate(raw) : raw) : '';
+      fields.push({ id: `info:${field.key}`, group: 'info', key: field.key, label: field.label, hint: field.hint, value, set: !!value, removable: true, removed: !value });
+    }
+  
+    const standardKeys = new Set(INFO_FIELDS.map(field => field.key));
+    const custom = [];
+    if (info && info.entries) {
+      for (const [nameObj, value] of info.entries()) {
+        const key = nameObj.decodeText ? nameObj.decodeText() : String(nameObj);
+        if (standardKeys.has(key)) continue;
+        const text = decodeValue(lib, value);
+        if (!text) continue;
+        custom.push({ id: `info:${key}`, group: 'info', key, label: `Custom · ${key}`, hint: 'Custom Info property', value: text, set: true, removable: true, custom: true, removed: false });
+      }
+    }
+  
+    const langRaw = decodeValue(lib, catalog.get(PDFName.of('Lang')));
+    const language = { id: 'lang', group: 'lang', key: 'Lang', label: 'Document language', hint: 'Catalog /Lang', value: langRaw, set: !!langRaw, removable: true, removed: !langRaw };
+  
+    const metaRef = catalog.get(PDFName.of('Metadata'));
+    let xmpText = '';
+    if (metaRef) {
+      try {
+        const stream = doc.context.lookup(metaRef);
+        const decoded = stream instanceof PDFRawStream ? decodePDFRawStream(stream).decode() : stream?.getContents?.();
+        if (decoded) xmpText = new TextDecoder('utf-8').decode(decoded);
+      } catch { xmpText = ''; }
+    }
+    const xmpFields = parseXmp(xmpText);
+    const xmp = { id: 'xmp', group: 'xmp', key: 'XMP', label: 'XMP metadata', hint: 'Catalog /Metadata stream', value: metaRef ? (xmpFields.length ? `${xmpFields.length} field(s)` : 'Present') : '', set: !!metaRef, removable: true, removed: !metaRef, present: !!metaRef, fields: xmpFields, raw: xmpText };
+  
+    const meta = [
+      { id: 'meta:version', label: 'PDF version', value: base.version || 'Unknown', removable: false },
+      { id: 'meta:pages', label: 'Pages', value: `${base.pageCount}`, removable: false },
+      { id: 'meta:encrypted', label: 'Encryption', value: base.encrypted ? 'Encrypted' : 'Not encrypted', removable: false }
+    ];
+  
+    const items = [...fields, ...custom, language, xmp];
+    return {
+      ...base,
+      fields, custom, language, xmp, meta,
+      items,
+      removableItems: items.filter(item => item.removable && item.set),
+      hasMetadata: items.some(item => item.removable && item.set)
+    };
+  }
+  
+  async function inspectPdfMetadata(file) {
+    if (file.size > MAX_BYTES) {
+      throw new Error(`This file is very large (${formatBytes(file.size)}). Metadata inspection works best under 250 MB.`);
+    }
+    const lib = await getLib();
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const version = readVersion(bytes);
+    let doc;
+    try {
+      doc = await lib.PDFDocument.load(bytes, { updateMetadata: false, ignoreEncryption: true, throwOnInvalidObject: false });
+    } catch (error) {
+      throw new Error(error?.message || 'This file could not be read as a PDF.');
+    }
+    const encrypted = !!doc.isEncrypted;
+    let pageCount = 0;
+    try { pageCount = doc.getPageCount(); } catch { pageCount = 0; }
+    return buildResult({ version, pageCount, encrypted, hasXmp: false }, lib, { doc });
+  }
+  
+  async function removePdfMetadata(file, options, progress) {
+    const lib = await getLib();
+    const { PDFDocument, PDFName, PDFRef } = lib;
+    const keys = new Set(options.keys || []);
+    const before = options.before || await inspectPdfMetadata(file);
+    if (before.encrypted) {
+      throw new Error('This PDF is encrypted. Metadata cannot be reliably removed while the file is encrypted.');
+    }
+    progress?.({ percent: 20, label: 'Reading document…' });
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const doc = await PDFDocument.load(bytes, { updateMetadata: false, ignoreEncryption: false });
+  
+    progress?.({ percent: 55, label: 'Clearing selected properties…' });
+    const infoRef = doc.context.trailerInfo.Info;
+    const info = infoRef ? doc.context.lookup(infoRef) : null;
+    if (info && info.delete) {
+      for (const key of keys) info.delete(PDFName.of(key));
+      if (info.entries && info.entries().length === 0) {
+        delete doc.context.trailerInfo.Info;
+        if (infoRef instanceof PDFRef) doc.context.delete(infoRef);
+      }
+    }
+  
+    if (options.removeXmp) {
+      const metaRef = doc.catalog.get(PDFName.of('Metadata'));
+      doc.catalog.delete(PDFName.of('Metadata'));
+      if (metaRef instanceof PDFRef) doc.context.delete(metaRef);
+    }
+    if (options.removeLang) doc.catalog.delete(PDFName.of('Lang'));
+  
+    progress?.({ percent: 80, label: 'Rewriting PDF…' });
+    const outBytes = await doc.save({ useObjectStreams: true });
+    const blob = new Blob([outBytes], { type: 'application/pdf' });
+  
+    progress?.({ percent: 92, label: 'Verifying result…' });
+    const after = await inspectPdfMetadata(new File([blob], 'verify.pdf', { type: 'application/pdf' }));
+  
+    const comparison = compareMetadata(before, after, { keys: options.keys || [], removeXmp: options.removeXmp, removeLang: options.removeLang });
+    const checkedCount = comparison.filter(row => row.result !== 'info').length;
+    const removedCount = comparison.filter(row => row.result === 'removed').length;
+    const remainingCount = comparison.filter(row => row.result === 'remaining').length;
+    const partial = remainingCount > 0;
+    const name = `${safeBaseName(file.name)}-no-metadata.pdf`;
+    const details = `${checkedCount} propert${checkedCount === 1 ? 'y' : 'ies'} checked · ${removedCount} removed${remainingCount ? ` · ${remainingCount} remaining` : ''} · ${formatBytes(blob.size)}`;
+  
+    return { blob, name, details, before, after, comparison, removedCount, remainingCount, partial };
+  }
+  
+  function compareMetadata(before, after, options) {
+    const rows = [];
+    const beforeMap = new Map(before.items.map(item => [item.id, item]));
+    const afterMap = new Map(after.items.map(item => [item.id, item]));
+    const seen = new Set();
+  
+    const track = (id, label, selected) => {
+      if (seen.has(id)) return;
+      seen.add(id);
+      const b = beforeMap.get(id);
+      const a = afterMap.get(id);
+      const beforeValue = b && b.set ? b.value : 'Not set';
+      const afterValue = a && a.set ? a.value : 'Not set';
+      let result;
+      if (!selected) result = 'untouched';
+      else if (beforeValue !== 'Not set' && afterValue === 'Not set') result = 'removed';
+      else if (beforeValue === 'Not set') result = 'was-empty';
+      else result = 'remaining';
+      rows.push({ id, label, before: beforeValue, after: afterValue, selected: !!selected, result });
+    };
+  
+    for (const item of before.items) {
+      if (item.id === 'xmp') track(item.id, item.label, options.removeXmp);
+      else if (item.id === 'lang') track(item.id, item.label, options.removeLang);
+      else track(item.id, item.label, options.keys.includes(item.key));
+    }
+    for (const item of before.meta) rows.push({ id: item.id, label: item.label, before: item.value, after: item.value, selected: false, result: 'info' });
+  
+    return rows;
+  }
+      window.iLoveMyFilesModules['metadata-tools'] = { INFO_FIELDS, inspectPdfMetadata, removePdfMetadata };
+  });
+</script>

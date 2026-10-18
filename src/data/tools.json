@@ -1,0 +1,1371 @@
+{
+  "CATEGORIES": [
+    {
+      "id": "all",
+      "label": "All tools"
+    },
+    {
+      "id": "organize-pdf",
+      "label": "Organize PDF"
+    },
+    {
+      "id": "optimize-pdf",
+      "label": "Optimize PDF"
+    },
+    {
+      "id": "convert-pdf",
+      "label": "Convert PDF"
+    },
+    {
+      "id": "edit-pdf",
+      "label": "Edit PDF"
+    },
+    {
+      "id": "image",
+      "label": "Image tools"
+    },
+    {
+      "id": "data",
+      "label": "Data & text"
+    }
+  ],
+  "TOOLS": [
+    {
+      "id": "pdf-merge",
+      "slug": "merge-pdf",
+      "category": "organize-pdf",
+      "cardTitle": "Merge PDFs",
+      "cardText": "Join multiple PDF files in the order you arrange.",
+      "tag": "ONE COMBINED PDF",
+      "icon": "pink",
+      "svg": "<path d=\"M4 4h10l4 4v12H4zM14 4v4h4\"/><path d=\"M8 13h6M8 16h6M19 12h2v8h-8v-2\"/>",
+      "keywords": [
+        "merge pdf",
+        "combine pdf",
+        "join pdf",
+        "pdf merger"
+      ],
+      "seo": {
+        "title": "Merge PDF Files Online - Free & Private | iLoveMyFiles",
+        "description": "Combine multiple PDF files into one document directly in your browser. Reorder, merge and download - no upload, no sign-up.",
+        "intro": "Merge two or more PDF files into a single document in the order you choose. Everything runs locally in your browser, so your files never leave your device.",
+        "steps": [
+          "Drop two or more PDF files into the tool.",
+          "Reorder the files with the arrow buttons or drag-and-drop.",
+          "Click Process, then download the combined PDF."
+        ],
+        "faqs": [
+          [
+            "Are my PDFs uploaded?",
+            "No. Merging happens entirely in your browser using pdf-lib; files are never sent to a server."
+          ],
+          [
+            "Can I change the page order?",
+            "Yes. Use the up/down buttons or drag the rows before merging."
+          ],
+          [
+            "Will bookmarks and forms survive?",
+            "Page content is preserved, but interactive features such as forms, signatures and bookmarks may not carry over."
+          ]
+        ],
+        "related": [
+          "pdf-split",
+          "pdf-rotate-pages",
+          "images-pdf"
+        ]
+      }
+    },
+    {
+      "id": "pdf-split",
+      "slug": "split-pdf",
+      "category": "organize-pdf",
+      "cardTitle": "Split PDF",
+      "cardText": "Extract page ranges or save pages individually.",
+      "tag": "DOWNLOAD AS ZIP",
+      "icon": "yellow",
+      "svg": "<path d=\"M6 3h9l4 4v14H6zM15 3v4h4\"/><path d=\"M3 9v12h12M10 12h5M10 16h5\"/>",
+      "keywords": [
+        "split pdf",
+        "extract pdf pages",
+        "pdf to pages",
+        "separate pdf"
+      ],
+      "seo": {
+        "title": "Split PDF & Extract Pages Online - Free | iLoveMyFiles",
+        "description": "Split a PDF into single pages as a ZIP, or extract a chosen page range into a new PDF. Free and fully browser-based.",
+        "intro": "Split one PDF into individual page files or pull out just the pages you need. Choose a mode, pick your pages and download.",
+        "steps": [
+          "Add one PDF file.",
+          "Choose \"every page\" for a ZIP of single pages, or \"selected pages\" and type a range such as 1-3, 5.",
+          "Process and download."
+        ],
+        "faqs": [
+          [
+            "What page formats can I enter?",
+            "Numbers and ranges separated by commas, for example 1-3, 5, 8. Ranges are inclusive."
+          ],
+          [
+            "Does it keep quality?",
+            "Yes. Pages are copied from the original PDF without re-encoding."
+          ],
+          [
+            "Can I merge the pages back later?",
+            "Yes - use the Merge PDF tool on the exported files."
+          ]
+        ],
+        "related": [
+          "pdf-merge",
+          "pdf-delete-pages",
+          "pdf-rotate-pages"
+        ]
+      }
+    },
+    {
+      "id": "pdf-delete-pages",
+      "slug": "delete-pdf-pages",
+      "category": "organize-pdf",
+      "cardTitle": "Delete PDF pages",
+      "cardText": "Remove unwanted pages from a document.",
+      "tag": "REMOVE PAGES",
+      "icon": "blue",
+      "svg": "<path d=\"M6 3h9l4 4v14H6zM15 3v4h4\"/><path d=\"M9 14h6\"/>",
+      "keywords": [
+        "delete pdf pages",
+        "remove pdf pages",
+        "delete page from pdf"
+      ],
+      "seo": {
+        "title": "Delete PDF Pages Online - Remove Pages Free | iLoveMyFiles",
+        "description": "Remove unwanted pages from a PDF in your browser. Enter the pages to delete and download a clean document.",
+        "intro": "Remove specific pages from a PDF without rebuilding the document by hand. Enter the pages to drop and get a trimmed PDF.",
+        "steps": [
+          "Add your PDF.",
+          "Type the pages or ranges to delete, such as 2, 5-7.",
+          "Process and download the trimmed PDF."
+        ],
+        "faqs": [
+          [
+            "Can I delete several ranges at once?",
+            "Yes. Use commas, for example 1, 4-6, 10."
+          ],
+          [
+            "Can I delete every page?",
+            "No - at least one page must remain, so the tool will stop you."
+          ],
+          [
+            "Is the original changed?",
+            "No. A new PDF is produced; your original file is untouched."
+          ]
+        ],
+        "related": [
+          "pdf-split",
+          "pdf-rotate-pages",
+          "pdf-merge"
+        ]
+      }
+    },
+    {
+      "id": "pdf-rotate-pages",
+      "slug": "rotate-pdf",
+      "category": "organize-pdf",
+      "cardTitle": "Rotate PDF pages",
+      "cardText": "Turn all or selected pages clockwise or anticlockwise.",
+      "tag": "FIX ORIENTATION",
+      "icon": "teal",
+      "svg": "<path d=\"M4 12a8 8 0 1 1 2.34 5.66\"/><path d=\"M4 12h5M4 12V7\"/><path d=\"M3 20h18\"/>",
+      "keywords": [
+        "rotate pdf",
+        "rotate pdf pages",
+        "turn pdf",
+        "pdf orientation",
+        "rotate pdf anticlockwise"
+      ],
+      "seo": {
+        "title": "Rotate PDF Pages Online - Free & Private | iLoveMyFiles",
+        "description": "Rotate all pages or selected pages of a PDF by 90°, 180° or 270°, clockwise or anticlockwise. Browser-based, no upload.",
+        "intro": "Fix sideways scans and rotated pages. Rotate the whole document or just the pages that need it, in either direction.",
+        "steps": [
+          "Add your PDF.",
+          "Choose the rotation direction and angle, and optionally which pages to affect.",
+          "Process and download the rotated PDF."
+        ],
+        "faqs": [
+          [
+            "Can I rotate only some pages?",
+            "Yes. Leave the page box empty to rotate all pages, or enter ranges like 2, 5-8."
+          ],
+          [
+            "Is text still selectable?",
+            "Yes. Rotation changes page orientation only; the content is unchanged."
+          ],
+          [
+            "Can I rotate anticlockwise?",
+            "Yes - pick 90° or 270° anticlockwise, or use 180° which turns the page either way."
+          ]
+        ],
+        "related": [
+          "pdf-delete-pages",
+          "pdf-merge",
+          "pdf-split"
+        ]
+      }
+    },
+    {
+      "id": "pdf-resize-pages",
+      "slug": "resize-pdf",
+      "category": "organize-pdf",
+      "cardTitle": "Resize PDF pages",
+      "cardText": "Change page size to A4, A3, Letter and more.",
+      "tag": "SET PAGE SIZE",
+      "icon": "blue",
+      "svg": "<path d=\"M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3M21 16v3a2 2 0 0 1-2 2h-3\"/><path d=\"M8 8h8v8H8z\"/>",
+      "keywords": [
+        "resize pdf",
+        "pdf page size",
+        "a4 pdf",
+        "letter pdf",
+        "change pdf page size"
+      ],
+      "seo": {
+        "title": "Resize PDF Pages - Change to A4, A3, Letter & More | iLoveMyFiles",
+        "description": "Change a PDF’s page size to A4, A3, A2, A5, B5, Letter, Legal, Tabloid or Executive. Content is scaled to fit, with optional margin. Browser-based, no upload.",
+        "intro": "Set a PDF to a standard page size. Each page’s content is scaled to fit the new page and centred, so nothing is cropped. Choose portrait, landscape or match-each-page orientation.",
+        "steps": [
+          "Add your PDF.",
+          "Choose a page size, orientation and optional margin.",
+          "Process and download the resized PDF."
+        ],
+        "faqs": [
+          [
+            "Are my files uploaded?",
+            "No. The page size is changed locally in your browser with pdf-lib."
+          ],
+          [
+            "Is anything cropped?",
+            "No. Content is scaled down to fit inside the new page, so the whole page remains visible."
+          ],
+          [
+            "Can I resize only some pages?",
+            "Yes. Leave the page box empty to resize every page, or enter ranges like 1, 3-5."
+          ],
+          [
+            "Will text stay selectable?",
+            "Yes. The original page content and text layer are preserved and only scaled."
+          ]
+        ],
+        "related": [
+          "pdf-rotate-pages",
+          "images-pdf",
+          "pdf-organize"
+        ]
+      }
+    },
+    {
+      "id": "pdf-remove-metadata",
+      "slug": "remove-pdf-metadata",
+      "category": "optimize-pdf",
+      "cardTitle": "Remove PDF metadata",
+      "cardText": "Inspect then clear title, author, keywords and dates.",
+      "tag": "INSPECT & CLEAN",
+      "icon": "green",
+      "svg": "<path d=\"M3 12 12 3h8v8l-9 9z\"/><circle cx=\"16.5\" cy=\"7.5\" r=\"1.3\"/>",
+      "keywords": [
+        "remove pdf metadata",
+        "pdf metadata",
+        "strip pdf info",
+        "pdf privacy",
+        "view pdf metadata"
+      ],
+      "seo": {
+        "title": "Remove PDF Metadata Online - Inspect & Clear Author & Title | iLoveMyFiles",
+        "description": "Inspect a PDF's document properties, choose which to remove, confirm, then download a cleaned PDF. Runs in your browser.",
+        "intro": "Review a PDF's document properties - title, author, subject, keywords, creator, producer and dates - plus XMP and language. Tick the properties to remove, confirm, then compare the before and after.",
+        "steps": [
+          "Add your PDF and let iLoveMyFiles inspect its metadata.",
+          "Select the properties to remove and confirm.",
+          "Review the before/after table and download the cleaned PDF."
+        ],
+        "faqs": [
+          [
+            "Does this remove visible content?",
+            "No - only document properties are removed. Page content, links and annotations are untouched."
+          ],
+          [
+            "Can I see what will be removed first?",
+            "Yes. Every property is listed with its current value, and nothing is changed until you select properties and confirm."
+          ],
+          [
+            "Are all metadata fields removed?",
+            "Standard Info fields, custom Info properties, the catalog language and the XMP metadata stream can be removed. Extended XMP segments embedded by some editors may not be fully cleared."
+          ],
+          [
+            "Is this secure deletion?",
+            "No. It rewrites document metadata, but does not guarantee forensic-level scrubbing of all residual bytes."
+          ]
+        ],
+        "related": [
+          "pdf-watermark",
+          "pdf-merge",
+          "pdf-delete-pages"
+        ]
+      }
+    },
+    {
+      "id": "pdf-compress",
+      "slug": "compress-pdf",
+      "category": "optimize-pdf",
+      "cardTitle": "Compress PDF",
+      "cardText": "Shrink PDF size with three quality levels.",
+      "tag": "REDUCE FILE SIZE",
+      "icon": "green",
+      "svg": "<path d=\"M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3\"/><path d=\"m8 12 3 3 5-6\"/>",
+      "keywords": [
+        "compress pdf",
+        "reduce pdf size",
+        "shrink pdf",
+        "pdf compressor"
+      ],
+      "seo": {
+        "title": "Compress PDF Online - Reduce PDF Size Free | iLoveMyFiles",
+        "description": "Reduce PDF file size with extreme, recommended or light compression. Runs entirely in your browser with no upload.",
+        "intro": "Make a PDF smaller by choosing a compression level. Pages are re-rendered at a lower resolution and re-embedded, which cuts size sharply.",
+        "steps": [
+          "Add your PDF.",
+          "Pick a compression level - extreme, recommended or less.",
+          "Process and download the smaller PDF."
+        ],
+        "faqs": [
+          [
+            "How does it compress?",
+            "Each page is re-rendered as a JPEG at a lower resolution and quality, then rebuilt into a new PDF. This trades some quality for size."
+          ],
+          [
+            "Will text stay selectable?",
+            "No. Pages become images, so text is no longer selectable or searchable after compression."
+          ],
+          [
+            "What if the file is already small?",
+            "If compression would make it larger, iLoveMyFiles keeps your original and tells you."
+          ]
+        ],
+        "related": [
+          "pdf-remove-metadata",
+          "pdf-to-images",
+          "pdf-merge"
+        ]
+      }
+    },
+    {
+      "id": "images-pdf",
+      "slug": "image-to-pdf",
+      "category": "convert-pdf",
+      "cardTitle": "Images to PDF",
+      "cardText": "Combine pictures into one PDF document.",
+      "tag": "JPG · PNG · WEBP INPUT",
+      "icon": "blue",
+      "svg": "<path d=\"M7 3h7l5 5v13H7z\"/><path d=\"M14 3v5h5M10 13h6M10 16h6\"/>",
+      "keywords": [
+        "image to pdf",
+        "jpg to pdf",
+        "png to pdf",
+        "photos to pdf"
+      ],
+      "seo": {
+        "title": "Images to PDF - Convert JPG, PNG, WebP to PDF | iLoveMyFiles",
+        "description": "Turn one or many images into a single PDF. Standard page sizes (A4, A3, Letter and more), orientation and margins. Runs in your browser.",
+        "intro": "Combine JPG, PNG or WebP images into one PDF, in the order shown, with your choice of page size, orientation and margin.",
+        "steps": [
+          "Add your images (drag to reorder).",
+          "Pick a page size, orientation and margin.",
+          "Process and download the PDF."
+        ],
+        "faqs": [
+          [
+            "Which image formats work?",
+            "JPG and PNG embed directly; WebP and others are converted first."
+          ],
+          [
+            "Can I set page size?",
+            "Yes - fit-to-image plus standard sizes such as A4, A3, A2, A5, B5, US Letter, Legal, Tabloid and Executive, with portrait, landscape or match-image orientation."
+          ],
+          [
+            "Do rotated phone photos come out right?",
+            "Yes, EXIF orientation is applied before embedding."
+          ]
+        ],
+        "related": [
+          "pdf-merge",
+          "image-convert",
+          "pdf-split"
+        ]
+      }
+    },
+    {
+      "id": "pdf-page-numbers",
+      "slug": "add-page-numbers-pdf",
+      "category": "edit-pdf",
+      "cardTitle": "Add page numbers",
+      "cardText": "Stamp page numbers on every page.",
+      "tag": "NUMBER PAGES",
+      "icon": "purple",
+      "svg": "<path d=\"M6 3h9l4 4v14H6zM15 3v4h4\"/><path d=\"M10 12l-1 6M15 12l-1 6M9 14h7M8.5 16h7\"/>",
+      "keywords": [
+        "add page numbers pdf",
+        "pdf page numbers",
+        "number pdf pages"
+      ],
+      "seo": {
+        "title": "Add Page Numbers to PDF Online - Free | iLoveMyFiles",
+        "description": "Insert page numbers into a PDF with a choice of position and starting number. Browser-based and free.",
+        "intro": "Add sequential page numbers to a PDF. Choose the position and the number to start from.",
+        "steps": [
+          "Add your PDF.",
+          "Choose a position and starting number.",
+          "Process and download."
+        ],
+        "faqs": [
+          [
+            "Can I start at a number other than 1?",
+            "Yes. Set the start value to any number."
+          ],
+          [
+            "Where can the numbers go?",
+            "Top or bottom, left, centre or right of each page."
+          ],
+          [
+            "Is the original text changed?",
+            "No. Numbers are drawn on top of the page."
+          ]
+        ],
+        "related": [
+          "pdf-watermark",
+          "pdf-merge",
+          "pdf-rotate-pages"
+        ]
+      }
+    },
+    {
+      "id": "pdf-watermark",
+      "slug": "watermark-pdf",
+      "category": "edit-pdf",
+      "cardTitle": "Watermark PDF",
+      "cardText": "Add diagonal text to every page.",
+      "tag": "TEXT WATERMARK",
+      "icon": "rose",
+      "svg": "<path d=\"M6 3h9l4 4v14H6zM15 3v4h4\"/><circle cx=\"12\" cy=\"15\" r=\"2.5\"/><path d=\"M12 8v2.5\"/>",
+      "keywords": [
+        "watermark pdf",
+        "add watermark pdf",
+        "pdf stamp",
+        "confidential pdf"
+      ],
+      "seo": {
+        "title": "Add a Watermark to PDF Online - Free | iLoveMyFiles",
+        "description": "Add a diagonal text watermark such as CONFIDENTIAL to every page of a PDF. Adjustable size and opacity.",
+        "intro": "Stamp a text watermark across every page of a PDF - useful for drafts, confidential copies or branding.",
+        "steps": [
+          "Add your PDF.",
+          "Enter the watermark text and adjust size and opacity.",
+          "Process and download."
+        ],
+        "faqs": [
+          [
+            "Can I change the opacity?",
+            "Yes, from subtle to prominent."
+          ],
+          [
+            "Can I use an image watermark?",
+            "Not for PDFs yet; use the image watermark tool for images."
+          ],
+          [
+            "Does the watermark cover content?",
+            "It is drawn semi-transparently on top, so underlying text stays readable."
+          ]
+        ],
+        "related": [
+          "pdf-page-numbers",
+          "pdf-remove-metadata",
+          "pdf-merge"
+        ]
+      }
+    },
+    {
+      "id": "image-convert",
+      "slug": "image-converter",
+      "category": "image",
+      "cardTitle": "Image Extension converter",
+      "cardText": "Convert JPG, PNG, WebP, BMP, GIF, ICO, SVG and TIFF.",
+      "tag": "JPG · PNG · WEBP · MORE",
+      "icon": "purple",
+      "svg": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"/><circle cx=\"8.5\" cy=\"9\" r=\"1.5\"/><path d=\"m4 17 5-5 3 3 3-4 5 6\"/>",
+      "keywords": [
+        "image converter",
+        "jpg to webp",
+        "png to jpg",
+        "webp converter",
+        "png to ico",
+        "convert to tiff",
+        "image to svg"
+      ],
+      "seo": {
+        "title": "Image Extension Converter - Change JPG, PNG, WebP Format | iLoveMyFiles",
+        "description": "Convert images between JPG, PNG, WebP, BMP, GIF, ICO, SVG and TIFF locally in your browser. Batch conversion with no upload.",
+        "intro": "Convert images between JPG, PNG, WebP, BMP, GIF, ICO, SVG and TIFF in bulk. The browser does the encoding locally, so nothing is uploaded.",
+        "steps": [
+          "Add one or more images.",
+          "Choose the output format (JPG, PNG, WebP, BMP, GIF, ICO, SVG or TIFF).",
+          "Process and download the converted files."
+        ],
+        "faqs": [
+          [
+            "Is WebP smaller?",
+            "Usually, but it depends on the image. Browser support for WebP is very good today."
+          ],
+          [
+            "Will JPG keep transparency?",
+            "No. Transparent areas are flattened to white for JPG, BMP, GIF, ICO and TIFF."
+          ],
+          [
+            "Is SVG vectorised?",
+            "No. The SVG output wraps your image in an SVG container; it is not traced into vector paths."
+          ],
+          [
+            "Can I convert many images?",
+            "Yes, and the results can be downloaded together as a ZIP."
+          ]
+        ],
+        "related": [
+          "image-compress",
+          "image-resize",
+          "image-crop"
+        ]
+      }
+    },
+    {
+      "id": "image-compress",
+      "slug": "compress-image",
+      "category": "image",
+      "cardTitle": "Image compressor",
+      "cardText": "Reduce file size with quality or target KB.",
+      "tag": "SMART COMPRESSION",
+      "icon": "green",
+      "svg": "<path d=\"M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3\"/><path d=\"m8 12 3 3 5-6\"/>",
+      "keywords": [
+        "compress image",
+        "reduce image size",
+        "optimize image",
+        "image kb"
+      ],
+      "seo": {
+        "title": "Compress Images Online - Reduce JPG/PNG Size | iLoveMyFiles",
+        "description": "Shrink JPG and PNG images with a quality slider or an approximate target file size. Private, in-browser compression.",
+        "intro": "Reduce image file size with a quality setting or by aiming for a target size in kilobytes.",
+        "steps": [
+          "Add your images.",
+          "Pick quality mode or target-size mode.",
+          "Process and download the smaller files."
+        ],
+        "faqs": [
+          [
+            "Can you hit an exact size?",
+            "Target size is best-effort. The tool reports when it cannot reach the target without heavy quality loss."
+          ],
+          [
+            "Which format should I choose?",
+            "WebP is usually smallest; JPG is the most compatible."
+          ],
+          [
+            "Does compressing change dimensions?",
+            "Only if needed to approach a very small target size."
+          ]
+        ],
+        "related": [
+          "image-convert",
+          "image-resize",
+          "image-crop"
+        ]
+      }
+    },
+    {
+      "id": "image-resize",
+      "slug": "resize-image",
+      "category": "image",
+      "cardTitle": "Image Size compressor",
+      "cardText": "Set dimensions and keep proportions.",
+      "tag": "PIXEL-PERFECT SIZING",
+      "icon": "orange",
+      "svg": "<path d=\"M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3M21 16v3a2 2 0 0 1-2 2h-3\"/><path d=\"M8 8h8v8H8z\"/>",
+      "keywords": [
+        "resize image",
+        "image resizer",
+        "change image size",
+        "scale image"
+      ],
+      "seo": {
+        "title": "Image Size Compressor - Resize Images Online | iLoveMyFiles",
+        "description": "Resize images to exact pixel dimensions, optionally keeping the aspect ratio. Free and browser-based.",
+        "intro": "Resize images to the pixel dimensions you need, with optional aspect-ratio locking.",
+        "steps": [
+          "Add an image.",
+          "Enter width and height, or keep the ratio.",
+          "Process and download."
+        ],
+        "faqs": [
+          [
+            "Does it keep proportions?",
+            "Yes, when the \"keep aspect ratio\" box is ticked."
+          ],
+          [
+            "What is the maximum size?",
+            "Up to 20,000 pixels on a side."
+          ],
+          [
+            "Which formats can I output?",
+            "PNG, JPG or WebP."
+          ]
+        ],
+        "related": [
+          "image-crop",
+          "image-compress",
+          "image-convert"
+        ]
+      }
+    },
+    {
+      "id": "image-crop",
+      "slug": "crop-image",
+      "category": "image",
+      "cardTitle": "Crop image",
+      "cardText": "Drag to select the exact area to keep.",
+      "tag": "FREE & ASPECT PRESETS",
+      "icon": "rose",
+      "svg": "<path d=\"M6 2v14a2 2 0 0 0 2 2h14\"/><path d=\"M2 6h14a2 2 0 0 1 2 2v14\"/>",
+      "keywords": [
+        "crop image",
+        "image cropper",
+        "trim image",
+        "cut image"
+      ],
+      "seo": {
+        "title": "Crop Images Online - Drag to Select | iLoveMyFiles",
+        "description": "Crop images interactively: drag a selection with handles, lock an aspect ratio and see live pixel dimensions.",
+        "intro": "Crop images by dragging a selection on a live preview. Lock common aspect ratios and watch the pixel size update as you go.",
+        "steps": [
+          "Add one image.",
+          "Drag on the image to choose the area, or pick an aspect ratio.",
+          "Process and download the cropped image."
+        ],
+        "faqs": [
+          [
+            "Can I use a fixed ratio?",
+            "Yes - Free, 1:1, 4:3, 16:9, 3:4 and 9:16 presets are included."
+          ],
+          [
+            "Does cropping also resize?",
+            "No. Cropping and resizing are kept separate so you stay in control."
+          ],
+          [
+            "Can I undo?",
+            "Use Reset to return to the full image."
+          ]
+        ],
+        "related": [
+          "image-resize",
+          "image-rotate",
+          "image-watermark"
+        ]
+      }
+    },
+    {
+      "id": "image-rotate",
+      "slug": "rotate-image",
+      "category": "image",
+      "cardTitle": "Rotate & flip",
+      "cardText": "Turn images 90°/180°/270° and mirror them.",
+      "tag": "CANVAS ROTATION",
+      "icon": "teal",
+      "svg": "<path d=\"M4 12a8 8 0 1 1 2.34 5.66\"/><path d=\"M4 12h5M4 12V7\"/><path d=\"M3 20h18\"/>",
+      "keywords": [
+        "rotate image",
+        "flip image",
+        "mirror image",
+        "turn photo"
+      ],
+      "seo": {
+        "title": "Rotate & Flip Images Online - Free | iLoveMyFiles",
+        "description": "Rotate images by 90°, 180° or 270° and flip them horizontally or vertically. No upload required.",
+        "intro": "Rotate and mirror images in one step, with your choice of output format.",
+        "steps": [
+          "Add your images.",
+          "Choose a rotation and any flips.",
+          "Process and download."
+        ],
+        "faqs": [
+          [
+            "Can I rotate and flip together?",
+            "Yes, flips are applied after rotation."
+          ],
+          [
+            "Which formats can I output?",
+            "PNG, JPG or WebP."
+          ],
+          [
+            "Will JPG keep transparency?",
+            "No, transparent areas become white."
+          ]
+        ],
+        "related": [
+          "image-crop",
+          "image-resize",
+          "image-convert"
+        ]
+      }
+    },
+    {
+      "id": "image-watermark",
+      "slug": "watermark-image",
+      "category": "image",
+      "cardTitle": "Watermark image",
+      "cardText": "Add text stamps to your images.",
+      "tag": "TEXT WATERMARK",
+      "icon": "teal",
+      "svg": "<path d=\"M12 3c3 4 6 6.5 6 10a6 6 0 0 1-12 0c0-3.5 3-6 6-10z\"/><path d=\"M9 14h6\"/>",
+      "keywords": [
+        "watermark image",
+        "add watermark photo",
+        "copyright image",
+        "text overlay"
+      ],
+      "seo": {
+        "title": "Add a Watermark to Images Online - Free | iLoveMyFiles",
+        "description": "Add a text watermark to images, choose colour, opacity and corner, and export as PNG, JPG or WebP.",
+        "intro": "Stamp text such as a copyright line or brand onto your images, with control over size, colour, opacity and position.",
+        "steps": [
+          "Add your images.",
+          "Enter the watermark text and choose colour, opacity and position.",
+          "Process and download."
+        ],
+        "faqs": [
+          [
+            "Where can the text go?",
+            "Any of nine positions, from corners to centre."
+          ],
+          [
+            "Can I use a logo image?",
+            "Image watermarks are planned; text works today."
+          ],
+          [
+            "Does it lower quality?",
+            "The image is re-encoded once at high quality; PNG stays lossless."
+          ]
+        ],
+        "related": [
+          "image-crop",
+          "image-resize",
+          "image-compress"
+        ]
+      }
+    },
+    {
+      "id": "pdf-to-images",
+      "slug": "pdf-to-images",
+      "category": "convert-pdf",
+      "cardTitle": "PDF to images",
+      "cardText": "Render each page as a PNG or JPG picture.",
+      "tag": "PNG · JPG OUTPUT",
+      "icon": "blue",
+      "svg": "<path d=\"M6 3h9l4 4v14H6zM15 3v4h4\"/><rect x=\"9\" y=\"12\" width=\"7\" height=\"6\" rx=\"1\"/><path d=\"m9.8 17 1.6-1.8 1.4 1.5 1.7-2 1.3 2\"/>",
+      "keywords": [
+        "pdf to image",
+        "pdf to jpg",
+        "pdf to png",
+        "convert pdf to picture"
+      ],
+      "seo": {
+        "title": "PDF to Images - Convert PDF Pages to JPG/PNG | iLoveMyFiles",
+        "description": "Turn PDF pages into PNG or JPG images in your browser. Choose resolution and pages, then download one by one or as a ZIP.",
+        "intro": "Render every page of a PDF as a standalone image. Pick the format and resolution, choose which pages to export, and download them individually or together.",
+        "steps": [
+          "Add one PDF file.",
+          "Choose PNG or JPG and a resolution in DPI.",
+          "Select pages if needed, then process and download."
+        ],
+        "faqs": [
+          [
+            "What resolution should I use?",
+            "150 DPI suits screens; 300 DPI is better for print and produces larger images."
+          ],
+          [
+            "Can I export only some pages?",
+            "Yes - type page ranges or click the page previews to choose."
+          ],
+          [
+            "Is this done on a server?",
+            "No. Pages are rendered with PDF.js on your own device."
+          ]
+        ],
+        "related": [
+          "pdf-split",
+          "images-pdf",
+          "image-compress"
+        ]
+      }
+    },
+    {
+      "id": "pdf-organize",
+      "slug": "organize-pdf-pages",
+      "category": "organize-pdf",
+      "cardTitle": "Organize PDF pages",
+      "cardText": "Reorder, duplicate or remove pages at once.",
+      "tag": "REORDER PAGES",
+      "icon": "teal",
+      "svg": "<path d=\"M6 3h9l4 4v14H6zM15 3v4h4\"/><path d=\"M9 12h6M9 15h6M9 18h6\"/><path d=\"m8 4 .8-1.5M13 4l-.6-1.5\"/>",
+      "keywords": [
+        "reorder pdf",
+        "organize pdf pages",
+        "duplicate pdf page",
+        "move pdf pages"
+      ],
+      "seo": {
+        "title": "Reorder PDF Pages Online - Move, Duplicate & Delete | iLoveMyFiles",
+        "description": "Rearrange PDF pages by typing a new order. Duplicate a page or drop unwanted ones, all in your browser.",
+        "intro": "Change the page order of a PDF with a simple order list - repeat a number to duplicate a page or leave one out to remove it.",
+        "steps": [
+          "Add your PDF.",
+          "Type the new order, for example 3, 1, 2 or 1-3, 1.",
+          "Process and download the reorganized PDF."
+        ],
+        "faqs": [
+          [
+            "Can I duplicate a page?",
+            "Yes. Repeat its number in the order list, such as 1, 1, 2."
+          ],
+          [
+            "Can I remove pages here too?",
+            "Yes - simply leave a page number out of the new order."
+          ],
+          [
+            "Does it keep quality?",
+            "Pages are copied without re-encoding, so quality is unchanged."
+          ]
+        ],
+        "related": [
+          "pdf-merge",
+          "pdf-split",
+          "pdf-delete-pages"
+        ]
+      }
+    },
+    {
+      "id": "data-json",
+      "slug": "json-formatter",
+      "category": "data",
+      "cardTitle": "JSON formatter",
+      "cardText": "Pretty-print, minify and validate JSON.",
+      "tag": "FORMAT & VALIDATE",
+      "icon": "purple",
+      "svg": "<path d=\"M9 4H7a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2 2 2 0 0 1 2 2v3a2 2 0 0 0 2 2h2\"/><path d=\"M15 4h2a2 2 0 0 1 2 2v3a2 2 0 0 0 2 2 2 2 0 0 0-2 2v3a2 2 0 0 1-2 2h-2\"/>",
+      "keywords": [
+        "json formatter",
+        "json validator",
+        "prettify json",
+        "minify json"
+      ],
+      "seo": {
+        "title": "JSON Formatter & Validator Online - Free | iLoveMyFiles",
+        "description": "Format, minify and validate JSON instantly in your browser. Clear error messages, no upload and no sign-up.",
+        "intro": "Clean up JSON with pretty-printing or minification, and get a readable error when the input is invalid.",
+        "steps": [
+          "Paste your JSON.",
+          "Choose pretty-print or minify and set the indent.",
+          "Run the tool and copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Is my data sent anywhere?",
+            "No. Formatting happens entirely in your browser."
+          ],
+          [
+            "Does it validate as I type?",
+            "It validates when you run the tool and shows the exact error position when possible."
+          ],
+          [
+            "Can I minify too?",
+            "Yes, switch the mode to Minify to strip whitespace."
+          ]
+        ],
+        "related": [
+          "data-json-csv",
+          "data-base64",
+          "data-units"
+        ]
+      }
+    },
+    {
+      "id": "data-base64",
+      "slug": "base64-encoder",
+      "category": "data",
+      "cardTitle": "Base64 encoder",
+      "cardText": "Encode text to Base64 or decode it back.",
+      "tag": "ENCODE · DECODE",
+      "icon": "orange",
+      "svg": "<path d=\"M4 6h16M4 12h16M4 18h10\"/><circle cx=\"19\" cy=\"18\" r=\"1.4\"/>",
+      "keywords": [
+        "base64 encode",
+        "base64 decode",
+        "base64 converter",
+        "base64 online"
+      ],
+      "seo": {
+        "title": "Base64 Encoder & Decoder Online - Free | iLoveMyFiles",
+        "description": "Encode text to Base64 or decode Base64 back to readable text. UTF-8 safe and completely browser-based.",
+        "intro": "Convert text to Base64 or turn Base64 back into readable text, with full UTF-8 support for accents and emoji.",
+        "steps": [
+          "Paste your text or Base64 string.",
+          "Choose Encode or Decode.",
+          "Run the tool and copy the output."
+        ],
+        "faqs": [
+          [
+            "Does it handle non-English text?",
+            "Yes. Input and output are treated as UTF-8."
+          ],
+          [
+            "Why does decoding fail?",
+            "The input may contain invalid characters - the tool tells you when the string is not valid Base64."
+          ],
+          [
+            "Is my data uploaded?",
+            "No, everything runs locally."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-hash",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "data-hash",
+      "slug": "hash-generator",
+      "category": "data",
+      "cardTitle": "Hash generator",
+      "cardText": "Create SHA-256, SHA-384 or SHA-512 hashes.",
+      "tag": "SHA HASHES",
+      "icon": "green",
+      "svg": "<path d=\"M5 9h14M5 15h14M9 4 7 20M17 4l-2 16\"/>",
+      "keywords": [
+        "sha256",
+        "hash generator",
+        "sha512",
+        "checksum tool"
+      ],
+      "seo": {
+        "title": "SHA-256 Hash Generator Online - Free | iLoveMyFiles",
+        "description": "Generate SHA-256, SHA-384 or SHA-512 hashes from text directly in your browser. Private and instant.",
+        "intro": "Produce a cryptographic hash of text or files using the Web Crypto API - useful for checksums and quick verification.",
+        "steps": [
+          "Paste text, or drop one or more files.",
+          "Choose SHA-256, SHA-384 or SHA-512.",
+          "Run the tool and copy or download the hash."
+        ],
+        "faqs": [
+          [
+            "Which algorithms are supported?",
+            "SHA-256, SHA-384 and SHA-512."
+          ],
+          [
+            "Can I hash a file?",
+            "Yes. Drop one or more files and each file is hashed from its raw bytes. Text hashing still works too."
+          ],
+          [
+            "Is hashing done locally?",
+            "Yes, using your browser’s built-in cryptography."
+          ]
+        ],
+        "related": [
+          "data-base64",
+          "data-json",
+          "data-wordcount"
+        ]
+      }
+    },
+    {
+      "id": "data-wordcount",
+      "slug": "word-counter",
+      "category": "data",
+      "cardTitle": "Word counter",
+      "cardText": "Count words, characters, lines and reading time.",
+      "tag": "TEXT STATS",
+      "icon": "yellow",
+      "svg": "<path d=\"M4 6h16M4 10h16M4 14h12M4 18h8\"/><path d=\"M17 16l2 2 3-3\"/>",
+      "keywords": [
+        "word counter",
+        "character count",
+        "word count online",
+        "reading time"
+      ],
+      "seo": {
+        "title": "Word & Character Counter Online - Free | iLoveMyFiles",
+        "description": "Count words, characters, lines, sentences and paragraphs, and estimate reading time. Runs entirely in your browser.",
+        "intro": "Paste any text to see word and character counts, line and sentence totals, and an estimated reading time.",
+        "steps": [
+          "Paste or type your text.",
+          "Run the tool.",
+          "Read the counts and copy them if needed."
+        ],
+        "faqs": [
+          [
+            "How is reading time calculated?",
+            "At an average pace of about 200 words per minute."
+          ],
+          [
+            "Are spaces counted?",
+            "Both totals are shown - with and without spaces."
+          ],
+          [
+            "Is the text stored?",
+            "No, it never leaves your browser."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-units"
+        ]
+      }
+    },
+    {
+      "id": "data-json-csv",
+      "slug": "json-to-csv",
+      "category": "data",
+      "cardTitle": "JSON ↔ CSV",
+      "cardText": "Convert JSON arrays to CSV and back.",
+      "tag": "TABLE DATA",
+      "icon": "rose",
+      "svg": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M3 9h18M9 9v11M15 9v11\"/>",
+      "keywords": [
+        "json to csv",
+        "csv to json",
+        "convert json csv",
+        "table converter"
+      ],
+      "seo": {
+        "title": "JSON to CSV Converter Online - and Back | iLoveMyFiles",
+        "description": "Convert a JSON array of objects to CSV, or turn a CSV table into JSON. Handles quotes and commas, all in-browser.",
+        "intro": "Move table data between JSON and CSV. The converter quotes values safely and infers columns from your keys or header row.",
+        "steps": [
+          "Paste your JSON array or CSV table.",
+          "Choose the direction.",
+          "Run the tool and copy or download the result."
+        ],
+        "faqs": [
+          [
+            "What shape should the JSON be?",
+            "An array of objects, such as [{\"name\":\"Ada\",\"role\":\"dev\"}]."
+          ],
+          [
+            "Does it handle commas in values?",
+            "Yes, values are quoted and escaped correctly."
+          ],
+          [
+            "Which CSVs are supported?",
+            "Standard comma-separated files with a header row."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-wordcount"
+        ]
+      }
+    },
+    {
+      "id": "data-units",
+      "slug": "unit-converter",
+      "category": "data",
+      "cardTitle": "Unit converter",
+      "cardText": "Convert data size, length, mass and time.",
+      "tag": "QUICK CONVERSIONS",
+      "icon": "purple",
+      "svg": "<path d=\"M4 7h16v3H4zM4 7v10h16V7\"/><path d=\"M8 7v2M12 7v3M16 7v2\"/>",
+      "keywords": [
+        "unit converter",
+        "kb to mb",
+        "cm to inches",
+        "kg to pounds"
+      ],
+      "seo": {
+        "title": "Unit Converter - Data Size, Length, Mass & Time | iLoveMyFiles",
+        "description": "Convert file sizes (KB, MB, GB), lengths, masses and durations in your browser. Enter a value and see every unit at once.",
+        "intro": "Enter a value in the category’s base unit and instantly see it expressed in all the other units.",
+        "steps": [
+          "Choose a category.",
+          "Type the value in the base unit shown.",
+          "Run the tool to see the full conversion list."
+        ],
+        "faqs": [
+          [
+            "What is the base unit?",
+            "Bytes for data size, metres for length, grams for mass and seconds for time."
+          ],
+          [
+            "Are file sizes decimal or binary?",
+            "Data sizes use 1024 (Kibibyte-style), matching most file managers."
+          ],
+          [
+            "Does it work offline?",
+            "Yes - the conversion runs locally."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-wordcount",
+          "data-hash"
+        ]
+      }
+    },
+    {
+      "id": "ocr",
+      "slug": "ocr",
+      "category": "data",
+      "cardTitle": "OCR - image & PDF",
+      "cardText": "Extract selectable text from images or PDFs.",
+      "tag": "TEXT RECOGNITION",
+      "icon": "purple",
+      "svg": "<path d=\"M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2\"/><path d=\"M8 9h5M8 12h8M8 15h6\"/>",
+      "keywords": [
+        "ocr",
+        "image to text",
+        "pdf to text",
+        "extract text",
+        "recognize text"
+      ],
+      "seo": {
+        "title": "OCR - Extract Text from Images & PDFs Online | iLoveMyFiles",
+        "description": "Extract text from images and PDFs using on-device OCR. Choose a language and download a text file. The recognition engine loads on first use.",
+        "intro": "Recognise the text in a photo, scan or PDF and turn it into editable, downloadable text using Tesseract.js running in your browser.",
+        "steps": [
+          "Add one image or PDF.",
+          "Pick the document language.",
+          "Process, then preview and download the recognised text."
+        ],
+        "faqs": [
+          [
+            "Are my files uploaded?",
+            "No. Recognition runs locally with Tesseract.js (WebAssembly) in your browser."
+          ],
+          [
+            "Does OCR need an internet connection?",
+            "Yes on first use - the OCR engine and language data (a few MB) are downloaded once, then cached by your browser."
+          ],
+          [
+            "Which languages are supported?",
+            "English, Spanish, French, German, Italian, Portuguese, Dutch, Russian, Arabic, Simplified Chinese and Japanese."
+          ],
+          [
+            "Is the text always perfect?",
+            "No. Accuracy depends on image quality. Clean, high-contrast scans work best."
+          ]
+        ],
+        "related": [
+          "pdf-to-images",
+          "data-wordcount",
+          "data-json"
+        ]
+      }
+    },
+    {
+      "id": "qr-code",
+      "slug": "qr-code-generator",
+      "category": "data",
+      "cardTitle": "QR code generator",
+      "cardText": "Turn a link or text into a QR code PNG.",
+      "tag": "GENERATE QR",
+      "icon": "orange",
+      "svg": "<rect x=\"4\" y=\"4\" width=\"6\" height=\"6\" rx=\"1\"/><rect x=\"14\" y=\"4\" width=\"6\" height=\"6\" rx=\"1\"/><rect x=\"4\" y=\"14\" width=\"6\" height=\"6\" rx=\"1\"/><path d=\"M14 14h2v2h-2zM18 14h2v2M14 18h2M18 18h2v2\"/>",
+      "keywords": [
+        "qr code generator",
+        "create qr code",
+        "url to qr",
+        "qr png"
+      ],
+      "seo": {
+        "title": "QR Code Generator Online - Free, No Sign-up | iLoveMyFiles",
+        "description": "Create a QR code from any link or text and download it as a PNG. Choose the size and error-correction level. Runs entirely in your browser.",
+        "intro": "Turn a URL, message or any text into a scannable QR code and download it as a crisp PNG.",
+        "steps": [
+          "Type or paste the text or link.",
+          "Choose the size and error-correction level.",
+          "Run the tool and download the PNG."
+        ],
+        "faqs": [
+          [
+            "What can I encode?",
+            "Any text - a link, Wi-Fi string, contact details or a short message."
+          ],
+          [
+            "What is error correction for?",
+            "Higher levels survive more damage or a logo overlay but make a denser code."
+          ],
+          [
+            "Is it private?",
+            "Yes - the code is generated locally in your browser."
+          ]
+        ],
+        "related": [
+          "barcode",
+          "data-base64",
+          "data-json"
+        ]
+      }
+    },
+    {
+      "id": "barcode",
+      "slug": "barcode-generator",
+      "category": "data",
+      "cardTitle": "Barcode generator",
+      "cardText": "Create Code 128, EAN-13 and more as PNG.",
+      "tag": "GENERATE BARCODE",
+      "icon": "blue",
+      "svg": "<path d=\"M4 5v14M6.5 5v14M10 5v14M12 5v14M15.5 5v14M18 5v14M20 5v14\"/>",
+      "keywords": [
+        "barcode generator",
+        "code 128",
+        "ean 13",
+        "upc barcode",
+        "create barcode"
+      ],
+      "seo": {
+        "title": "Barcode Generator Online - Code 128, EAN-13, UPC | iLoveMyFiles",
+        "description": "Generate barcodes as PNG images in your browser. Supports Code 128, EAN-13, UPC-A, Code 39 and ITF-14 with adjustable size.",
+        "intro": "Create 1D barcodes from a number or text and download them as PNG images, with a choice of symbology.",
+        "steps": [
+          "Type the value to encode.",
+          "Choose the barcode format and size.",
+          "Run the tool and download the PNG."
+        ],
+        "faqs": [
+          [
+            "Which formats can I use?",
+            "Code 128 (any text), EAN-13, UPC-A, Code 39 and ITF-14."
+          ],
+          [
+            "Why is my value rejected?",
+            "Numeric formats such as EAN-13 and UPC-A require a specific number of digits; the tool tells you if the value does not fit."
+          ],
+          [
+            "Is it free?",
+            "Yes, and it runs locally with no upload."
+          ]
+        ],
+        "related": [
+          "qr-code",
+          "data-units",
+          "data-wordcount"
+        ]
+      }
+    },
+    {
+      "id": "pdf-flatten",
+      "slug": "flatten-pdf",
+      "category": "edit-pdf",
+      "cardTitle": "Flatten PDF",
+      "cardText": "Render pages to images so text is no longer selectable.",
+      "tag": "REMOVE TEXT LAYER",
+      "icon": "rose",
+      "svg": "<path d=\"M12 3 3 7.5 12 12l9-4.5z\"/><path d=\"m3 12 9 4.5L21 12\"/><path d=\"m3 16.5 9 4.5 9-4.5\"/>",
+      "keywords": [
+        "flatten pdf",
+        "remove text layer",
+        "make pdf non-selectable",
+        "rasterize pdf",
+        "not searchable pdf"
+      ],
+      "seo": {
+        "title": "Flatten PDF — Remove the Selectable Text Layer | iLoveMyFiles",
+        "description": "Flatten a PDF by rendering each page to an image and rebuilding the file, so the original text can no longer be selected, copied or searched. Runs in your browser.",
+        "intro": "Flattening renders each page to a picture and builds a new PDF from those images, so the original text content is removed rather than merely hidden. Use it to share a PDF that no longer has a directly selectable text layer.",
+        "steps": [
+          "Add a PDF that has selectable text.",
+          "Choose the output resolution and image quality.",
+          "Run the tool, then preview and download the flattened PDF."
+        ],
+        "faqs": [
+          [
+            "Are my files uploaded?",
+            "No. The PDF is rendered to images locally and rebuilt in your browser."
+          ],
+          [
+            "Does flattening make my PDF confidential?",
+            "No. Flattening removes the selectable text layer, but OCR can recover text from the page images, and metadata, annotations or attachments may still be present. For genuinely sensitive information, use a dedicated redaction tool that deletes the underlying content — iLoveMyFiles does not provide one."
+          ],
+          [
+            "Why did the file get bigger?",
+            "Text and vector graphics are compact, while full-page images are not. Higher resolution and lossless (PNG) output increase the size further."
+          ],
+          [
+            "What do I lose?",
+            "Text search, copy/paste and text editing stop working, and screen readers and other accessibility features that rely on text can no longer read the content."
+          ]
+        ],
+        "related": [
+          "pdf-ocr",
+          "pdf-compress",
+          "pdf-remove-metadata"
+        ]
+      }
+    },
+    {
+      "id": "pdf-ocr",
+      "slug": "make-pdf-searchable",
+      "category": "edit-pdf",
+      "cardTitle": "Make PDF searchable",
+      "cardText": "Add an invisible, selectable text layer to scanned PDFs.",
+      "tag": "OCR TEXT LAYER",
+      "icon": "teal",
+      "svg": "<path d=\"M6 3h9l4 4v6M15 3v4h4\"/><path d=\"M6 3v18h6\"/><circle cx=\"15\" cy=\"15\" r=\"3.4\"/><path d=\"m17.6 17.6 3.4 3.4\"/>",
+      "keywords": [
+        "make pdf searchable",
+        "searchable pdf",
+        "ocr pdf",
+        "add text layer",
+        "scanned pdf to text"
+      ],
+      "seo": {
+        "title": "Make PDF Searchable (OCR) — Add a Text Layer | iLoveMyFiles",
+        "description": "Turn scanned or image-only PDFs into searchable PDFs. OCR runs in your browser, keeps the original page look, and adds an invisible, selectable text layer.",
+        "intro": "Scanned PDFs are just pictures, so you cannot select or search their text. This tool recognises the text on every page and overlays an invisible layer that follows the original layout, so the pages look the same but the words become selectable and searchable.",
+        "steps": [
+          "Add a scanned or image-only PDF.",
+          "Choose the document language and output quality.",
+          "Run the tool, then preview and download the searchable PDF."
+        ],
+        "faqs": [
+          [
+            "Are my files uploaded?",
+            "No. Pages are rendered with PDF.js and recognised with Tesseract.js (WebAssembly) locally in your browser. On the first run the OCR engine and language data download from a CDN and are then cached."
+          ],
+          [
+            "Which languages are supported?",
+            "English, Spanish, French, German, Italian, Portuguese, Dutch, Swedish, Danish, Norwegian and Finnish. These use scripts that can be embedded in the invisible text layer; other scripts are skipped and reported."
+          ],
+          [
+            "Does it keep the original look?",
+            "Yes. Each page keeps its size and orientation and is drawn as the page background, with the recognised words placed invisibly on top. Because pages are rasterised, vector text that was already selectable is replaced by an image plus the new text layer."
+          ],
+          [
+            "Is the recognised text always accurate?",
+            "No. OCR accuracy depends on scan quality and resolution. Clean, straight, high-contrast scans work best."
+          ]
+        ],
+        "related": [
+          "pdf-flatten",
+          "ocr",
+          "pdf-to-images"
+        ]
+      }
+    }
+  ]
+}

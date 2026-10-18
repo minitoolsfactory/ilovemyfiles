@@ -1,0 +1,45 @@
+---
+import ToolLauncher from "../components/ToolLauncher.astro";
+import ThemeToggle from "../components/ThemeToggle.astro";
+import ClientRuntime from "../components/client/ClientRuntime.astro";
+import GlobalStyles from "../components/GlobalStyles.astro";
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8fc">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <GlobalStyles />
+  <slot name="head" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="i♥MyFiles home">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 3h11l7 7v19H8z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M19 3v8h7M12 17h10M12 22h7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span>
+      <span>i<span class="brand-heart">♥</span>MyFiles<span class="brand-dot">.</span></span>
+    </a>
+    <nav class="topnav" aria-label="Main navigation">
+      <a href="/#tools">Tools</a><a href="/#privacy">Privacy</a><a href="/#how-it-works">How it works</a>
+    </nav>
+    <span class="privacy-pill"><span class="status-dot"></span> Files stay on your device</span>
+    <ThemeToggle />
+  </header>
+
+  <main id="main">
+    <slot />
+    <section class="tool-view" id="tool-view" hidden></section>
+  </main>
+
+  <footer class="footer"><a class="brand footer-brand" href="/"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 3h11l7 7v19H8z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M19 3v8h7M12 17h10M12 22h7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span><span>i<span class="brand-heart">♥</span>MyFiles<span class="brand-dot">.</span></span></a><p>Useful file tools. Thoughtfully simple.</p><span>© <span id="year"></span> i<span class="brand-heart">♥</span>MyFiles</span></footer>
+
+  <ClientRuntime />
+  <ToolLauncher />
+  <script>
+    const year = document.getElementById('year');
+    if (year) year.textContent = String(new Date().getFullYear());
+  </script>
+</body>
+</html>
