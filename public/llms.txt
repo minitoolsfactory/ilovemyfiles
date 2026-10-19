@@ -1,0 +1,39 @@
+# iLoveMyFiles
+
+Free, private browser-based file tools for images and PDFs. Everything runs locally in your browser — no file uploads, no sign-up required.
+
+## Tools
+
+- [Merge PDFs](/merge-pdf/) — Combine multiple PDF files into one document
+- [Split PDF](/split-pdf/) — Extract pages or split into single-page files
+- [Delete PDF Pages](/delete-pdf-pages/) — Remove unwanted pages from a document
+- [Rotate PDF Pages](/rotate-pdf/) — Turn pages clockwise or anticlockwise
+- [Resize PDF Pages](/resize-pdf/) — Change page size to A4, A3, Letter and more
+- [Remove PDF Metadata](/remove-pdf-metadata/) — Clear title, author, keywords and dates
+- [Compress PDF](/compress-pdf/) — Shrink PDF size with quality levels
+- [Images to PDF](/image-to-pdf/) — Combine pictures into one PDF document
+- [Add Page Numbers](/add-page-numbers-pdf/) — Stamp page numbers on every page
+- [Watermark PDF](/watermark-pdf/) — Add diagonal text watermark
+- [Image Converter](/image-converter/) — Convert between image formats
+- [Image Compressor](/compress-image/) — Reduce image file size
+- [Image Resizer](/resize-image/) — Set exact pixel dimensions
+- [Crop Image](/crop-image/) — Drag to select area to keep
+- [Rotate & Flip Image](/rotate-image/) — Turn and mirror images
+- [Watermark Image](/watermark-image/) — Add text stamps to images
+- [PDF to Images](/pdf-to-images/) — Render pages as PNG or JPG
+- [Organize PDF Pages](/organize-pdf-pages/) — Reorder, duplicate or remove pages
+- [JSON Formatter](/json-formatter/) — Format, minify and validate JSON
+- [Base64 Encoder](/base64-encoder/) — Encode/decode Base64 text
+- [Hash Generator](/hash-generator/) — Create SHA-256, SHA-384 or SHA-512 hashes
+- [Word Counter](/word-counter/) — Count words, characters and reading time
+- [JSON ↔ CSV](/json-to-csv/) — Convert between JSON and CSV
+- [Unit Converter](/unit-converter/) — Convert data size, length, mass and time
+- [OCR](/ocr/) — Extract text from images or PDFs
+- [QR Code Generator](/qr-code-generator/) — Generate QR codes
+- [Barcode Generator](/barcode-generator/) — Generate barcodes as PNG
+- [Flatten PDF](/flatten-pdf/) — Render pages to images, removing text layer
+- [Make PDF Searchable](/make-pdf-searchable/) — Add selectable text layer to scanned PDFs
+
+## Privacy
+
+All tools process files locally in your browser. Your files are never uploaded to a server.

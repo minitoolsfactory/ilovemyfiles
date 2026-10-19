@@ -1,0 +1,315 @@
+{
+  "$schema": "https://ai-catalog.org/schema/v1/ai-catalog.json",
+  "name": "iLoveMyFiles",
+  "description": "Free, private browser-based file tools for images and PDFs. All processing happens locally in your browser — no uploads, no sign-up required.",
+  "homepage": "https://ilovemyfiles.com/",
+  "license": "MIT",
+  "contact": "https://ilovemyfiles.com/",
+  "resources": [
+    {
+      "id": "merge-pdf",
+      "name": "Merge PDFs",
+      "description": "Combine multiple PDF files into one document directly in your browser.",
+      "url": "https://ilovemyfiles.com/merge-pdf/",
+      "type": "tool",
+      "capabilities": ["pdf-merge"],
+      "input": ["application/pdf"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "split-pdf",
+      "name": "Split PDF",
+      "description": "Extract page ranges or save pages individually from a PDF.",
+      "url": "https://ilovemyfiles.com/split-pdf/",
+      "type": "tool",
+      "capabilities": ["pdf-split"],
+      "input": ["application/pdf"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "delete-pdf-pages",
+      "name": "Delete PDF Pages",
+      "description": "Remove unwanted pages from a PDF document.",
+      "url": "https://ilovemyfiles.com/delete-pdf-pages/",
+      "type": "tool",
+      "capabilities": ["pdf-delete-pages"],
+      "input": ["application/pdf"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "rotate-pdf",
+      "name": "Rotate PDF Pages",
+      "description": "Turn all or selected pages of a PDF clockwise or anticlockwise.",
+      "url": "https://ilovemyfiles.com/rotate-pdf/",
+      "type": "tool",
+      "capabilities": ["pdf-rotate-pages"],
+      "input": ["application/pdf"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "resize-pdf",
+      "name": "Resize PDF Pages",
+      "description": "Change PDF page size to A4, A3, Letter and more.",
+      "url": "https://ilovemyfiles.com/resize-pdf/",
+      "type": "tool",
+      "capabilities": ["pdf-resize-pages"],
+      "input": ["application/pdf"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "remove-pdf-metadata",
+      "name": "Remove PDF Metadata",
+      "description": "Inspect and clear PDF document properties such as title, author and keywords.",
+      "url": "https://ilovemyfiles.com/remove-pdf-metadata/",
+      "type": "tool",
+      "capabilities": ["pdf-remove-metadata"],
+      "input": ["application/pdf"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "compress-pdf",
+      "name": "Compress PDF",
+      "description": "Reduce PDF file size with three quality levels.",
+      "url": "https://ilovemyfiles.com/compress-pdf/",
+      "type": "tool",
+      "capabilities": ["pdf-compress"],
+      "input": ["application/pdf"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "image-to-pdf",
+      "name": "Images to PDF",
+      "description": "Combine one or many images into a single PDF document.",
+      "url": "https://ilovemyfiles.com/image-to-pdf/",
+      "type": "tool",
+      "capabilities": ["images-to-pdf"],
+      "input": ["image/jpeg", "image/png", "image/webp"],
+      "output": ["application/pdf"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "add-page-numbers-pdf",
+      "name": "Add Page Numbers",
+      "description": "Stamp page numbers on every page of a PDF.",
+      "url": "https://ilovemyfiles.com/add-page-numbers-pdf/",
+      "type": "tool",
+      "capabilities": ["pdf-page-numbers"],
+      "input": ["application/pdf"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "watermark-pdf",
+      "name": "Watermark PDF",
+      "description": "Add a diagonal text watermark to every page of a PDF.",
+      "url": "https://ilovemyfiles.com/watermark-pdf/",
+      "type": "tool",
+      "capabilities": ["pdf-watermark"],
+      "input": ["application/pdf"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "image-converter",
+      "name": "Image Converter",
+      "description": "Convert images between JPG, PNG, WebP, BMP, GIF, ICO, SVG and TIFF.",
+      "url": "https://ilovemyfiles.com/image-converter/",
+      "type": "tool",
+      "capabilities": ["image-convert"],
+      "input": ["image/*"],
+      "output": ["image/jpeg", "image/png", "image/webp", "image/bmp", "image/gif", "image/x-icon", "image/svg+xml", "image/tiff"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "compress-image",
+      "name": "Image Compressor",
+      "description": "Reduce image file size with a quality slider or target KB.",
+      "url": "https://ilovemyfiles.com/compress-image/",
+      "type": "tool",
+      "capabilities": ["image-compress"],
+      "input": ["image/jpeg", "image/png"],
+      "output": ["image/webp", "image/jpeg"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "resize-image",
+      "name": "Image Resizer",
+      "description": "Resize images to exact pixel dimensions, optionally keeping aspect ratio.",
+      "url": "https://ilovemyfiles.com/resize-image/",
+      "type": "tool",
+      "capabilities": ["image-resize"],
+      "input": ["image/*"],
+      "output": ["image/png", "image/jpeg", "image/webp"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "crop-image",
+      "name": "Crop Image",
+      "description": "Drag to select the exact area of an image to keep.",
+      "url": "https://ilovemyfiles.com/crop-image/",
+      "type": "tool",
+      "capabilities": ["image-crop"],
+      "input": ["image/*"],
+      "output": ["image/png", "image/jpeg", "image/webp"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "rotate-image",
+      "name": "Rotate & Flip Image",
+      "description": "Turn images 90°/180°/270° and mirror them horizontally or vertically.",
+      "url": "https://ilovemyfiles.com/rotate-image/",
+      "type": "tool",
+      "capabilities": ["image-rotate"],
+      "input": ["image/*"],
+      "output": ["image/png", "image/jpeg", "image/webp"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "watermark-image",
+      "name": "Watermark Image",
+      "description": "Add text watermarks to images.",
+      "url": "https://ilovemyfiles.com/watermark-image/",
+      "type": "tool",
+      "capabilities": ["image-watermark"],
+      "input": ["image/*"],
+      "output": ["image/png", "image/jpeg", "image/webp"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "pdf-to-images",
+      "name": "PDF to Images",
+      "description": "Render each PDF page as a PNG or JPG image.",
+      "url": "https://ilovemyfiles.com/pdf-to-images/",
+      "type": "tool",
+      "capabilities": ["pdf-to-images"],
+      "input": ["application/pdf"],
+      "output": ["image/png", "image/jpeg"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "organize-pdf-pages",
+      "name": "Organize PDF Pages",
+      "description": "Reorder, duplicate or remove pages from a PDF.",
+      "url": "https://ilovemyfiles.com/organize-pdf-pages/",
+      "type": "tool",
+      "capabilities": ["pdf-organize"],
+      "input": ["application/pdf"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "json-formatter",
+      "name": "JSON Formatter",
+      "description": "Format, minify and validate JSON.",
+      "url": "https://ilovemyfiles.com/json-formatter/",
+      "type": "tool",
+      "capabilities": ["json-format", "json-validate"],
+      "input": ["application/json"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "base64-encoder",
+      "name": "Base64 Encoder",
+      "description": "Encode text to Base64 or decode it back.",
+      "url": "https://ilovemyfiles.com/base64-encoder/",
+      "type": "tool",
+      "capabilities": ["base64-encode", "base64-decode"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "hash-generator",
+      "name": "Hash Generator",
+      "description": "Create SHA-256, SHA-384 or SHA-512 hashes from text or files.",
+      "url": "https://ilovemyfiles.com/hash-generator/",
+      "type": "tool",
+      "capabilities": ["hash-sha256", "hash-sha384", "hash-sha512"],
+      "input": ["*/*"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "word-counter",
+      "name": "Word Counter",
+      "description": "Count words, characters, lines and reading time.",
+      "url": "https://ilovemyfiles.com/word-counter/",
+      "type": "tool",
+      "capabilities": ["word-count"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "json-to-csv",
+      "name": "JSON ↔ CSV",
+      "description": "Convert JSON arrays to CSV and back.",
+      "url": "https://ilovemyfiles.com/json-to-csv/",
+      "type": "tool",
+      "capabilities": ["json-to-csv", "csv-to-json"],
+      "input": ["application/json", "text/csv"],
+      "output": ["text/csv", "application/json"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "unit-converter",
+      "name": "Unit Converter",
+      "description": "Convert data size, length, mass and time units.",
+      "url": "https://ilovemyfiles.com/unit-converter/",
+      "type": "tool",
+      "capabilities": ["unit-convert"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "ocr",
+      "name": "OCR",
+      "description": "Extract selectable text from images or PDFs.",
+      "url": "https://ilovemyfiles.com/ocr/",
+      "type": "tool",
+      "capabilities": ["ocr"],
+      "input": ["image/*", "application/pdf"],
+      "output": ["text/plain"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "qr-code-generator",
+      "name": "QR Code Generator",
+      "description": "Create a QR code PNG from any link or text.",
+      "url": "https://ilovemyfiles.com/qr-code-generator/",
+      "type": "tool",
+      "capabilities": ["qr-generate"],
+      "output": ["image/png"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "barcode-generator",
+      "name": "Barcode Generator",
+      "description": "Create Code 128, EAN-13 and more barcodes as PNG.",
+      "url": "https://ilovemyfiles.com/barcode-generator/",
+      "type": "tool",
+      "capabilities": ["barcode-generate"],
+      "output": ["image/png"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "flatten-pdf",
+      "name": "Flatten PDF",
+      "description": "Render pages to images so text is no longer selectable.",
+      "url": "https://ilovemyfiles.com/flatten-pdf/",
+      "type": "tool",
+      "capabilities": ["pdf-flatten"],
+      "input": ["application/pdf"],
+      "output": ["application/pdf"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "make-pdf-searchable",
+      "name": "Make PDF Searchable",
+      "description": "Add an invisible, selectable text layer to scanned PDFs with OCR.",
+      "url": "https://ilovemyfiles.com/make-pdf-searchable/",
+      "type": "tool",
+      "capabilities": ["pdf-ocr"],
+      "input": ["application/pdf"],
+      "output": ["application/pdf"],
+      "privacy": "local-processing"
+    }
+  ],
+  "crawling": {
+    "allowed": true,
+    "sitemap": "https://ilovemyfiles.com/sitemap.xml",
+    "robots": "https://ilovemyfiles.com/robots.txt",
+    "llms_txt": "https://ilovemyfiles.com/llms.txt"
+  }
+}

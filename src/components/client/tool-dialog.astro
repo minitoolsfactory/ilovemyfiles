@@ -27,6 +27,16 @@
   const optionPanels = [...optionsBox.querySelectorAll('[data-tool-options]')];
   const optionPanelTemplates = new Map(optionPanels.map(panel => [panel.dataset.toolOptions, panel.cloneNode(true)]));
   const runButton = $('#run-tool');
+  function setRunButtonLabel(label) {
+    const hasArrow = label.endsWith(' →');
+    runButton.replaceChildren(document.createTextNode(hasArrow ? label.slice(0, -2) : label));
+    if (hasArrow) {
+      const arrow = document.createElement('span');
+      arrow.setAttribute('aria-hidden', 'true');
+      arrow.textContent = '→';
+      runButton.append(' ', arrow);
+    }
+  }
   const status = $('#status-message');
   const results = $('#results');
   const progressWrap = $('#progress-wrap');
@@ -247,6 +257,16 @@
         $('#quality-option').hidden = event.target.value !== 'quality';
         $('#target-option').hidden = event.target.value !== 'target';
       }
+      if (event.target.id === 'compress-format') {
+        const mode = $('#compress-mode');
+        const qualityMode = mode.querySelector('option[value="quality"]');
+        qualityMode.disabled = !['image/webp', 'image/jpeg'].includes(event.target.value);
+        if (qualityMode.disabled && mode.value === 'quality') {
+          mode.value = 'target';
+          $('#quality-option').hidden = true;
+          $('#target-option').hidden = false;
+        }
+      }
       if (event.target.id === 'split-mode') $('#split-pages-wrap').hidden = event.target.value !== 'selected';
       if (event.target.id === 'numbers-format') $('#numbers-custom-wrap').hidden = event.target.value !== 'custom';
       if (event.target.id === 'resize-width' || event.target.id === 'resize-height') updateResizeDimension(event.target.id);
@@ -303,10 +323,6 @@
   
   function isPdfFile(file) {
     return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-  }
-  
-  function escapeHtml(value) {
-    return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   }
   
   function ensureWorkspace() {
@@ -435,9 +451,9 @@
           previewIndex = 0;
           renderSelected();
           runButton.disabled = true;
-          runButton.innerHTML = 'Choose files to start <span aria-hidden="true">→</span>';
+          setRunButtonLabel('Choose files to start →');
           results.hidden = true;
-          results.innerHTML = '';
+          results.replaceChildren();
           input.value = '';
           input.click();
           schedulePreviewUpdate();
@@ -469,9 +485,9 @@
         previewIndex = 0;
         renderSelected();
         runButton.disabled = true;
-        runButton.innerHTML = 'Choose files to start <span aria-hidden="true">→</span>';
+        setRunButtonLabel('Choose files to start →');
         results.hidden = true;
-        results.innerHTML = '';
+        results.replaceChildren();
         input.value = '';
         input.click();
         schedulePreviewUpdate();
@@ -594,7 +610,7 @@
       }
       case 'pdf-merge':
         ws.setModeLabel(`${files.length} document(s)`);
-        ws.setNote(`Output order: ${files.map(item => item.name).map(escapeHtml).join(' → ')}`);
+        ws.setNote(`Output order: ${files.map(item => item.name).join(' → ')}`);
         ws.refresh();
         return;
       case 'pdf-remove-metadata':
@@ -647,7 +663,7 @@
       const estimate = blob.size * total;
       const saved = file.size ? Math.round((1 - estimate / file.size) * 100) : 0;
       const savedText = saved > 0 ? ` · about ${saved}% smaller` : '';
-      ws.setNote(`Estimated output ≈ <b>${formatBytes(estimate)}</b> for ${total} page(s)${savedText}. Only pages you view are re-rendered, so the real file may differ.`);
+      ws.setNote(`Estimated output ≈ ${formatBytes(estimate)} for ${total} page(s)${savedText}. Only pages you view are re-rendered, so the real file may differ.`);
     }
     catch { /* estimate is best-effort */ }
   }
@@ -1166,27 +1182,28 @@
       else if (activeTool === 'image-resize') {
         const width = Number($('#resize-width').value), height = Number($('#resize-height').value);
         if (!(width > 0 && height > 0)) { ws.setNote('Enter a width and height to preview the resized result.'); return; }
-        result = await resizeImage(file, width, height, $('#keep-ratio').checked, $('#resize-format').value, Number($('#image-resize-margin')?.value) || 0);
+        result = await resizeImage(file, width, height, $('#keep-ratio').checked, $('#resize-format').value, Number($('#image-resize-margin')?.value) || 0, selectExt('resize-format'));
       }
       else if (activeTool === 'image-compress') result = await compressImage(file, {
         type: $('#compress-format').value,
         mode: $('#compress-mode').value,
         quality: $('#quality')?.value,
-        targetKb: $('#target-kb')?.value
+        targetKb: $('#target-kb')?.value,
+        ext: selectExt('compress-format')
       });
       else if (activeTool === 'image-rotate') {
         const entry = transformFor(file);
         const margin = Number($('#rotate-image-margin')?.value) || 0;
         if (!entry.rotation && !entry.flipH && !entry.flipV && !margin) { ws.clearImageProcessed(); ws.setNote('Rotate, flip or add a margin to preview the result.'); return; }
         result = await rotateImage(file, {
-          rotation: entry.rotation, flipH: entry.flipH, flipV: entry.flipV, type: $('#rotate-format').value, margin
+          rotation: entry.rotation, flipH: entry.flipH, flipV: entry.flipV, type: $('#rotate-format').value, margin, ext: selectExt('rotate-format')
         });
       }
       else if (activeTool === 'image-watermark') {
         if (!$('#wm-text').value.trim()) { ws.clearImageProcessed(); ws.setNote('Enter watermark text to preview the result.'); return; }
         result = await watermarkImage(file, {
           text: $('#wm-text').value, position: $('#wm-position').value, color: $('#wm-color').value,
-          opacity: $('#wm-opacity').value, scale: $('#wm-size').value, type: $('#wm-format').value
+          opacity: $('#wm-opacity').value, scale: $('#wm-size').value, type: $('#wm-format').value, ext: selectExt('wm-format')
         });
       }
       if (seq !== previewSeq) return;
@@ -1283,9 +1300,9 @@
           input.value = '';
           renderSelected();
           runButton.disabled = true;
-          runButton.innerHTML = 'Choose files to start <span aria-hidden="true">→</span>';
+          setRunButtonLabel('Choose files to start →');
           results.hidden = true;
-          results.innerHTML = '';
+          results.replaceChildren();
           input.value = '';
           input.click();
         },
@@ -1301,7 +1318,7 @@
       });
       mergeBoard = board;
     }
-    selected.innerHTML = ''; results.innerHTML = ''; results.hidden = true;
+    selected.replaceChildren(); results.replaceChildren(); results.hidden = true;
     status.hidden = true; progressWrap.hidden = true;
     dropZone.hidden = textMode;
     dropZone.classList.remove('compact');
@@ -1314,7 +1331,7 @@
     const pasteHint = $('#drop-paste');
     if (pasteHint) pasteHint.hidden = textMode || !imageTools.has(tool);
     runButton.disabled = true;
-    runButton.innerHTML = textMode ? 'Run tool <span aria-hidden="true">→</span>' : 'Choose files to start <span aria-hidden="true">→</span>';
+    setRunButtonLabel(textMode ? 'Run tool →' : 'Choose files to start →');
     dialog.showModal();
   }
   
@@ -1344,8 +1361,14 @@
     if (activeTool === 'pdf-merge' && files.length < 2) showStatus('Add at least two PDF files to merge.', 'info');
     else status.hidden = true;
     renderSelected();
+    if (activeTool === 'image-convert' && files.length) syncConvertFormat(files[0]);
+    if (activeTool === 'image-compress' && files.length) syncSelectFormat('compress-format', files[0]);
+    if (activeTool === 'image-resize' && files.length) syncSelectFormat('resize-format', files[0]);
+    if (activeTool === 'image-rotate' && files.length) syncSelectFormat('rotate-format', files[0]);
+    if (activeTool === 'image-crop' && files.length) syncSelectFormat('crop-format', files[0]);
+    if (activeTool === 'image-watermark' && files.length) syncSelectFormat('wm-format', files[0]);
     runButton.disabled = !canRun();
-    runButton.innerHTML = 'Process files <span aria-hidden="true">→</span>';
+    setRunButtonLabel('Process files →');
     results.hidden = true;
   }
   
@@ -1363,7 +1386,7 @@
   
   function openPreview({ name, blob }) {
     closePreview();
-    previewStage.innerHTML = '';
+    previewStage.replaceChildren();
     previewTitle.textContent = name;
     previewUrl = URL.createObjectURL(blob);
     const isPdf = blob.type === 'application/pdf' || name.toLowerCase().endsWith('.pdf');
@@ -1384,7 +1407,7 @@
   }
   
   function closePreview() {
-    previewStage.innerHTML = '';
+    previewStage.replaceChildren();
     if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
   }
   
@@ -1424,7 +1447,7 @@
     dropZone.classList.toggle('compact', files.length > 0);
     if (previewIndex > files.length - 1) previewIndex = Math.max(0, files.length - 1);
     const multiple = files.length > 1 && previewTools.has(activeTool) && !textTools.has(activeTool);
-    selected.innerHTML = '';
+    selected.replaceChildren();
     files.forEach((file, index) => {
       const row = document.createElement('div'); row.className = 'selected-file'; row.draggable = true;
       row.dataset.fileIndex = String(index);
@@ -1444,7 +1467,14 @@
         if (dragIndex === null || dragIndex === index) return;
         const [moved] = files.splice(dragIndex, 1);
         files.splice(index, 0, moved);
-        renderSelected(); runButton.disabled = !canRun();
+    renderSelected();
+    if (activeTool === 'image-convert' && files.length) syncConvertFormat(files[0]);
+    if (activeTool === 'image-compress' && files.length) syncSelectFormat('compress-format', files[0]);
+    if (activeTool === 'image-resize' && files.length) syncSelectFormat('resize-format', files[0]);
+    if (activeTool === 'image-rotate' && files.length) syncSelectFormat('rotate-format', files[0]);
+    if (activeTool === 'image-crop' && files.length) syncSelectFormat('crop-format', files[0]);
+    if (activeTool === 'image-watermark' && files.length) syncSelectFormat('wm-format', files[0]);
+    runButton.disabled = !canRun();
       });
       const pdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
       const thumb = document.createElement('button');
@@ -1475,12 +1505,12 @@
         files.splice(index, 1);
         rotateStore.delete(file);
         input.value = '';
-        results.innerHTML = '';
+        results.replaceChildren();
         results.hidden = true;
         status.hidden = true;
         renderSelected();
         runButton.disabled = !canRun();
-        runButton.innerHTML = files.length ? 'Process files <span aria-hidden="true">→</span>' : 'Choose files to start <span aria-hidden="true">→</span>';
+        setRunButtonLabel(files.length ? 'Process files →' : 'Choose files to start →');
       });
       row.append(thumb, details, controls, remove); selected.append(row);
     });
@@ -1488,10 +1518,10 @@
       const clear = document.createElement('button');
       clear.type = 'button'; clear.className = 'clear-files'; clear.textContent = 'Clear all';
       clear.addEventListener('click', () => {
-        files = []; results.innerHTML = ''; results.hidden = true; input.value = '';
+        files = []; results.replaceChildren(); results.hidden = true; input.value = '';
         rotateStore.clear();
         renderSelected(); runButton.disabled = true;
-        runButton.innerHTML = 'Choose files to start <span aria-hidden="true">→</span>';
+        setRunButtonLabel('Choose files to start →');
         schedulePreviewUpdate();
       });
       selected.append(clear);
@@ -1593,6 +1623,84 @@
     const value = Number(input.value) || 0;
     control.querySelectorAll('.margin-preset').forEach(btn => btn.classList.toggle('active', Number(btn.dataset.value) === value));
   }
+
+  function imageFormatForFile(file) {
+    const name = file.name.toLowerCase();
+    const dot = name.lastIndexOf('.');
+    const ext = dot >= 0 ? name.slice(dot) : '';
+    const type = (file.type || '').toLowerCase();
+    if (type === 'image/jpeg' || ext === '.jpg' || ext === '.jpeg') {
+      return ext === '.jpeg'
+        ? '[data-format="image/jpeg"][data-ext="jpeg"]'
+        : '[data-format="image/jpeg"]:not([data-ext])';
+    }
+    const map = {
+      'image/png': '[data-format="image/png"]', '.png': '[data-format="image/png"]',
+      'image/webp': '[data-format="image/webp"]', '.webp': '[data-format="image/webp"]',
+      'image/bmp': '[data-format="image/bmp"]', '.bmp': '[data-format="image/bmp"]',
+      'image/gif': '[data-format="image/gif"]', '.gif': '[data-format="image/gif"]',
+      'image/x-icon': '[data-format="image/x-icon"]', '.ico': '[data-format="image/x-icon"]',
+      'image/svg+xml': '[data-format="image/svg+xml"]', '.svg': '[data-format="image/svg+xml"]',
+      'image/tiff': '[data-format="image/tiff"]', '.tiff': '[data-format="image/tiff"]', '.tif': '[data-format="image/tiff"]'
+    };
+    return map[type] || map[ext] || null;
+  }
+
+  function syncConvertFormat(file) {
+    if (activeTool !== 'image-convert' || !file) return;
+    const panel = optionPanels.find(p => p.dataset.toolOptions === 'image-convert');
+    if (!panel) return;
+    const grid = panel.querySelector('.format-grid');
+    if (!grid) return;
+    const selector = imageFormatForFile(file);
+    if (!selector) return;
+    const chip = grid.querySelector(selector);
+    if (!chip) return;
+    grid.querySelectorAll('.format-chip').forEach(node => node.classList.toggle('active', node === chip));
+    const hidden = panel.querySelector('#image-format');
+    if (hidden) hidden.value = chip.dataset.format;
+    schedulePreviewUpdate();
+  }
+
+  function syncSelectFormat(selectId, file) {
+    const select = $(`#${selectId}`);
+    if (!select || !file) return;
+    const type = (file.type || '').toLowerCase();
+    const name = file.name.toLowerCase();
+    const dot = name.lastIndexOf('.');
+    const ext = dot >= 0 ? name.slice(dot + 1) : '';
+    let targetType = null, targetExt = null;
+    if (type === 'image/jpeg' || ext === 'jpg' || ext === 'jpeg') {
+      targetType = 'image/jpeg';
+      targetExt = ext === 'jpeg' ? 'jpeg' : 'jpg';
+    } else {
+      const map = {
+        'image/png': 'png', '.png': 'png',
+        'image/webp': 'webp', '.webp': 'webp',
+        'image/bmp': 'bmp', '.bmp': 'bmp',
+        'image/gif': 'gif', '.gif': 'gif',
+        'image/x-icon': 'ico', '.ico': 'ico',
+        'image/svg+xml': 'svg', '.svg': 'svg',
+        'image/tiff': 'tiff', '.tiff': 'tiff', '.tif': 'tiff'
+      };
+      const key = map[type] || map['.' + ext];
+      if (!key) return;
+      targetType = 'image/' + key;
+      targetExt = key;
+    }
+    for (const option of select.options) {
+      const matchType = option.value === targetType;
+      const matchExt = targetExt ? (option.dataset.ext || '') === targetExt : true;
+      option.selected = matchType && matchExt;
+    }
+  }
+
+  function selectExt(selectId) {
+    const select = $(`#${selectId}`);
+    if (!select) return null;
+    const option = select.options[select.selectedIndex];
+    return option ? (option.dataset.ext || null) : null;
+  }
   
   function updateResizeDimension(changed) {
     if (!$('#keep-ratio')?.checked || files.length !== 1) return;
@@ -1626,11 +1734,19 @@
     const seq = ++metadataSeq;
     metadataInspection = null;
     if (!files.length) {
-      panel.innerHTML = '<p class="meta-empty">Add a PDF to inspect its metadata. Nothing is removed until you review the properties and confirm.</p>';
+      const empty = document.createElement('p');
+      empty.className = 'meta-empty';
+      empty.textContent = 'Add a PDF to inspect its metadata. Nothing is removed until you review the properties and confirm.';
+      panel.replaceChildren(empty);
       if (!busy) runButton.disabled = true;
       return;
     }
-    panel.innerHTML = '<div class="meta-loading"><span class="meta-spinner"></span>Inspecting metadata…</div>';
+    const loading = document.createElement('div');
+    loading.className = 'meta-loading';
+    const spinner = document.createElement('span');
+    spinner.className = 'meta-spinner';
+    loading.append(spinner, 'Inspecting metadata…');
+    panel.replaceChildren(loading);
     if (!busy) runButton.disabled = true;
     try {
       const info = await inspectPdfMetadata(files[0]);
@@ -1639,7 +1755,7 @@
       renderMetadataPanel(info);
     } catch (error) {
       if (seq !== metadataSeq || activeTool !== 'pdf-remove-metadata') return;
-      panel.innerHTML = '';
+      panel.replaceChildren();
       const warn = document.createElement('p');
       warn.className = 'meta-warn';
       warn.textContent = error?.message || 'This PDF could not be read.';
@@ -1651,7 +1767,7 @@
   function renderMetadataPanel(info) {
     const panel = $('#metadata-panel');
     if (!panel) return;
-    panel.innerHTML = '';
+    panel.replaceChildren();
     const scale = document.createElement('p');
     scale.className = 'meta-note';
     scale.textContent = `PDF ${info.version || 'version unknown'} · ${info.pageCount} page(s) · ${info.encrypted ? 'encrypted' : 'not encrypted'}`;
@@ -1668,7 +1784,7 @@
   
     const removable = info.items.filter(item => item.removable && item.set);
     if (!removable.length) {
-      panel.innerHTML = '';
+      panel.replaceChildren();
       const empty = document.createElement('p');
       empty.className = 'meta-empty';
       empty.textContent = 'No removable metadata was found in this PDF. There is nothing to clear.';
@@ -1692,7 +1808,16 @@
     scroll.className = 'meta-scroll';
     const table = document.createElement('table');
     table.className = 'meta-table';
-    table.innerHTML = '<thead><tr><th scope="col">Property</th><th scope="col">Value</th><th scope="col">Remove</th></tr></thead>';
+    const head = document.createElement('thead');
+    const headingRow = document.createElement('tr');
+    ['Property', 'Value', 'Remove'].forEach(text => {
+      const heading = document.createElement('th');
+      heading.scope = 'col';
+      heading.textContent = text;
+      headingRow.append(heading);
+    });
+    head.append(headingRow);
+    table.append(head);
     const tbody = document.createElement('tbody');
     info.items.forEach(item => {
       const tr = document.createElement('tr');
@@ -1778,7 +1903,7 @@
   
   function askConfirm(labels, fileName) {
     if (!confirmDialog) return Promise.resolve(true);
-    confirmBody.innerHTML = '';
+    confirmBody.replaceChildren();
     const message = document.createElement('p');
     message.className = 'meta-note';
     message.textContent = `You are about to remove ${labels.length} propert${labels.length === 1 ? 'y' : 'ies'} from “${fileName}”.`;
@@ -1824,7 +1949,7 @@
       else if (item.group === 'info' && selection.keys.includes(item.key)) labels.push(item.label);
     });
     if (!(await askConfirm(labels, files[0].name))) return;
-    setBusy(true); status.hidden = true; results.hidden = true; results.innerHTML = '';
+    setBusy(true); status.hidden = true; results.hidden = true; results.replaceChildren();
     progressWrap.hidden = false; setProgress({ percent: 0, label: 'Preparing…' });
     try {
       const output = await removePdfMetadata(files[0], { ...selection, before: metadataInspection }, setProgress);
@@ -1838,7 +1963,7 @@
   }
   
   function renderMetadataResults(output) {
-    results.innerHTML = ''; results.hidden = false;
+    results.replaceChildren(); results.hidden = false;
     const row = document.createElement('div'); row.className = 'result-row';
     const icon = document.createElement('span'); icon.className = 'result-check'; icon.textContent = '✓';
     const info = document.createElement('span'); info.className = 'result-info';
@@ -1859,7 +1984,16 @@
     const pillLabels = { removed: 'Removed', remaining: 'Still present', untouched: 'Kept', 'was-empty': 'Was empty', info: 'Info' };
     const scroll = document.createElement('div'); scroll.className = 'compare-scroll';
     const table = document.createElement('table'); table.className = 'meta-table';
-    table.innerHTML = '<thead><tr><th scope="col">Property</th><th scope="col">Before</th><th scope="col">After</th><th scope="col">Result</th></tr></thead>';
+    const head = document.createElement('thead');
+    const headingRow = document.createElement('tr');
+    ['Property', 'Before', 'After', 'Result'].forEach(text => {
+      const heading = document.createElement('th');
+      heading.scope = 'col';
+      heading.textContent = text;
+      headingRow.append(heading);
+    });
+    head.append(headingRow);
+    table.append(head);
     const tbody = document.createElement('tbody');
     output.comparison.forEach(item => {
       const tr = document.createElement('tr');
@@ -1885,9 +2019,9 @@
     again.type = 'button'; again.className = 'button button-small button-full'; again.textContent = 'Process another PDF';
     again.addEventListener('click', () => {
       files = []; metadataInspection = null;
-      results.innerHTML = ''; results.hidden = true;
+      results.replaceChildren(); results.hidden = true;
       renderSelected(); runButton.disabled = true;
-      runButton.innerHTML = 'Choose files to start <span aria-hidden="true">→</span>';
+      setRunButtonLabel('Choose files to start →');
       inspectMetadataForFiles();
     });
     results.append(again);
@@ -1902,8 +2036,8 @@
   
   function setBusy(value) {
     busy = value; runButton.disabled = value || !canRun(); closeButton.disabled = value;
-    const idle = textTools.has(activeTool) ? 'Run tool <span aria-hidden="true">→</span>' : 'Process files <span aria-hidden="true">→</span>';
-    runButton.innerHTML = value ? 'Working…' : idle;
+    const idle = textTools.has(activeTool) ? 'Run tool →' : 'Process files →';
+    setRunButtonLabel(value ? 'Working…' : idle);
   }
   
   async function copyUtilityOutput() {
@@ -1951,7 +2085,7 @@
     if (!canRun() || busy) return;
     if (activeTool === 'data-hash' || textTools.has(activeTool)) return runTextTool();
     if (activeTool === 'pdf-remove-metadata') return runMetadataTool();
-    setBusy(true); status.hidden = true; results.hidden = true; results.innerHTML = '';
+    setBusy(true); status.hidden = true; results.hidden = true; results.replaceChildren();
     progressWrap.hidden = false; setProgress({ percent: 0, label: 'Preparing…' });
     try {
       let outputs = [];
@@ -1963,30 +2097,30 @@
       } else if (activeTool === 'image-compress') {
         const type = $('#compress-format').value;
         const mode = $('#compress-mode').value;
-        outputs = await processMany(file => compressImage(file, { type, mode, quality: $('#quality')?.value, targetKb: $('#target-kb')?.value }));
+        outputs = await processMany(file => compressImage(file, { type, mode, quality: $('#quality')?.value, targetKb: $('#target-kb')?.value, ext: selectExt('compress-format') }));
       } else if (activeTool === 'image-resize') {
         const width = Number($('#resize-width').value), height = Number($('#resize-height').value);
         if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 20000 || height > 20000) throw new Error('Enter width and height between 1 and 20,000 pixels.');
         const keep = $('#keep-ratio').checked, type = $('#resize-format').value, margin = Number($('#image-resize-margin')?.value) || 0;
-        outputs = await processMany(file => resizeImage(file, width, height, keep, type, margin));
+        outputs = await processMany(file => resizeImage(file, width, height, keep, type, margin, selectExt('resize-format')));
       } else if (activeTool === 'image-rotate') {
         const type = $('#rotate-format').value;
         const margin = Number($('#rotate-image-margin')?.value) || 0;
         if (!margin && !files.some(activeTransformApplied)) throw new Error('Rotate or flip at least one image, or add a margin.');
         outputs = await processMany(file => {
           const entry = transformFor(file);
-          return rotateImage(file, { rotation: entry.rotation, flipH: entry.flipH, flipV: entry.flipV, type, margin });
+          return rotateImage(file, { rotation: entry.rotation, flipH: entry.flipH, flipV: entry.flipV, type, margin, ext: selectExt('rotate-format') });
         });
       } else if (activeTool === 'image-crop') {
         const area = cropEditor?.getCropRect();
         if (!area || area.width < 1 || area.height < 1) throw new Error('Select a crop area first.');
         const type = $('#crop-format').value;
         const margin = Number($('#crop-margin')?.value) || 0;
-        outputs = await processMany(file => cropImage(file, area, type, margin));
+        outputs = await processMany(file => cropImage(file, area, type, margin, selectExt('crop-format')));
       } else if (activeTool === 'image-watermark') {
         const options = {
           text: $('#wm-text').value, position: $('#wm-position').value, color: $('#wm-color').value,
-          opacity: $('#wm-opacity').value, scale: $('#wm-size').value, type: $('#wm-format').value
+          opacity: $('#wm-opacity').value, scale: $('#wm-size').value, type: $('#wm-format').value, ext: selectExt('wm-format')
         };
         if (!options.text.trim()) throw new Error('Enter watermark text first.');
         outputs = await processMany(file => watermarkImage(file, options));
@@ -2081,7 +2215,7 @@ const fontKey = WM_FONTS[selectedFont]?.googleFamily
   }
   
   function renderResults(outputs) {
-    results.innerHTML = ''; results.hidden = false;
+    results.replaceChildren(); results.hidden = false;
     outputs.forEach(output => {
       const row = document.createElement('div'); row.className = 'result-row';
       const icon = document.createElement('span'); icon.className = 'result-check'; icon.textContent = '✓';

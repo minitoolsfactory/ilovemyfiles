@@ -10,7 +10,7 @@
     "build": "astro build",
     "preview": "npm run build && wrangler dev",
     "astro": "astro",
-    "deploy": "npm run build && wrangler pages deploy dist",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name ilovemyfiles",
     "cf-typegen": "wrangler types"
   },
   "dependencies": {

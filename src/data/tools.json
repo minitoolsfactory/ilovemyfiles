@@ -493,14 +493,26 @@
       "id": "image-convert",
       "slug": "image-converter",
       "category": "image",
-      "cardTitle": "Image Extension converter",
-      "cardText": "Convert JPG, PNG, WebP, BMP, GIF, ICO, SVG and TIFF.",
+      "cardTitle": "Image format converter",
+      "cardText": "Convert images to JPG/JPEG, PNG, WebP, BMP, GIF, ICO, SVG or TIFF.",
       "tag": "JPG · PNG · WEBP · MORE",
       "icon": "purple",
       "svg": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"/><circle cx=\"8.5\" cy=\"9\" r=\"1.5\"/><path d=\"m4 17 5-5 3 3 3-4 5 6\"/>",
       "keywords": [
         "image converter",
         "jpg to webp",
+        "image to jpg",
+        "image to jpeg",
+        "image to png",
+        "image to webp",
+        "image to bmp",
+        "image to gif",
+        "image to ico",
+        "image to svg",
+        "image to tiff",
+        "jpeg to png",
+        "png to webp",
+        "webp to jpg",
         "png to jpg",
         "webp converter",
         "png to ico",
@@ -508,15 +520,19 @@
         "image to svg"
       ],
       "seo": {
-        "title": "Image Extension Converter - Change JPG, PNG, WebP Format | iLoveMyFiles",
-        "description": "Convert images between JPG, PNG, WebP, BMP, GIF, ICO, SVG and TIFF locally in your browser. Batch conversion with no upload.",
-        "intro": "Convert images between JPG, PNG, WebP, BMP, GIF, ICO, SVG and TIFF in bulk. The browser does the encoding locally, so nothing is uploaded.",
+        "title": "Image Converter - Convert JPG, PNG, WebP, GIF and More | iLoveMyFiles",
+        "description": "Convert images to JPG/JPEG, PNG, WebP, BMP, GIF, ICO, SVG or TIFF in your browser. Batch convert privately without uploading files.",
+        "intro": "Convert images to JPG/JPEG, PNG, WebP, BMP, GIF, ICO, SVG or TIFF in bulk. The browser does the encoding locally, so nothing is uploaded.",
         "steps": [
           "Add one or more images.",
-          "Choose the output format (JPG, PNG, WebP, BMP, GIF, ICO, SVG or TIFF).",
+          "Choose JPG/JPEG, PNG, WebP, BMP, GIF, ICO, SVG or TIFF as the output format.",
           "Process and download the converted files."
         ],
         "faqs": [
+          [
+            "Which image formats can I convert?",
+            "Convert to JPG/JPEG, PNG, WebP, BMP, GIF, ICO, SVG or TIFF. GIF output is a single frame, and SVG wraps the image rather than vectorising it."
+          ],
           [
             "Is WebP smaller?",
             "Usually, but it depends on the image. Browser support for WebP is very good today."

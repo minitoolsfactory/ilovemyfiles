@@ -14,6 +14,18 @@
     if (text != null) node.textContent = text;
     return node;
   }
+
+  function setFitButtonContent(button, label, paths) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    paths.forEach(data => {
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', data);
+      svg.append(path);
+    });
+    button.append(svg, el('span', '', label));
+  }
   
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
 
@@ -75,7 +87,7 @@
   
     _build() {
       const root = this.root;
-      root.innerHTML = '';
+      root.replaceChildren();
       root.classList.add('pv');
   
       const toolbar = el('div', 'pv-toolbar');
@@ -113,11 +125,16 @@
       this.fitWidth = el('button', 'pv-text-btn pv-fit-btn');
       this.fitWidth.type = 'button';
       this.fitWidth.title = 'Scale so the full width is visible';
-      this.fitWidth.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v14"/><path d="M19 5v14"/><path d="M8 12h8"/><path d="m11 9-3 3 3 3"/><path d="m13 9 3 3-3 3"/></svg><span>Fit width</span>';
+      setFitButtonContent(this.fitWidth, 'Fit width', [
+        'M5 5v14', 'M19 5v14', 'M8 12h8', 'm11 9-3 3 3 3', 'm13 9 3 3-3 3'
+      ]);
       this.fitPage = el('button', 'pv-text-btn pv-fit-btn active');
       this.fitPage.type = 'button';
       this.fitPage.title = 'Scale so the whole page/image is visible';
-      this.fitPage.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V6a2 2 0 0 1 2-2h3"/><path d="M15 4h3a2 2 0 0 1 2 2v3"/><path d="M20 15v3a2 2 0 0 1-2 2h-3"/><path d="M9 20H6a2 2 0 0 1-2-2v-3"/><path d="M9 12h6"/></svg><span>Fit page</span>';
+      setFitButtonContent(this.fitPage, 'Fit page', [
+        'M4 9V6a2 2 0 0 1 2-2h3', 'M15 4h3a2 2 0 0 1 2 2v3',
+        'M20 15v3a2 2 0 0 1-2 2h-3', 'M9 20H6a2 2 0 0 1-2-2v-3', 'M9 12h6'
+      ]);
       fit.append(this.fitWidth, this.fitPage);
       zoom.append(this.zoomOut, this.zoomLabel, this.zoomIn, fit);
   
@@ -324,9 +341,9 @@
     clearStatus() { this.statusEl.hidden = true; this.statusEl.textContent = ''; }
   
     setNote(text, kind = 'info') {
-      if (!text) { this.noteEl.hidden = true; this.noteEl.innerHTML = ''; return; }
+      if (!text) { this.noteEl.hidden = true; this.noteEl.textContent = ''; return; }
       this.noteEl.className = `pv-note pv-note-${kind}`;
-      this.noteEl.innerHTML = text;
+      this.noteEl.textContent = text;
       this.noteEl.hidden = false;
     }
   
@@ -349,8 +366,8 @@
       }
       this.pageCount = this.doc.numPages;
       this.pages = [];
-      this.pagesBox.innerHTML = '';
-      this.thumbsBox.innerHTML = '';
+      this.pagesBox.replaceChildren();
+      this.thumbsBox.replaceChildren();
       this.thumbsBox.hidden = true;
       for (let num = 1; num <= this.pageCount; num++) {
         this.pages.push({ num, el: null, status: 'idle', job: 0 });
@@ -431,7 +448,7 @@
     }
   
     _buildPageShells() {
-      this.pagesBox.innerHTML = '';
+      this.pagesBox.replaceChildren();
       const frag = document.createDocumentFragment();
       for (const meta of this.pages) {
         const wrapper = el('div', 'pv-page');
@@ -694,7 +711,7 @@
             }
           } else {
             meta.status = 'idle';
-            meta.content.innerHTML = '';
+            meta.content.replaceChildren();
             meta.retryCount = 0;
             if (this.renderer) this.renderer = null;
             if (force === 'preview') {
@@ -760,7 +777,7 @@
       canvas.height = source.height;
       const context = canvas.getContext('2d');
       if (context) context.drawImage(source, 0, 0);
-      meta.content.innerHTML = '';
+      meta.content.replaceChildren();
       canvas.className = 'pv-page-canvas';
       // Derive the displayed height from the bitmap's own aspect ratio. The bitmap
       // scale (pixel budget) and the CSS scale (shell fit * zoom) are computed
@@ -842,13 +859,13 @@
         const box = this._contentBox(num);
         img.style.width = `${Math.round(box.width * this.zoom)}px`;
         img.style.height = `${Math.round(box.height * this.zoom)}px`;
-        meta.content.innerHTML = '';
+        meta.content.replaceChildren();
         meta.canvas = img;
         meta.content.append(img);
         return;
       } else return;
       const box = this._contentBox(num);
-      meta.content.innerHTML = '';
+      meta.content.replaceChildren();
       source.className = 'pv-page-canvas';
       const displayWidth = Math.max(1, box.width * this.zoom);
       source.style.width = `${displayWidth}px`;
@@ -917,7 +934,7 @@
     _releasePage(num) {
       const meta = this.pages[num - 1];
       if (!meta || meta.status !== 'done') return;
-      meta.content.innerHTML = '';
+      meta.content.replaceChildren();
       meta.canvas = null;
       meta.status = 'idle';
       meta.renderedScale = 0;
@@ -949,7 +966,7 @@
         this.pdfThumbCache.delete(file);
       }
       if (!files || files.length < 2) {
-        box.hidden = true; box.innerHTML = '';
+        box.hidden = true; box.replaceChildren();
         this._filestripKey = null; this._filestripButtons = null; this._filestripSelect = null; this._filestripReorder = null;
         return;
       }
@@ -960,7 +977,7 @@
       const key = files.map(file => `${file.name}:${file.size}:${file.lastModified}`).join('|');
       if (key !== this._filestripKey) {
         this._filestripKey = key;
-        box.innerHTML = '';
+        box.replaceChildren();
         this._filestripButtons = files.map((file, index) => {
           const btn = el('div', 'pv-thumb pv-file-thumb');
           btn.draggable = true;
@@ -1051,7 +1068,7 @@
     _buildThumbs() {
       const thumbToken = this._thumbToken = (this._thumbToken || 0) + 1;
       this.thumbsBox.hidden = false;
-      this.thumbsBox.innerHTML = '';
+      this.thumbsBox.replaceChildren();
       const limit = Math.min(this.pageCount, THUMB_LIMIT);
       for (let num = 1; num <= limit; num++) {
         const btn = el('button', 'pv-thumb');
@@ -1164,7 +1181,7 @@
             const canvas = await renderPageToCanvas(page, scale, false);
             if (token !== this._thumbToken || this.kind !== 'pdf') { canvas.width = 1; canvas.height = 1; return; }
             canvas.className = 'pv-thumb-canvas';
-            holder.innerHTML = '';
+            holder.replaceChildren();
             holder.append(canvas);
             this._clearThumbError(holder);
             return;
@@ -1310,7 +1327,7 @@
     }
 
     _buildImageStage(image) {
-      this.pagesBox.innerHTML = '';
+      this.pagesBox.replaceChildren();
       const stage = el('div', 'pv-image-stage');
       const img = image || el('img', 'pv-image');
       img.className = 'pv-image';
@@ -1515,9 +1532,9 @@
         this._releasePageBitmap(meta);
       }
       this.pages = []; this.pageObjs.clear(); this.rendered.clear();
-      this.pagesBox.innerHTML = '';
-      this.thumbsBox.innerHTML = ''; this.thumbsBox.hidden = true;
-      this.filestripBox.innerHTML = ''; this.filestripBox.hidden = true;
+      this.pagesBox.replaceChildren();
+      this.thumbsBox.replaceChildren(); this.thumbsBox.hidden = true;
+      this.filestripBox.replaceChildren(); this.filestripBox.hidden = true;
       this._filestripKey = null; this._filestripButtons = null; this._filestripSelect = null;
       this.doc?.destroy?.(); this.doc = null;
       this.processedImageCache.clear();

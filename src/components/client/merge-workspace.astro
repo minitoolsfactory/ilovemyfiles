@@ -43,7 +43,7 @@
     let boardObs = null;
     let previewObs = null;
   
-    container.innerHTML = '';
+    container.replaceChildren();
     let _onPageSelect = onPageSelect || null;
     let _onResetFiles = onResetFiles || null;
   
@@ -780,7 +780,7 @@
       activeDocumentRenders.clear();
       fileIds.clear();
       pageSettings.clear();
-      container.innerHTML = '';
+      container.replaceChildren();
     let _onPageSelect = onPageSelect || null;
     let _onResetFiles = onResetFiles || null;
     }

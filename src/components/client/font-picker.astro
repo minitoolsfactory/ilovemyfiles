@@ -12,14 +12,15 @@
     return node;
   }
 
-  const CHEVRON = '<svg class="font-picker-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
-
-  // innerHTML on a template parses markup into real elements (append() would
-  // insert a string as a text node, which renders the raw markup).
-  function fromHtml(html) {
-    const template = document.createElement('template');
-    template.innerHTML = html.trim();
-    return template.content.firstElementChild;
+  function createChevron() {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.classList.add('font-picker-caret');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M6 9l6 6 6-6');
+    svg.append(path);
+    return svg;
   }
 
   // Compact, scrollable, searchable font picker. Every option is rendered in its
@@ -63,7 +64,7 @@
     trigger.setAttribute('aria-expanded', 'false');
     trigger.setAttribute('aria-label', label);
     const currentLabel = el('span', 'font-picker-current');
-    trigger.append(currentLabel, fromHtml(CHEVRON));
+    trigger.append(currentLabel, createChevron());
 
     const panel = el('div', 'font-picker-panel');
     panel.hidden = true;

@@ -101,6 +101,7 @@ Tools are grouped into five categories:
 - No file contents are sent to any server.
 - The only network fetch is the one-time download of the OCR engine and language data (Tesseract.js via WebAssembly) when you first use an OCR tool; after that it is cached by your browser.
 - iLoveMyFiles does not store your files, does not require an account, and does not track usage beyond standard web analytics.
+- Cloudflare Pages serves a restrictive Content Security Policy with Trusted Types enforcement, and an HSTS policy configured for preload. OCR assets and optional Google Fonts are explicitly allowed by the policy.
 
 **Caveats:**
 - Compressing, flattening, or converting PDFs to images makes text no longer selectable or searchable.

@@ -201,7 +201,7 @@
     return { blob, name: `${safeBaseName(file.name)}.${ext || extensionFor(type)}`, details: `${width} × ${height} · ${formatBytes(blob.size)}` };
   }
   
-  async function resizeImage(file, width, height, keepRatio, type, margin = 0) {
+  async function resizeImage(file, width, height, keepRatio, type, margin = 0, ext = null) {
     const image = await loadImage(file);
     if (keepRatio) {
       const ratio = Math.min(width / image.naturalWidth, height / image.naturalHeight);
@@ -210,10 +210,10 @@
     }
     const blob = await encodeImage(image, width, height, type, 0.9, margin);
     const m = Math.max(0, Math.round(Number(margin) || 0));
-    return { blob, name: `${safeBaseName(file.name)}-${width + m * 2}x${height + m * 2}.${extensionFor(type)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}` };
+    return { blob, name: `${safeBaseName(file.name)}-${width + m * 2}x${height + m * 2}.${ext || extensionFor(type)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}` };
   }
   
-  async function cropImage(file, area, type, margin = 0) {
+  async function cropImage(file, area, type, margin = 0, ext = null) {
     const image = await loadImage(file);
     const width = Math.max(1, Math.min(image.naturalWidth, Math.round(area.width)));
     const height = Math.max(1, Math.min(image.naturalHeight, Math.round(area.height)));
@@ -229,24 +229,28 @@
     const m = Math.max(0, Math.round(Number(margin) || 0));
     if (padded !== canvas) { padded.width = 1; padded.height = 1; }
     canvas.width = 1; canvas.height = 1;
-    return { blob, name: `${safeBaseName(file.name)}-cropped.${extensionFor(type)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}` };
+    return { blob, name: `${safeBaseName(file.name)}-cropped.${ext || extensionFor(type)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}` };
   }
   
   async function compressImage(file, options) {
     const image = await loadImage(file);
     let width = image.naturalWidth, height = image.naturalHeight;
-    const { type, mode } = options;
+    const { type, mode, ext } = options;
     if (mode === 'quality') {
       const blob = await encodeImage(image, width, height, type, Number(options.quality) / 100);
-      return { blob, name: `${safeBaseName(file.name)}-compressed.${extensionFor(type)}`, details: `${width} × ${height} · ${formatBytes(blob.size)}` };
+      return { blob, name: `${safeBaseName(file.name)}-compressed.${ext || extensionFor(type)}`, details: `${width} × ${height} · ${formatBytes(blob.size)}` };
     }
     const target = Number(options.targetKb) * 1024;
     if (!Number.isFinite(target) || target < 5120) throw new Error('Target size must be at least 5 KB.');
-    let low = 0.12, high = 0.95, best = null;
+    let low = 0.12, high = 0.95, best = null, bestWidth = width, bestHeight = height;
     for (let i = 0; i < 7; i++) {
       const quality = (low + high) / 2;
       const blob = await encodeImage(image, width, height, type, quality);
-      if (!best || Math.abs(blob.size - target) < Math.abs(best.size - target)) best = blob;
+      if (!best || Math.abs(blob.size - target) < Math.abs(best.size - target)) {
+        best = blob;
+        bestWidth = width;
+        bestHeight = height;
+      }
       if (blob.size > target) high = quality; else low = quality;
     }
     // If quality alone cannot reach the target, reduce dimensions gradually.
@@ -255,11 +259,14 @@
       const w = Math.max(1, Math.round(image.naturalWidth * scale));
       const h = Math.max(1, Math.round(image.naturalHeight * scale));
       const blob = await encodeImage(image, w, h, type, 0.72);
-      if (Math.abs(blob.size - target) < Math.abs(best.size - target)) best = blob;
-      width = w; height = h;
+      if (Math.abs(blob.size - target) < Math.abs(best.size - target)) {
+        best = blob;
+        bestWidth = w;
+        bestHeight = h;
+      }
       if (blob.size <= target) break;
     }
-    return { blob: best, name: `${safeBaseName(file.name)}-compressed.${extensionFor(type)}`, details: `${width} × ${height} · ${formatBytes(best.size)}${best.size > target ? ' · target not reached' : ''}` };
+    return { blob: best, name: `${safeBaseName(file.name)}-compressed.${ext || extensionFor(type)}`, details: `${bestWidth} × ${bestHeight} · ${formatBytes(best.size)}${best.size > target ? ' · target not reached' : ''}` };
   }
   
   async function rotateImage(file, options = {}) {
@@ -284,7 +291,7 @@
     const m = Math.max(0, Math.round(Number(options.margin) || 0));
     if (padded !== canvas) { padded.width = 1; padded.height = 1; }
     canvas.width = 1; canvas.height = 1;
-    return { blob, name: `${safeBaseName(file.name)}-rotated.${extensionFor(type)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}` };
+    return { blob, name: `${safeBaseName(file.name)}-rotated.${options.ext || extensionFor(type)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}` };
   }
   
   async function watermarkImage(file, options = {}) {
@@ -318,7 +325,7 @@
     context.fillText(text, x, y);
     const blob = await canvasToBlob(canvas, type, 0.92);
     canvas.width = 1; canvas.height = 1;
-    return { blob, name: `${safeBaseName(file.name)}-watermarked.${extensionFor(type)}`, details: `${outWidth} × ${outHeight} · ${formatBytes(blob.size)}` };
+    return { blob, name: `${safeBaseName(file.name)}-watermarked.${options.ext || extensionFor(type)}`, details: `${outWidth} × ${outHeight} · ${formatBytes(blob.size)}` };
   }
   
   function readImageDimensions(file) {
