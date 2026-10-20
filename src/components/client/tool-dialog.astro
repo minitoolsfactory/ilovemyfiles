@@ -25,7 +25,7 @@
   const input = $('#file-input');
   const selected = $('#selected-files');
   const optionsBox = $('#tool-options');
-  const optionPanels = [...optionsBox.querySelectorAll('[data-tool-options]')];
+  const optionPanels = optionsBox ? [...optionsBox.querySelectorAll('[data-tool-options]')] : [];
   const optionPanelTemplates = new Map(optionPanels.map(panel => [panel.dataset.toolOptions, panel.cloneNode(true)]));
   const runButton = $('#run-tool');
   function setRunButtonLabel(label) {
