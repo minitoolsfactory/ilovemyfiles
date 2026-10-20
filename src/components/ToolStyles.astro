@@ -1,7 +1,7 @@
 ---
 ---
 <style is:global>
-/* Tool-page-only workspace, preview, dialog, and option controls. */
+/* Tool-page-only workspace, preview, dialog, option controls, and shared WCAG overrides. */
 .drop-zone:focus-visible{outline:3px solid #aaa9ff;outline-offset:3px}
 .tool-dialog{border:0;padding:0;width:min(620px,calc(100vw - 28px));max-width:none;max-height:min(90vh,900px);border-radius:18px;box-shadow:0 25px 90px #20243b35;color:var(--ink);overflow:hidden}
 .tool-dialog::backdrop{background:#1e2240a6;backdrop-filter:blur(4px)}
@@ -790,4 +790,190 @@ main.tool-mode > :not(#tool-view){display:none}
 .tool-page .drop-zone{min-height:116px}
 .tool-page .preview-workspace{min-height:min(64dvh,520px)}
 .session-note{font-size:8px}}
+
+:root{
+  --color-text-primary:#20243b;
+  --color-text-secondary:#4b5268;
+  --color-text-muted:#5c6377;
+  --color-text-subtle:#616881;
+  --color-background:#ffffff;
+  --color-surface:#ffffff;
+  --color-surface-soft:#f7f8fc;
+  --color-surface-tint:#f0efff;
+  --color-border:#e9ebf3;
+  --color-border-control:#7d8497;
+  --color-divider:#e2e5ef;
+  --color-accent:#4b49e8;
+  --color-accent-strong:#4338ca;
+  --color-accent-brand:#5d5cf6;
+  --color-action:#5d5cf6;
+  --color-action-hover:#4b49e8;
+  --color-on-accent:#ffffff;
+  --color-focus:#4338ca;
+  --color-success:#1a7f57;
+  --color-success-bg:#eaf9f1;
+  --color-warning:#8a5a00;
+  --color-warning-bg:#fff7db;
+  --color-error:#b3261e;
+  --color-error-bg:#fdecec;
+  --radius-sm:8px;
+  --radius-md:13px;
+  --radius-lg:17px;
+  --space-1:4px;
+  --space-2:8px;
+  --space-3:13px;
+  --space-4:20px;
+  --space-5:28px;
+  --space-6:40px;
+  --font-xs:10px;
+  --font-sm:11px;
+  --font-md:13px;
+  /* Remap legacy palette names onto validated tokens. */
+  --ink:var(--color-text-primary);
+  --muted:var(--color-text-muted);
+  --line:var(--color-border);
+}
+:root[data-theme="dark"]{
+  --color-text-primary:#e6e8f5;
+  --color-text-secondary:#c3c8dc;
+  --color-text-muted:#9aa1bd;
+  --color-text-subtle:#8b93b0;
+  --color-background:#0e1020;
+  --color-surface:#171a2c;
+  --color-surface-soft:#12142a;
+  --color-surface-tint:#24264a;
+  --color-border:#2a2e47;
+  --color-border-control:#626784;
+  --color-divider:#2a2e47;
+  --color-accent:#b3b0ff;
+  --color-accent-strong:#dcdbff;
+  --color-accent-brand:#8f8dff;
+  --color-action:#5d5cf6;
+  --color-action-hover:#4b49e8;
+  --color-on-accent:#ffffff;
+  --color-focus:#dcdbff;
+  --color-success:#7fd6ab;
+  --color-success-bg:#122a20;
+  --color-warning:#f3c46b;
+  --color-warning-bg:#2a2413;
+  --color-error:#f4a7a7;
+  --color-error-bg:#2a1517;
+  --ink:var(--color-text-primary);
+  --muted:var(--color-text-muted);
+  --line:var(--color-border);
+}
+
+/* Visually hidden content for live regions and context. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Focus indicators: high-contrast ring preserved on every theme. */
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible,.drop-zone:focus-visible,.font-picker-trigger:focus-visible,.field-control:focus-visible,.search-wrap:focus-within,.skip-link:focus-visible{
+  outline:3px solid var(--color-focus);
+  outline-offset:2px;
+}
+.field-control:focus,.font-picker-search:focus,.font-picker-trigger:focus-visible,.angle-stepper-input:focus-visible{outline:2px solid var(--color-focus);outline-offset:1px;border-color:var(--color-focus)}
+.angle-stepper-input:focus-visible{outline-offset:0}
+
+/* Text contrast fixes (light + dark share the same token mappings). */
+.hero-subtitle{color:var(--color-text-secondary)}
+.breadcrumb{color:var(--color-text-muted)}
+.wb-badge{color:var(--color-accent-strong)}
+.tool-back-link{color:var(--color-accent-strong)}
+.field-action-primary{color:var(--color-accent-strong)}
+.session-clear,.session-note{color:var(--color-text-muted)}
+.pv-add-btn,.pv-info-type,.file-mini-icon{color:var(--color-accent-strong)}
+.pv-info-meta{color:var(--color-text-muted)}
+.pv-info-status{color:var(--color-success)}
+.pv-info-status.processing{color:var(--color-warning)}
+.pv-info-status.failed{color:var(--color-error)}
+.meta-note,.meta-table thead th,.meta-notset,.meta-muted,.confirm-note{color:var(--color-text-muted)}
+.button-ghost{color:var(--color-accent-strong)}
+.button-small:not(.button-primary){color:var(--color-accent-strong)}
+.tool-hero-copy p{color:var(--color-text-secondary)}
+.micro-trust{color:var(--color-text-muted)}
+.section-heading p{color:var(--color-text-secondary)}
+.quick-head h2{color:var(--color-text-secondary)}
+.quick-card b{color:var(--color-text-primary)}
+.category-tab{color:var(--color-text-secondary)}
+.category-tab.active{color:var(--color-accent-strong);border-color:var(--color-accent-strong)}
+.category-tab.active span{background:var(--color-accent-strong);color:var(--color-on-accent)}
+.tool-card-content b{color:var(--color-text-primary)}
+.tool-card-content>span{color:var(--color-text-secondary)}
+.tool-card-content small{color:var(--color-text-muted)}
+.tool-arrow{color:var(--color-text-muted)}
+.trust-strip small{color:var(--color-text-muted)}
+.privacy-copy>p{color:var(--color-text-secondary)}
+.privacy-copy li{color:var(--color-text-secondary)}
+.privacy-copy .privacy-note{color:var(--color-text-muted)}
+.step-number{color:var(--color-text-muted)}
+.step p{color:var(--color-text-secondary)}
+.rotate-readout,.rotate-reset{color:var(--color-text-muted)}
+.meta-empty{color:var(--color-text-muted)}
+.level-option .level-text small{color:var(--color-text-muted)}
+.footer,.footer p,.footer>span{color:var(--color-text-muted)}
+.bottom-cta{background:linear-gradient(115deg,var(--color-action-hover),var(--color-action))}
+.bottom-cta p{color:var(--color-on-accent)}
+.button-light{color:var(--color-action)}
+.field-label,.pos-grid label{color:var(--color-text-secondary)}
+.field-help{color:var(--color-text-secondary)}
+.selected-file-info small,.result-info small{color:var(--color-text-muted)}
+.drop-zone p,.drop-paste{color:var(--color-text-muted)}
+.progress-head,.local-note{color:var(--color-text-muted)}
+.no-results{color:var(--color-text-muted)}
+.font-picker-group,.font-picker-empty{color:var(--color-text-muted)}
+.icon-button{color:var(--color-text-secondary)}
+.status-info{background:var(--color-surface-tint);color:var(--color-accent-strong)}
+.status-success{background:var(--color-success-bg);color:var(--color-success)}
+.status-error{background:var(--color-error-bg);color:var(--color-error)}
+
+/* Primary action buttons must keep white text >= 4.5:1 in both themes. */
+.button-primary{background:var(--color-action);color:var(--color-on-accent)}
+.button-primary:hover{background:var(--color-action-hover)}
+
+/* Control boundaries and focusable state indicators: >= 3:1. */
+.field-control,.font-picker-trigger,.font-picker-search,.angle-stepper,.search-wrap{border-color:var(--color-border-control)}
+.drop-zone{border-color:var(--color-border-control)}
+.reorder-file,.remove-file,.merge-move{border-color:var(--color-border-control)}
+.pv-page,.pv-image-stage{outline-color:var(--color-border-control)}
+
+/* Semantic lists keep their meaning without browser list markers. */
+.steps-grid{list-style:none;margin:40px 0 0;padding:0}
+
+/* Target size: keep small icon controls at or above 24px. */
+.reorder-file,.remove-file{width:28px;height:28px}
+.merge-moves{top:auto;bottom:6px}
+.merge-move{width:26px;height:26px;min-width:26px;min-height:26px}
+.merge-remove{width:24px;height:24px;min-width:24px;min-height:24px}
+.icon-button{width:36px;height:36px}
+
+/* Selected / current states are conveyed by shape and outline, not colour alone. */
+.pv-page-current,.pv-page-clicked,.merge-preview-page.active,.merge-tile.active,.category-tab.active,.selected-file.preview-active{
+  outline-color:var(--color-accent);
+}
+.merge-preview-page.active{outline:2px solid var(--color-accent);outline-offset:2px}
+.merge-tile.active{outline:2px solid var(--color-accent);outline-offset:2px}
+.pv-page-flagged{outline-color:var(--color-error)}
+
+/* Dark-theme specific token applications. */
+[data-theme="dark"] .category-tab.active{color:var(--color-accent-strong);border-color:var(--color-accent-strong)}
+[data-theme="dark"] .category-tab.active span{background:var(--color-accent-strong);color:#0e1020}
+[data-theme="dark"] .step-number{color:var(--color-text-muted)}
+[data-theme="dark"] .font-picker-trigger,
+[data-theme="dark"] .font-picker-panel,
+[data-theme="dark"] .font-picker-search,
+[data-theme="dark"] .angle-stepper{background:var(--color-surface);border-color:var(--color-border-control);color:var(--color-text-primary)}
+[data-theme="dark"] .font-picker-trigger:hover{background:var(--color-surface-tint)}
+[data-theme="dark"] .font-picker-search{background:var(--color-surface-soft)}
+[data-theme="dark"] .font-picker-option{color:var(--color-text-primary)}
+[data-theme="dark"] .font-picker-option.is-active{background:var(--color-surface-tint)}
+[data-theme="dark"] .font-picker-option.is-selected{background:var(--color-surface-tint);color:var(--color-accent-strong)}
+[data-theme="dark"] .font-picker-caret{stroke:var(--color-text-muted)}
+[data-theme="dark"] .font-picker-empty{color:var(--color-text-muted)}
+[data-theme="dark"] .angle-stepper-input{background:transparent;color:var(--color-text-primary)}
+[data-theme="dark"] .angle-stepper-input:focus{background:var(--color-surface-tint)}
+[data-theme="dark"] .angle-step-btn{background:var(--color-surface);color:var(--color-accent-strong);border-color:var(--color-border)}
+[data-theme="dark"] .angle-step-btn:hover{background:var(--color-surface-tint)}
+.angle-step-btn{min-width:24px;min-height:24px}
+[data-theme="dark"] .font-picker-list{background:var(--color-surface)}
+[data-theme="dark"] .font-picker-group{background:var(--color-surface)}
 </style>
