@@ -1,0 +1,256 @@
+---
+---
+<section class="cbse-app" id="cbse-app" aria-labelledby="cbse-app-title">
+  <h2 class="sr-only" id="cbse-app-title">CBSE result analyzer workspace</h2>
+
+  <div class="cbse-workspace">
+    <div class="cbse-workspace-head">
+      <div>
+        <span class="wb-badge">CBSE Result Analyzer</span>
+        <h2>Turn a result gazette into a report</h2>
+        <p>Upload a school or roll-number-wise gazette. The analyzer reads it in your browser, shows you what it found and builds the report from the corrected figures.</p>
+      </div>
+      <div class="cbse-workspace-tools">
+        <input type="file" id="cbse-file-more" class="cbse-file-input" accept="application/pdf,.pdf,text/plain,.txt,.csv" multiple>
+        <label for="cbse-file-more" class="button button-ghost button-small cbse-upload-button">↑ Upload another gazette</label>
+        <a class="tool-back-link" href="/#tools">← All tools</a>
+      </div>
+    </div>
+
+    <div class="cbse-workspace-body">
+  <ol class="cbse-steps" aria-label="Analyzer steps">
+    <li class="cbse-step is-current" data-step="upload" aria-current="step"><span>1</span> Upload the gazette</li>
+    <li class="cbse-step" data-step="review"><span>2</span> Review the extraction</li>
+    <li class="cbse-step" data-step="dashboard"><span>3</span> Read the report</li>
+  </ol>
+
+  <div class="cbse-panel" id="cbse-upload-step">
+    <div class="cbse-drop" id="cbse-drop">
+      <input type="file" id="cbse-file" class="cbse-file-input" accept="application/pdf,.pdf,text/plain,.txt,.csv" multiple>
+      <label for="cbse-file" class="cbse-drop-label">
+        <span class="cbse-drop-icon" aria-hidden="true">↑</span>
+        <b>Drop a CBSE gazette here, or <span>browse</span></b>
+        <span>A PDF or a TXT file. Add more than one file to compare schools or years.</span>
+      </label>
+      <p class="cbse-drop-hint">Text based PDFs are read directly. Scanned PDFs are recognised with on-device OCR. Nothing is uploaded to a server.</p>
+    </div>
+
+    <div class="cbse-progress progress-wrap" id="cbse-progress" hidden>
+      <div class="progress-head"><span id="cbse-progress-label">Working…</span></div>
+      <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100"><span id="cbse-progress-bar"></span></div>
+    </div>
+
+    <p class="status-message" id="cbse-status" role="status" aria-live="polite" hidden></p>
+  </div>
+
+  <div class="cbse-panel" id="cbse-review" hidden>
+    <div class="cbse-review-head">
+      <h3>Check the extraction before you publish a figure</h3>
+      <p>Nothing here is uploaded or shared. Correct anything that was read incorrectly, then build the report.</p>
+      <label class="field-label" for="cbse-review-datasets">File</label>
+      <select id="cbse-review-datasets" class="field-control cbse-select" hidden></select>
+    </div>
+
+    <div class="cbse-review-grid">
+      <section class="cbse-card" aria-labelledby="cbse-meta-title">
+        <h3 id="cbse-meta-title">Gazette details</h3>
+        <div class="cbse-field-grid" id="cbse-meta-body"></div>
+      </section>
+
+      <section class="cbse-card" aria-labelledby="cbse-summary-title">
+        <h3 id="cbse-summary-title">Recalculated summary</h3>
+        <table class="cbse-table cbse-table-compact">
+          <caption class="sr-only">Recalculated totals compared with the printed summary</caption>
+          <tbody id="cbse-summary-body"></tbody>
+        </table>
+        <p class="cbse-summary-printed" id="cbse-summary-printed" hidden></p>
+      </section>
+    </div>
+
+    <section class="cbse-card" aria-labelledby="cbse-subject-map-title">
+      <h3 id="cbse-subject-map-title">Subject codes, names and maximum marks</h3>
+      <p class="field-help">Only codes in the verified CBSE list carry an official name and a published maximum. Set the name and the maximum for the remaining codes so the averages and percentages are meaningful.</p>
+      <div class="cbse-table-scroll" role="region" tabindex="0" aria-label="Subject code mapping table">
+        <table class="cbse-table cbse-subject-editor">
+          <caption class="sr-only">Subject code mapping</caption>
+          <thead><tr><th scope="col">Code</th><th scope="col">Subject name</th><th scope="col">Maximum</th><th scope="col">Flags</th></tr></thead>
+          <tbody id="cbse-subject-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="cbse-card" aria-labelledby="cbse-checks-title">
+      <h3 id="cbse-checks-title">Data quality checks</h3>
+      <ul class="cbse-checks" id="cbse-checks"></ul>
+    </section>
+
+    <section class="cbse-card" aria-labelledby="cbse-flagged-title">
+      <h3 id="cbse-flagged-title">Records that need a second look</h3>
+      <p class="field-help">Correct the roll number, the name or the result status of a record here. A corrected record keeps the printed value next to your correction, and the report says how many records were changed by hand.</p>
+      <p class="cbse-corrections-note" id="cbse-corrections-note" hidden></p>
+      <p class="cbse-empty" id="cbse-flagged-empty" hidden></p>
+      <div class="cbse-table-scroll" role="region" tabindex="0" aria-label="Records flagged for review table">
+        <table class="cbse-table">
+          <caption class="sr-only">Records flagged for review</caption>
+          <thead><tr><th scope="col">Roll number</th><th scope="col">Name</th><th scope="col">Status</th><th scope="col">Why</th></tr></thead>
+          <tbody id="cbse-flagged-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="cbse-actions">
+      <button type="button" class="button button-primary" id="cbse-apply">Build the report</button>
+      <button type="button" class="button button-ghost" id="cbse-reparse">Remove this file</button>
+      <button type="button" class="button button-ghost" id="cbse-reset">Delete all data</button>
+    </div>
+  </div>
+
+  <div class="cbse-panel" id="cbse-dashboard" hidden>
+    <section class="cbse-card cbse-export-card" aria-labelledby="cbse-export-title">
+      <div class="cbse-card-head">
+        <h3 id="cbse-export-title">Download the report</h3>
+        <div class="cbse-actions">
+          <button type="button" class="button button-primary button-small" id="cbse-export-pdf">PDF summary report</button>
+          <button type="button" class="button button-ghost button-small" id="cbse-export-csv">CSV tables (ZIP)</button>
+          <button type="button" class="button button-ghost button-small" id="cbse-export-xlsx">Excel workbook</button>
+          <button type="button" class="button button-ghost button-small" id="cbse-export-charts">Chart images (PNG)</button>
+          <button type="button" class="button button-ghost button-small" id="cbse-copy-summary">Copy the headline numbers</button>
+          <button type="button" class="button button-ghost button-small" id="cbse-delete-all">Delete all data</button>
+        </div>
+      </div>
+      <p class="field-help">Every export follows the filters below and repeats the definitions, the source file name, the import date and the data quality warnings.</p>
+      <label class="check-field cbse-identity-field" for="cbse-include-identities">
+        <input type="checkbox" id="cbse-include-identities">
+        <span>Include the candidate names and roll numbers in the CSV and Excel exports. Off by default, so a downloaded file can be shared. The tables on this page always show them, because they are printed in your own file.</span>
+      </label>
+    </section>
+
+    <div class="cbse-kpis" id="cbse-kpis"></div>
+
+    <section class="cbse-card" aria-labelledby="cbse-filters-title">
+      <h3 id="cbse-filters-title">Filters</h3>
+      <p class="field-help">Every figure, chart and export below follows these filters.</p>
+      <div class="cbse-filter-grid">
+        <div><label class="field-label" for="cbse-filter-year">Year</label><input class="field-control" id="cbse-filter-year" type="text" inputmode="numeric" placeholder="2025"></div>
+        <div><label class="field-label" for="cbse-filter-class">Class</label><input class="field-control" id="cbse-filter-class" type="text" placeholder="X"></div>
+        <div><label class="field-label" for="cbse-filter-school">School code</label><input class="field-control" id="cbse-filter-school" type="text" placeholder="27572"></div>
+        <div><label class="field-label" for="cbse-filter-region">Region</label><input class="field-control" id="cbse-filter-region" type="text" placeholder="DELHI-WEST"></div>
+        <div><label class="field-label" for="cbse-filter-subject">Subject</label><select class="field-control" id="cbse-filter-subject"></select></div>
+        <div><label class="field-label" for="cbse-filter-status">Result status</label><select class="field-control" id="cbse-filter-status"></select></div>
+        <div><label class="field-label" for="cbse-filter-grade">Grade</label><select class="field-control" id="cbse-filter-grade"></select></div>
+        <div><label class="field-label" for="cbse-filter-score-min">Score % from</label><input class="field-control" id="cbse-filter-score-min" type="number" min="0" max="100" placeholder="0"></div>
+        <div><label class="field-label" for="cbse-filter-score-max">Score % to</label><input class="field-control" id="cbse-filter-score-max" type="number" min="0" max="100" placeholder="100"></div>
+        <div><label class="field-label" for="cbse-band-editor">Score bands</label><select class="field-control" id="cbse-band-editor">
+          <option value="deciles">Bands of 10%</option>
+          <option value="quartiles">Quartiles</option>
+          <option value="halves">Halves</option>
+        </select></div>
+      </div>
+      <div class="cbse-actions">
+        <button type="button" class="button button-ghost button-small" id="cbse-filters-reset">Clear filters</button>
+      </div>
+    </section>
+
+    <section class="cbse-card" aria-labelledby="cbse-charts-title">
+      <h3 id="cbse-charts-title">Charts</h3>
+      <p class="field-help">Every chart has a table of the same numbers behind the "Show the numbers" link, and can be exported as a PNG image.</p>
+      <div class="cbse-chart-grid">
+        <figure class="cbse-chart-card"><figcaption>Result status distribution</figcaption><div class="cbse-chart-host" id="cbse-chart-status"></div></figure>
+        <figure class="cbse-chart-card"><figcaption>Average marks by subject</figcaption><div class="cbse-chart-host" id="cbse-chart-subjects"></div></figure>
+        <figure class="cbse-chart-card"><figcaption>Lowest, average and highest marks</figcaption><div class="cbse-chart-host" id="cbse-chart-range"></div></figure>
+        <figure class="cbse-chart-card"><figcaption>Grade distribution by subject</figcaption><div class="cbse-chart-host" id="cbse-chart-grades"></div></figure>
+        <figure class="cbse-chart-card"><figcaption>Marks distribution by score band</figcaption><div class="cbse-chart-host" id="cbse-chart-bands"></div></figure>
+        <figure class="cbse-chart-card"><figcaption>Pass, compartment and absent counts</figcaption><div class="cbse-chart-host" id="cbse-chart-status-bar"></div></figure>
+        <figure class="cbse-chart-card"><figcaption>Candidate score distribution</figcaption><div class="cbse-chart-host" id="cbse-chart-scores"></div></figure>
+        <figure class="cbse-chart-card"><figcaption>Subject comparison across gazettes</figcaption><div class="cbse-chart-host" id="cbse-chart-comparison"></div></figure>
+        <figure class="cbse-chart-card"><figcaption>Data quality checks</figcaption><div class="cbse-chart-host" id="cbse-chart-quality"></div></figure>
+        <figure class="cbse-chart-card"><figcaption>Extraction confidence</figcaption><div class="cbse-chart-host" id="cbse-chart-confidence"></div></figure>
+      </div>
+    </section>
+
+    <div class="cbse-review-grid">
+      <section class="cbse-card cbse-card-wide" aria-labelledby="cbse-top-title">
+        <div class="cbse-card-head">
+          <h3 id="cbse-top-title">Top candidates</h3>
+          <div class="cbse-inline-field">
+            <label class="field-label" for="cbse-top-count">Show</label>
+            <select class="field-control cbse-select-compact" id="cbse-top-count">
+              <option value="5">Top 5</option>
+              <option value="10" selected>Top 10</option>
+              <option value="20">Top 20</option>
+              <option value="50">Top 50</option>
+            </select>
+          </div>
+        </div>
+        <p class="field-help">The candidates with the highest total, ranked by the marks they scored as a percentage of the marks available to them. Candidates with the same percentage share a rank, and the result status is shown as printed.</p>
+        <div class="cbse-table-scroll" role="region" tabindex="0" aria-label="Top candidates table">
+          <table class="cbse-table cbse-table-wide" id="cbse-top-table">
+            <caption class="sr-only">Top candidates by aggregate score</caption>
+            <thead id="cbse-top-head"><tr><th scope="col">Rank</th><th scope="col">Roll number</th><th scope="col">Name</th><th scope="col">Result</th><th scope="col">Total</th><th scope="col">Available</th><th scope="col">Percentage</th></tr></thead>
+            <tbody id="cbse-top-body"></tbody>
+          </table>
+        </div>
+        <p class="cbse-empty" id="cbse-top-empty" hidden>No candidate has a readable score in the current selection.</p>
+      </section>
+
+      <section class="cbse-card cbse-card-wide" aria-labelledby="cbse-subject-results-title">
+        <h3 id="cbse-subject-results-title">Subject-wise performance</h3>
+        <div class="cbse-table-scroll" role="region" tabindex="0" aria-label="Subject-wise performance table">
+          <table class="cbse-table cbse-table-wide" id="cbse-subject-results">
+            <caption class="sr-only">Subject-wise performance</caption>
+            <thead></thead>
+            <tbody id="cbse-subject-results-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="cbse-card" aria-labelledby="cbse-grade-title">
+        <h3 id="cbse-grade-title">Grade distribution</h3>
+        <p class="field-help">The grades printed in the gazette, counted over every subject entry.</p>
+        <table class="cbse-table cbse-table-compact">
+          <caption class="sr-only">Grade distribution across the printed subject entries</caption>
+          <thead><tr><th scope="col">Grade</th><th scope="col">Entries</th></tr></thead>
+          <tbody id="cbse-grade-body"></tbody>
+        </table>
+      </section>
+
+      <section class="cbse-card" aria-labelledby="cbse-band-title">
+        <h3 id="cbse-band-title">Score band distribution</h3>
+        <p class="field-help">Candidates by their total score, and every printed subject mark by its own percentage.</p>
+        <table class="cbse-table cbse-table-compact">
+          <caption class="sr-only">Candidate score band distribution</caption>
+          <thead><tr><th scope="col">Band</th><th scope="col">Candidates</th></tr></thead>
+          <tbody id="cbse-band-body"></tbody>
+        </table>
+        <table class="cbse-table cbse-table-compact">
+          <caption class="sr-only">Subject mark score band distribution</caption>
+          <thead><tr><th scope="col">Band</th><th scope="col">Marks</th></tr></thead>
+          <tbody id="cbse-mark-band-body"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <section class="cbse-card" aria-labelledby="cbse-dashboard-checks-title">
+      <h3 id="cbse-dashboard-checks-title">Data quality checks in the report</h3>
+      <ul class="cbse-checks" id="cbse-dashboard-checks"></ul>
+    </section>
+
+    <section class="cbse-card" aria-labelledby="cbse-student-title">
+      <h3 id="cbse-student-title">Student records</h3>
+      <p class="field-help">Every record of the gazette, with one column per subject code. The name and the roll number are the ones printed in your file.</p>
+      <div class="cbse-filter-grid cbse-search-grid">
+        <div><label class="field-label" for="cbse-student-search">Search by roll number or name</label><input class="field-control" id="cbse-student-search" type="search" placeholder="Search" autocomplete="off"></div>
+        <div class="cbse-search-action"><span class="field-help" id="cbse-student-count"></span></div>
+      </div>
+      <div class="cbse-table-scroll" role="region" tabindex="0" aria-label="Candidate records table">
+        <table class="cbse-table">
+          <caption class="sr-only">Candidate records</caption>
+          <thead id="cbse-student-head"><tr><th scope="col">Roll number</th><th scope="col">Name</th><th scope="col">Status</th></tr></thead>
+          <tbody id="cbse-student-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+    </div>
+  </div>
+</section>

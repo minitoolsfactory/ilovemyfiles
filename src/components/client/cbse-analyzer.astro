@@ -1,0 +1,1371 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+
+  const MAX_FILE_BYTES = 25 * 1024 * 1024;
+  const MAX_PAGES = 200;
+  const MAX_RECORDS = 20000;
+
+  let parserModule = null;
+  let analyticsModule = null;
+  let validateModule = null;
+  let exporterModule = null;
+  let correctionsModule = null;
+
+  async function loadCore() {
+    if (!parserModule) {
+      const [parser, analytics, validate, exporters, corrections] = await Promise.all([
+        import('../../lib/cbse/parse-gazette.js'),
+        import('../../lib/cbse/analytics.js'),
+        import('../../lib/cbse/validate.js'),
+        import('../../lib/cbse/exporters.js'),
+        import('../../lib/cbse/corrections.js')
+      ]);
+      parserModule = parser;
+      analyticsModule = analytics;
+      validateModule = validate;
+      exporterModule = exporters;
+      correctionsModule = corrections;
+    }
+    return { parserModule, analyticsModule, validateModule, exporterModule, correctionsModule };
+  }
+
+  const state = {
+    datasets: [],
+    activeId: null,
+    overrides: {},
+    corrections: {},
+    bands: null,
+    topCount: 10,
+    filters: { year: null, className: null, school: null, region: null, subject: null, status: null, grade: null, scoreMin: null, scoreMax: null },
+    includeIdentities: false,
+    sequence: 0
+  };
+
+  /**
+   * The subject overrides of the gazette that is being reviewed. Overrides
+   * are kept per file, so a name or a maximum that was set for one gazette
+   * never leaks into another one.
+   */
+  function activeOverrides() {
+    if (!state.activeId) return {};
+    if (!state.overrides[state.activeId]) state.overrides[state.activeId] = {};
+    return state.overrides[state.activeId];
+  }
+
+  function $(selector, root = document) {
+    return root.querySelector(selector);
+  }
+
+  function $$(selector, root = document) {
+    return [...root.querySelectorAll(selector)];
+  }
+
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined && text !== null) node.textContent = String(text);
+    return node;
+  }
+
+  function setStatus(message, tone = 'info') {
+    const status = $('#cbse-status');
+    if (!status) return;
+    status.textContent = message ?? '';
+    status.className = `status-message status-${tone}`;
+    status.hidden = !message;
+  }
+
+  function setProgress(percent, label) {
+    const wrap = $('#cbse-progress');
+    const bar = $('#cbse-progress-bar');
+    const text = $('#cbse-progress-label');
+    if (!wrap) return;
+    if (percent === null) {
+      wrap.hidden = true;
+      return;
+    }
+    wrap.hidden = false;
+    if (bar) bar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+    if (text) text.textContent = label ?? '';
+  }
+
+  function show(step) {
+    for (const name of ['review', 'dashboard']) {
+      const node = $(`#cbse-${name}`);
+      if (node) node.hidden = name !== step;
+    }
+    const upload = $('#cbse-upload-step');
+    if (upload) upload.hidden = step !== 'upload';
+    const tabs = $$('.cbse-step');
+    for (const tab of tabs) {
+      tab.classList.toggle('is-current', tab.dataset.step === step);
+      tab.setAttribute('aria-current', tab.dataset.step === step ? 'step' : 'false');
+    }
+  }
+
+  /**
+   * Extract the text of an uploaded file.
+   * Text based PDFs are read through the PDF text layer, scanned PDFs fall
+   * back to on-device OCR.
+   */
+  async function extractText(file, onProgress) {
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      const buffer = await file.arrayBuffer();
+      let text = new TextDecoder('utf-8', { fatal: false }).decode(buffer);
+      if (text.includes('\u0000')) {
+        text = new TextDecoder('utf-16le', { fatal: false }).decode(buffer);
+      }
+      if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+      return { text, mode: 'text', pages: 1 };
+    }
+
+    const { loadPdfDocument } = window.iLoveMyFilesModules['pdf-render'];
+    const document_ = await loadPdfDocument(file);
+    if (document_.numPages > MAX_PAGES) {
+      throw new Error(`This PDF has ${document_.numPages} pages. The analyzer reads up to ${MAX_PAGES} pages, so split the gazette into smaller files.`);
+    }
+    const lines = [];
+    for (let pageNumber = 1; pageNumber <= document_.numPages; pageNumber += 1) {
+      const page = await document_.getPage(pageNumber);
+      const content = await page.getTextContent();
+      const pageLines = itemsToLines(content.items || []);
+      const text = pageLines.join('\n');
+      lines.push(text);
+      onProgress?.({
+        percent: 10 + Math.round((pageNumber / document_.numPages) * 45),
+        label: `Reading the text layer of page ${pageNumber} of ${document_.numPages}…`
+      });
+      const letters = text.replace(/[^A-Za-z]/g, '').length;
+      if (letters < 200 && document_.numPages <= 30) {
+        onProgress?.({ percent: 58, label: 'This PDF looks like a scan. Running on-device OCR…' });
+        const { ocrFile } = window.iLoveMyFilesModules['ocr'];
+        const result = await ocrFile(file, { lang: 'eng' }, progress => {
+          onProgress?.({ percent: 60 + Math.round((progress?.percent ?? 0) * 0.3), label: `OCR: ${progress?.label ?? 'recognising text'}` });
+        });
+        return { text: result.text, mode: 'ocr', pages: document_.numPages };
+      }
+    }
+    return { text: lines.join('\n'), mode: 'pdf-text', pages: document_.numPages };
+  }
+
+  /**
+   * Rebuild the printed monospace layout of a PDF page from its text items.
+   */
+  function itemsToLines(items) {
+    const usable = items.filter(item => item.str && item.str.length);
+    if (!usable.length) return [];
+    const widths = usable
+      .map(item => (item.width && item.str.length ? item.width / item.str.length : 0))
+      .filter(value => value > 0.01)
+      .sort((a, b) => a - b);
+    const charWidth = widths.length ? widths[Math.floor(widths.length / 2)] : 0;
+    const originX = Math.min(...usable.map(item => item.transform[4]));
+
+    const rows = new Map();
+    for (const item of usable) {
+      const y = Math.round(item.transform[5] * 2) / 2;
+      if (!rows.has(y)) rows.set(y, []);
+      rows.get(y).push(item);
+    }
+
+    const lines = [];
+    for (const [y, rowItems] of [...rows.entries()].sort((a, b) => b[0] - a[0])) {
+      rowItems.sort((a, b) => a.transform[4] - b.transform[4]);
+      let text = '';
+      let cursor = originX;
+      for (const item of rowItems) {
+        const gap = charWidth > 0 ? Math.max(0, Math.round((item.transform[4] - cursor) / charWidth)) : 0;
+        text += ' '.repeat(gap) + item.str;
+        cursor = item.transform[4] + (item.width || item.str.length * charWidth);
+      }
+      lines.push(text.replace(/\s+$/, ''));
+    }
+    return lines;
+  }
+
+  function validateFile(file) {
+    const name = file.name.toLowerCase();
+    const isPdf = file.type === 'application/pdf' || name.endsWith('.pdf');
+    const isText = file.type.startsWith('text/') || name.endsWith('.txt') || name.endsWith('.csv');
+    if (!isPdf && !isText) {
+      throw new Error(`"${file.name}" is not supported. Upload a CBSE gazette as a PDF or a TXT file.`);
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      throw new Error(`"${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)} MB. The limit is ${MAX_FILE_BYTES / 1024 / 1024} MB.`);
+    }
+    if (file.size === 0) {
+      throw new Error(`"${file.name}" is empty.`);
+    }
+  }
+
+  async function handleFiles(fileList) {
+    const files = [...fileList];
+    if (!files.length) return;
+    setStatus('');
+    setProgress(4, 'Reading the file…');
+    try {
+      await loadCore();
+      for (const file of files) {
+        validateFile(file);
+        const extracted = await extractText(file, setProgress);
+        if (!extracted.text.trim()) {
+          throw new Error(`No readable text was found in "${file.name}". If it is a scan, make sure the page is not blank and try again.`);
+        }
+        const datasetId = `ds${Date.now().toString(36)}${state.sequence++}`;
+        const parsed = parserModule.parseGazette(extracted.text, {
+          sourceFileName: file.name,
+          datasetId,
+          layout: 'auto'
+        });
+        if (parsed.candidates.length > MAX_RECORDS) {
+          throw new Error(`"${file.name}" contains more than ${MAX_RECORDS} records. Split it into smaller files.`);
+        }
+        if (!parsed.candidates.length) {
+          throw new Error(`No candidate records were found in "${file.name}". Check that it is a school or roll-number wise CBSE gazette.`);
+        }
+        parsed.sourceMode = extracted.mode;
+        parsed.pageCount = extracted.pages;
+        state.datasets.push(parsed);
+        state.activeId = datasetId;
+      }
+      setProgress(100, 'Parsed');
+      setTimeout(() => setProgress(null), 400);
+      clearFilters();
+      renderReview();
+      show('review');
+      const total = state.datasets.reduce((sum, item) => sum + item.candidates.length, 0);
+      setStatus(`Read ${total} candidate record(s) from ${state.datasets.length} file(s). Check the figures below, then build the report.`, 'success');
+    } catch (error) {
+      setProgress(null);
+      setStatus(error?.message ?? 'The file could not be read.', 'error');
+    }
+  }
+
+  function activeDataset() {
+    return state.datasets.find(item => item.datasetId === state.activeId) ?? state.datasets[state.datasets.length - 1] ?? null;
+  }
+
+  function refreshDataset() {
+    const dataset = activeDataset();
+    if (!dataset) return null;
+    const corrected = correctionsModule.applyCorrections(dataset, state.corrections);
+    corrected.subjectTable = analyticsModule.buildSubjectTable(corrected, activeOverrides());
+    return corrected;
+  }
+
+  function renderReview() {
+    const dataset = refreshDataset();
+    if (!dataset) return;
+    const analytics = analyticsModule.computeAnalytics(dataset, { bands: state.bands ?? analyticsModule.DEFAULT_BANDS, topCount: state.topCount });
+    const validation = validateModule.validateDataset(dataset, analytics);
+
+    $('#cbse-review-datasets').innerHTML = '';
+    const datasetPicker = $('#cbse-review-datasets');
+    for (const item of state.datasets) {
+      const option = el('option', null, `${item.meta.sourceFileName} (${item.candidates.length} records)`);
+      option.value = item.datasetId;
+      option.selected = item.datasetId === state.activeId;
+      datasetPicker.appendChild(option);
+    }
+    datasetPicker.hidden = state.datasets.length < 2;
+
+    renderMetaEditor(dataset);
+    renderSubjectEditor(dataset);
+    renderChecks(validation);
+    renderFlagged(validation);
+    renderSummaryTable(dataset, analytics);
+    const applied = correctionsModule.countCorrections(state.corrections);
+    const note = $('#cbse-corrections-note');
+    if (note) {
+      note.textContent = applied
+        ? `${applied} record(s) were corrected by hand. The corrections are shown in the report and the printed value is kept in the export.`
+        : '';
+      note.hidden = !applied;
+    }
+  }
+
+  function renderMetaEditor(dataset) {
+    const body = $('#cbse-meta-body');
+    body.innerHTML = '';
+    const fields = [
+      ['School code', 'schoolCode'],
+      ['School name', 'schoolName'],
+      ['Region', 'region'],
+      ['Examination', 'examName'],
+      ['Year', 'year'],
+      ['Class', 'class'],
+      ['Session', 'session'],
+      ['Gazette date', 'gazetteDate'],
+      ['Source file', 'sourceFileName'],
+      ['Imported at', 'importedAt']
+    ];
+    for (const [label, key] of fields) {
+      const row = el('div', 'cbse-field-row');
+      const caption = el('label', 'cbse-field-label', label);
+      const input = el('input', 'cbse-field-input');
+      input.type = key === 'year' ? 'number' : 'text';
+      input.value = dataset.meta[key] ?? '';
+      input.title = dataset.meta[key] ?? '';
+      input.dataset.metaKey = key;
+      input.setAttribute('aria-label', label);
+      caption.htmlFor = `cbse-meta-${key}`;
+      input.id = `cbse-meta-${key}`;
+      row.appendChild(caption);
+      row.appendChild(input);
+      body.appendChild(row);
+    }
+  }
+
+  function renderSubjectEditor(dataset) {
+    const body = $('#cbse-subject-body');
+    body.innerHTML = '';
+    const table = dataset.subjectTable ?? [];
+    if (!table.length) {
+      body.appendChild(el('p', 'field-help', 'No subject codes were found in this file.'));
+      return;
+    }
+    // The pristine table is the one without any override, so the editor can
+    // tell a value the reviewer typed apart from a value the analyzer worked
+    // out on its own.
+    const pristine = analyticsModule.buildSubjectTable(dataset, {});
+    const rows = table.map(subject => {
+      const original = pristine.find(entry => entry.code === subject.code) ?? subject;
+      const row = el('tr');
+      const code = el('td', 'cbse-mono', subject.code);
+      const nameCell = el('td');
+      const name = el('input', 'cbse-field-input');
+      name.type = 'text';
+      name.value = subject.name;
+      name.dataset.subjectName = subject.code;
+      name.dataset.originalName = original.name;
+      name.setAttribute('aria-label', `Name for subject code ${subject.code}`);
+      nameCell.appendChild(name);
+      const maxCell = el('td', 'cbse-max-cell');
+      const max = el('input', 'cbse-field-input cbse-field-input-narrow');
+      max.type = 'number';
+      max.min = '1';
+      max.max = '300';
+      max.value = subject.max ?? '';
+      max.dataset.subjectMax = subject.code;
+      max.dataset.originalMax = original.max ?? '';
+      max.setAttribute('aria-label', `Maximum marks for subject code ${subject.code}`);
+      maxCell.appendChild(max);
+      const published = original.publishedScales?.length ? original.publishedScales : (original.publishedMax ? [original.publishedMax] : []);
+      if (published.length && !published.includes(original.max)) {
+        maxCell.appendChild(el('span', 'cbse-field-hint', `published ${published.join(' or ')}`));
+      }
+      const flagCell = el('td');
+      const flagList = el('div', 'cbse-flag-list');
+      for (const flag of subject.flags) {
+        flagList.appendChild(el('span', 'cbse-flag', flag.replace(/-/g, ' ')));
+      }
+      flagCell.appendChild(flagList);
+      row.appendChild(code);
+      row.appendChild(nameCell);
+      row.appendChild(maxCell);
+      row.appendChild(flagCell);
+      return row;
+    });
+    for (const row of rows) body.appendChild(row);
+  }
+
+  function renderChecks(validation) {
+    const list = $('#cbse-checks');
+    list.innerHTML = '';
+    for (const check of validation.checks) {
+      const item = el('li', `cbse-check cbse-check-${check.status}`);
+      const badge = el('span', 'cbse-check-badge', check.status.toUpperCase());
+      const copy = el('div');
+      copy.appendChild(el('b', null, check.label));
+      copy.appendChild(el('span', 'cbse-check-detail', check.detail));
+      item.appendChild(badge);
+      item.appendChild(copy);
+      list.appendChild(item);
+    }
+  }
+
+  function renderFlagged(validation) {
+    const body = $('#cbse-flagged-body');
+    const table = body.closest('table');
+    const wrap = body.closest('.cbse-table-scroll');
+    const empty = $('#cbse-flagged-empty');
+    body.innerHTML = '';
+    if (!validation.reviewRecords.length) {
+      if (table) table.hidden = true;
+      if (wrap) wrap.hidden = true;
+      if (empty) {
+        empty.textContent = 'No record needs a second look. Every record was read cleanly and no printed value has to be confirmed by hand.';
+        empty.hidden = false;
+      }
+      return;
+    }
+    if (table) table.hidden = false;
+    if (wrap) wrap.hidden = false;
+    if (empty) empty.hidden = true;
+    for (const record of validation.reviewRecords.slice(0, 40)) {
+      const row = el('tr');
+      const rollCell = el('td', 'cbse-mono');
+      const roll = el('input', 'cbse-field-input cbse-field-input-narrow');
+      roll.type = 'text';
+      roll.value = record.rollNo ?? '';
+      roll.setAttribute('aria-label', `Roll number of record ${record.recordId}`);
+      roll.addEventListener('change', event => {
+        saveCorrection(record.recordId, { rollNo: event.target.value.trim() });
+      });
+      rollCell.appendChild(roll);
+
+      const nameCell = el('td');
+      const name = el('input', 'cbse-field-input');
+      name.type = 'text';
+      name.value = record.name ?? '';
+      name.setAttribute('aria-label', `Candidate name of record ${record.recordId}`);
+      name.addEventListener('change', event => {
+        saveCorrection(record.recordId, { name: event.target.value.trim() });
+      });
+      nameCell.appendChild(name);
+
+      const statusCell = el('td');
+      const status = el('select', 'field-control');
+      for (const option of [
+        ['PASS', 'Passed'],
+        ['COMPARTMENT', 'Compartment'],
+        ['ESSENTIAL_REPEAT', 'Essential repeat'],
+        ['ABSENT', 'Absent'],
+        ['OTHER', 'Other / unknown']
+      ]) {
+        const node = el('option', null, option[1]);
+        node.value = option[0];
+        if (option[0] === record.status) node.selected = true;
+        status.appendChild(node);
+      }
+      status.setAttribute('aria-label', `Result status of record ${record.recordId}`);
+      status.addEventListener('change', event => {
+        saveCorrection(record.recordId, { status: event.target.value });
+      });
+      statusCell.appendChild(status);
+
+      const whyCell = el('td');
+      const whyList = el('div', 'cbse-flag-list');
+      for (const warning of record.warnings) {
+        whyList.appendChild(el('span', 'cbse-flag', warning.replace(/-/g, ' ')));
+      }
+      if (!record.warnings.length) whyList.appendChild(el('span', 'cbse-flag', 'low confidence'));
+      whyCell.appendChild(whyList);
+
+      row.appendChild(rollCell);
+      row.appendChild(nameCell);
+      row.appendChild(statusCell);
+      row.appendChild(whyCell);
+      body.appendChild(row);
+    }
+  }
+
+  function saveCorrection(recordId, patch) {
+    const current = state.corrections[recordId] ?? {};
+    state.corrections[recordId] = { ...current, ...patch };
+    const applied = correctionsModule.countCorrections(state.corrections);
+    const note = $('#cbse-corrections-note');
+    if (note) {
+      note.textContent = applied
+        ? `${applied} record(s) were corrected by hand. The corrections are shown in the report and the printed value is kept in the export.`
+        : '';
+      note.hidden = !applied;
+    }
+    // The summary and the checks are rebuilt, the editable row is left alone so
+    // the field the reviewer is typing in keeps the focus.
+    const dataset = refreshDataset();
+    if (!dataset) return;
+    const analytics = analyticsModule.computeAnalytics(dataset, { bands: state.bands ?? analyticsModule.DEFAULT_BANDS, topCount: state.topCount });
+    renderSummaryTable(dataset, analytics);
+    renderChecks(validateModule.validateDataset(dataset, analytics));
+  }
+
+  function renderSummaryTable(dataset, analytics) {
+    const body = $('#cbse-summary-body');
+    body.innerHTML = '';
+    const rows = [
+      ['Total candidates', analytics.totals.candidates],
+      ['Passed', analytics.totals.passed],
+      ['Compartment', analytics.totals.compartment],
+      ['Essential repeat', analytics.totals.essentialRepeat],
+      ['Absent', analytics.totals.absent],
+      ['Appeared candidates', analytics.totals.appeared],
+      ['Pass percentage (of appeared)', analytics.totals.passPercentage == null ? 'Not available' : `${analytics.totals.passPercentage}%`],
+      ['Pass percentage (of all candidates)', analytics.totals.passPercentageOfAll == null ? 'Not available' : `${analytics.totals.passPercentageOfAll}%`]
+    ];
+    for (const [label, value] of rows) {
+      const row = el('tr');
+      row.appendChild(el('th', null, label));
+      row.appendChild(el('td', 'cbse-mono', value));
+      body.appendChild(row);
+    }
+    const printed = dataset.printedSummary;
+    const printedBox = $('#cbse-summary-printed');
+    if (printedBox) {
+      printedBox.innerHTML = '';
+      printedBox.hidden = !printed;
+      if (printed) {
+        printedBox.appendChild(el('span', 'cbse-summary-printed-label', 'Printed in the gazette'));
+        const list = el('span', 'cbse-summary-totals');
+        const totals = [
+          ['total', printed.totalCandidates],
+          ['pass', printed.totalPass],
+          ['compartment', printed.compartment],
+          ['essential repeat', printed.essentialRepeat],
+          ['absent', printed.absent]
+        ];
+        for (const [label, value] of totals) {
+          const chip = el('span', 'cbse-summary-chip');
+          chip.appendChild(el('span', 'cbse-summary-chip-label', label));
+          chip.appendChild(el('b', null, value));
+          list.appendChild(chip);
+        }
+        printedBox.appendChild(list);
+      }
+    }
+  }
+
+  function applyReview() {
+    const dataset = activeDataset();
+    if (!dataset) return;
+    for (const input of $$('#cbse-meta-body [data-meta-key]')) {
+      const key = input.dataset.metaKey;
+      dataset.meta[key] = input.type === 'number' ? (input.value === '' ? null : Number(input.value)) : input.value;
+    }
+    // Only a value the reviewer actually changed becomes an override. A maximum
+    // that the analyzer worked out on its own stays an inference, so the
+    // report keeps saying where the scale came from.
+    const overrides = {};
+    for (const input of $$('#cbse-subject-body [data-subject-name]')) {
+      const code = input.dataset.subjectName;
+      const maxInput = $(`#cbse-subject-body [data-subject-max="${code}"]`);
+      const entry = {};
+      const name = input.value.trim();
+      const originalName = input.dataset.originalName ?? '';
+      const placeholder = `Subject ${code}`;
+      if (name && name !== originalName && name !== placeholder) entry.name = name;
+      if (maxInput && maxInput.value) {
+        const max = Number(maxInput.value);
+        const originalMax = Number(maxInput.dataset.originalMax);
+        if (Number.isFinite(max) && max > 0 && max !== originalMax) entry.max = max;
+      }
+      if (Object.keys(entry).length) overrides[code] = entry;
+    }
+    state.overrides[state.activeId] = overrides;
+    refreshDataset();
+    renderDashboard();
+    show('dashboard');
+    setStatus('The report has been rebuilt with your corrections.', 'success');
+    $('#cbse-dashboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function buildFilterOptions() {
+    const dataset = activeDataset();
+    if (!dataset) return;
+    const analytics = analyticsModule.computeAnalytics(dataset, { bands: state.bands ?? analyticsModule.DEFAULT_BANDS, topCount: state.topCount });
+    const subjectSelect = $('#cbse-filter-subject');
+    const currentSubject = subjectSelect.value;
+    subjectSelect.innerHTML = '';
+    subjectSelect.appendChild(new Option('All subjects', ''));
+    for (const subject of analytics.subjects) {
+      subjectSelect.appendChild(new Option(`${subject.name} (${subject.code})`, subject.code));
+    }
+    subjectSelect.value = currentSubject;
+
+    const statusSelect = $('#cbse-filter-status');
+    const currentStatus = statusSelect.value;
+    statusSelect.innerHTML = '';
+    statusSelect.appendChild(new Option('All statuses', ''));
+    for (const entry of analytics.statusDistribution) {
+      statusSelect.appendChild(new Option(entry.label, entry.key));
+    }
+    statusSelect.value = currentStatus;
+
+    const gradeSelect = $('#cbse-filter-grade');
+    const currentGrade = gradeSelect.value;
+    gradeSelect.innerHTML = '';
+    gradeSelect.appendChild(new Option('All grades', ''));
+    const grades = new Set();
+    for (const candidate of dataset.candidates) {
+      for (const subject of candidate.subjects) {
+        if (subject.grade.value) grades.add(subject.grade.value);
+      }
+    }
+    for (const grade of [...grades].sort()) gradeSelect.appendChild(new Option(grade, grade));
+    gradeSelect.value = currentGrade;
+  }
+
+  function readFilters() {
+    const value = selector => {
+      const node = $(selector);
+      return node && node.value !== '' ? node.value : null;
+    };
+    const number = selector => {
+      const node = $(selector);
+      return node && node.value !== '' ? Number(node.value) : null;
+    };
+    state.filters = {
+      year: value('#cbse-filter-year'),
+      className: value('#cbse-filter-class'),
+      school: value('#cbse-filter-school'),
+      region: value('#cbse-filter-region'),
+      subject: value('#cbse-filter-subject'),
+      status: value('#cbse-filter-status'),
+      grade: value('#cbse-filter-grade'),
+      scoreMin: number('#cbse-filter-score-min'),
+      scoreMax: number('#cbse-filter-score-max')
+    };
+  }
+
+  const FILTER_INPUTS = [
+    '#cbse-filter-year', '#cbse-filter-class', '#cbse-filter-school', '#cbse-filter-region',
+    '#cbse-filter-subject', '#cbse-filter-status', '#cbse-filter-grade',
+    '#cbse-filter-score-min', '#cbse-filter-score-max'
+  ];
+
+  /**
+   * Clear the filters. A filter belongs to one gazette, so it is dropped
+   * whenever another file becomes the one being read.
+   */
+  function clearFilters() {
+    for (const id of FILTER_INPUTS) {
+      const node = $(id);
+      if (node) node.value = '';
+    }
+    readFilters();
+  }
+
+  function renderDashboard() {
+    const dataset = refreshDataset();
+    if (!dataset) return;
+    const bands = state.bands ?? analyticsModule.DEFAULT_BANDS;
+    const analytics = analyticsModule.computeAnalytics(dataset, { filters: state.filters, bands, topCount: state.topCount });
+    const validation = validateModule.validateDataset(dataset, analytics);
+    state.analytics = analytics;
+    state.validation = validation;
+    state.filteredCandidates = analyticsModule.applyFilters(dataset, state.filters);
+
+    buildFilterOptions();
+    renderKpis(analytics);
+    renderCharts(analytics, dataset);
+    renderTopPerformers(analytics);
+    renderSubjectTable(analytics);
+    renderGradeTable(analytics);
+    renderBandTable(analytics);
+    renderValidation(validation);
+    renderStudentList(analytics);
+  }
+
+  function renderKpis(analytics) {
+    const container = $('#cbse-kpis');
+    container.innerHTML = '';
+    const totals = analytics.totals;
+    const tiles = [
+      { label: 'Total candidates', value: totals.candidates, note: 'Records read from the gazette' },
+      { label: 'Passed', value: totals.passed, note: 'Printed PASS status' },
+      { label: 'Compartment', value: totals.compartment, note: 'Printed COMP status' },
+      { label: 'Essential repeat', value: totals.essentialRepeat, note: 'Printed essential repeat status' },
+      { label: 'Absent', value: totals.absent, note: 'Printed ABST status' },
+      { label: 'Other / unknown', value: totals.other, note: 'Status that could not be mapped' },
+      { label: 'Appeared candidates', value: totals.appeared, note: 'Total candidates minus absent' },
+      { label: 'Pass percentage', value: totals.passPercentage == null ? 'Not available' : `${totals.passPercentage}%`, note: 'Passed divided by appeared' }
+    ];
+    for (const tile of tiles) {
+      const card = el('div', 'cbse-kpi');
+      card.appendChild(el('span', 'cbse-kpi-label', tile.label));
+      card.appendChild(el('strong', 'cbse-kpi-value', tile.value));
+      card.appendChild(el('span', 'cbse-kpi-note', tile.note));
+      container.appendChild(card);
+    }
+  }
+
+  function renderCharts(analytics, dataset) {
+    const { renderChart } = window.iLoveMyFilesModules['cbse-charts'];
+    const colors = ['#5d5cf6', '#0f9d9d', '#d98237', '#d05d9a', '#4089e9', '#1a9f70', '#b88b21', '#d9567f'];
+    const bands = state.bands ?? analyticsModule.DEFAULT_BANDS;
+
+    const statusContainer = $('#cbse-chart-status');
+    renderChart(statusContainer, {
+      type: 'donut',
+      title: 'Result status distribution',
+      description: 'How the candidates of this gazette are distributed across the printed result statuses.',
+      categories: analytics.statusDistribution.map(entry => entry.label),
+      series: [{ name: 'Candidates', values: analytics.statusDistribution.map(entry => entry.count) }],
+      centreLabel: 'Candidates',
+      valueFormat: value => `${value}`
+    });
+
+    const subjectContainer = $('#cbse-chart-subjects');
+    renderChart(subjectContainer, {
+      type: 'bar',
+      title: 'Average marks by subject',
+      description: 'The average of the numeric marks printed for each subject.',
+      categories: analytics.subjects.map(subject => subject.code),
+      series: [{ name: 'Average marks', values: analytics.subjects.map(subject => subject.average ?? 0), color: colors[0] }],
+      xLabel: 'Subject code',
+      yLabel: 'Marks',
+      valueFormat: value => `${value}`
+    });
+
+    const rangeContainer = $('#cbse-chart-range');
+    renderChart(rangeContainer, {
+      type: 'range',
+      title: 'Lowest, average and highest marks by subject',
+      description: 'The spread of the marks printed for each subject.',
+      categories: analytics.subjects.map(subject => subject.code),
+      series: [{
+        name: 'Marks',
+        values: analytics.subjects.map(subject => ({ min: subject.minimum ?? 0, avg: subject.average ?? 0, max: subject.maximum ?? 0 }))
+      }],
+      xLabel: 'Subject code',
+      valueFormat: value => `${value}`
+    });
+
+    const gradeContainer = $('#cbse-chart-grades');
+    renderChart(gradeContainer, {
+      type: 'stacked',
+      title: 'Grade distribution by subject',
+      description: 'How many marks were printed for each grade in each subject.',
+      categories: analytics.subjects.map(subject => subject.code),
+      series: (analytics.gradeDistribution.length ? analytics.gradeDistribution.map(entry => entry.grade) : ['(none)']).map((grade, index) => ({
+        name: grade,
+        color: colors[index % colors.length],
+        values: analytics.subjects.map(subject => subject.gradeCounts[grade] ?? 0)
+      })),
+      xLabel: 'Subject code',
+      yLabel: 'Entries',
+      valueFormat: value => `${value}`
+    });
+
+    const bandContainer = $('#cbse-chart-bands');
+    renderChart(bandContainer, {
+      type: 'bar',
+      title: 'Marks distribution by score band',
+      description: 'Every printed subject mark, as a percentage of the maximum in force for that subject, counted into the configured score bands.',
+      categories: analytics.markBandDistribution.map(band => band.label),
+      series: [{ name: 'Subject marks', values: analytics.markBandDistribution.map(band => band.count), color: colors[1] }],
+      xLabel: 'Score band',
+      yLabel: 'Marks',
+      valueFormat: value => `${value}`
+    });
+
+    const statusBarContainer = $('#cbse-chart-status-bar');
+    renderChart(statusBarContainer, {
+      type: 'bar',
+      title: 'Pass, compartment and absent counts',
+      description: 'The number of candidates in each headline result status.',
+      categories: ['Passed', 'Compartment', 'Essential repeat', 'Absent', 'Other'],
+      series: [{
+        name: 'Candidates',
+        values: [
+          analytics.totals.passed,
+          analytics.totals.compartment,
+          analytics.totals.essentialRepeat,
+          analytics.totals.absent,
+          analytics.totals.other
+        ],
+        color: colors[2]
+      }],
+      xLabel: 'Result status',
+      yLabel: 'Candidates',
+      valueFormat: value => `${value}`
+    });
+
+    const scoreContainer = $('#cbse-chart-scores');
+    renderChart(scoreContainer, {
+      type: 'bar',
+      title: 'Candidate score distribution',
+      description: 'The total of the printed marks for each candidate, as a percentage of the marks available to that candidate.',
+      categories: analytics.scoreDistribution.map(band => band.label),
+      series: [{ name: 'Candidates', values: analytics.scoreDistribution.map(band => band.count), color: colors[3] }],
+      xLabel: 'Score band',
+      yLabel: 'Candidates',
+      valueFormat: value => `${value}`
+    });
+
+    const comparisonContainer = $('#cbse-chart-comparison');
+    if (state.datasets.length > 1) {
+      // Every gazette is measured on its own subject table, and all of them
+      // are lined up on the same list of subject codes, so the bars of two
+      // gazettes can be compared side by side.
+      const perDataset = state.datasets.map((item, index) => {
+        const withTable = {
+          ...item,
+          subjectTable: analyticsModule.buildSubjectTable(item, state.overrides[item.datasetId] ?? {})
+        };
+        const itemAnalytics = analyticsModule.computeAnalytics(withTable, { bands, topCount: state.topCount });
+        return {
+          name: item.meta.sourceFileName || `Gazette ${index + 1}`,
+          color: colors[index % colors.length],
+          analytics: itemAnalytics
+        };
+      });
+      const categories = [...new Set(perDataset.flatMap(entry => entry.analytics.subjects.map(subject => subject.code)))].sort();
+      renderChart(comparisonContainer, {
+        type: 'bar',
+        title: 'Subject comparison across gazettes',
+        description: 'The average percentage for each subject in every gazette that was uploaded.',
+        categories,
+        series: perDataset.map(entry => {
+          const byCode = new Map(entry.analytics.subjects.map(subject => [subject.code, subject]));
+          return {
+            name: entry.name,
+            color: entry.color,
+            values: categories.map(code => byCode.get(code)?.averagePercent ?? 0)
+          };
+        }),
+        xLabel: 'Subject code',
+        yLabel: 'Average %',
+        valueFormat: value => `${value}%`
+      });
+    } else {
+      comparisonContainer.innerHTML = '<p class="field-help">Upload a second gazette to compare subjects, schools or years side by side.</p>';
+    }
+
+    const qualityContainer = $('#cbse-chart-quality');
+    const validation = state.validation;
+    const statusCounts = { pass: 0, warn: 0, fail: 0, info: 0 };
+    for (const check of validation?.checks ?? []) statusCounts[check.status] = (statusCounts[check.status] ?? 0) + 1;
+    renderChart(qualityContainer, {
+      type: 'donut',
+      title: 'Data quality checks',
+      description: 'How the validation checks for this gazette finished.',
+      categories: ['Passed', 'Warning', 'Failed', 'Informational'],
+      series: [{ name: 'Checks', values: [statusCounts.pass, statusCounts.warn, statusCounts.fail, statusCounts.info] }],
+      centreLabel: 'Checks',
+      valueFormat: value => `${value}`
+    });
+
+    const confidenceContainer = $('#cbse-chart-confidence');
+    renderChart(confidenceContainer, {
+      type: 'bar',
+      title: 'Extraction confidence',
+      description: 'How many records fell into each confidence band.',
+      categories: analytics.confidence.distribution.map(entry => entry.label),
+      series: [{ name: 'Records', values: analytics.confidence.distribution.map(entry => entry.count), color: colors[4] }],
+      xLabel: 'Confidence band',
+      yLabel: 'Records',
+      valueFormat: value => `${value}`
+    });
+  }
+
+  function renderSubjectTable(analytics) {
+    const body = $('#cbse-subject-results-body');
+    body.innerHTML = '';
+    const header = ['Code', 'Subject', 'Max', 'Valid', 'Missing', 'Average', 'Median', 'Lowest', 'Highest', 'Std dev', 'Average %'];
+    const table = $('#cbse-subject-results');
+    const head = table.querySelector('thead');
+    head.innerHTML = '';
+    const headRow = el('tr');
+    for (const label of header) {
+      const th = el('th', null, label);
+      th.scope = 'col';
+      headRow.appendChild(th);
+    }
+    head.appendChild(headRow);
+    for (const subject of analytics.subjects) {
+      const row = el('tr');
+      const cells = [
+        subject.code,
+        subject.name,
+        subject.max ?? 'Unknown',
+        subject.valid,
+        subject.missing + subject.invalid,
+        subject.average ?? '-',
+        subject.median ?? '-',
+        subject.minimum ?? '-',
+        subject.maximum ?? '-',
+        subject.stdDev ?? '-',
+        subject.averagePercent == null ? '-' : `${subject.averagePercent}%`
+      ];
+      cells.forEach((value, index) => {
+        const cell = el('td', index === 0 ? 'cbse-mono' : null, value);
+        row.appendChild(cell);
+      });
+      body.appendChild(row);
+    }
+  }
+
+  /**
+   * The subject columns of the student and top candidate tables: one column
+   * for every subject code the gazette prints, in the order it prints them.
+   *
+   * @param {Object} analytics
+   * @returns {string[]}
+   */
+  function subjectColumns(analytics) {
+    return analytics?.subjectCodes ?? [];
+  }
+
+  /**
+   * The cell of one subject for one candidate. A candidate who was not
+   * offered the subject gets a dash, and so does a subject with no printed
+   * mark. The two are told apart in the tooltip.
+   *
+   * @param {Object} candidate
+   * @param {string} code
+   * @returns {{ text: string, title: string }}
+   */
+  function subjectCell(candidate, code) {
+    const subject = (candidate.subjects ?? []).find(item => item.code === code);
+    if (!subject) {
+      return { text: '-', title: `Subject ${code} was not offered to this candidate` };
+    }
+    if (subject.marks.value === null) {
+      return { text: '-', title: `Subject ${code} has no printed mark` };
+    }
+    const grade = subject.grade.value ? `/${subject.grade.value}` : '';
+    return { text: `${subject.marks.value}${grade}`, title: `Subject ${code}: ${subject.marks.value}${grade}` };
+  }
+
+  /**
+   * Build the header cells for the subject columns.
+   *
+   * @param {Object} analytics
+   * @param {HTMLTableSectionElement} head
+   * @param {string[]} leading the header cells that come before the subjects
+   */
+  function buildSubjectHead(analytics, head, leading) {
+    if (!head) return;
+    const row = el('tr');
+    for (const label of leading) {
+      const th = el('th', null, label);
+      th.scope = 'col';
+      row.appendChild(th);
+    }
+    const names = new Map((analytics.subjects ?? []).map(subject => [subject.code, subject.name]));
+    for (const code of subjectColumns(analytics)) {
+      const th = el('th', 'cbse-subject-head', code);
+      th.scope = 'col';
+      th.title = names.get(code) ?? `Subject ${code}`;
+      row.appendChild(th);
+    }
+    head.innerHTML = '';
+    head.appendChild(row);
+  }
+
+  function renderTopPerformers(analytics) {
+    const body = $('#cbse-top-body');
+    const table = $('#cbse-top-table');
+    const wrap = table?.closest('.cbse-table-scroll');
+    const empty = $('#cbse-top-empty');
+    body.innerHTML = '';
+    const rows = analytics.topPerformers ?? [];
+    if (!rows.length) {
+      if (table) table.hidden = true;
+      if (wrap) wrap.hidden = true;
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (table) table.hidden = false;
+    if (wrap) wrap.hidden = false;
+    if (empty) empty.hidden = true;
+    buildSubjectHead(analytics, $('#cbse-top-head'), ['Rank', 'Roll number', 'Name', 'Result', 'Total', 'Available', 'Percentage']);
+    for (const entry of rows) {
+      const row = el('tr');
+      row.appendChild(el('td', 'cbse-rank', entry.rank));
+      row.appendChild(el('td', 'cbse-mono', entry.rollNo));
+      row.appendChild(el('td', 'cbse-name-cell', entry.name));
+      row.appendChild(el('td', 'cbse-status-cell', entry.status));
+      row.appendChild(el('td', 'cbse-mono cbse-number', entry.total ?? '-'));
+      row.appendChild(el('td', 'cbse-mono cbse-number', entry.available ?? '-'));
+      row.appendChild(el('td', 'cbse-mono cbse-number cbse-percent', entry.percent == null ? '-' : `${entry.percent}%`));
+      const byCode = new Map((entry.subjects ?? []).map(subject => [subject.code, subject]));
+      for (const code of subjectColumns(analytics)) {
+        const subject = byCode.get(code);
+        const cell = el('td', 'cbse-mono cbse-subject-cell', subject
+          ? (subject.marks == null ? '-' : `${subject.marks}${subject.grade ? `/${subject.grade}` : ''}`)
+          : '-');
+        cell.title = subject
+          ? (subject.marks == null ? `Subject ${code} has no printed mark` : `Subject ${code}: ${subject.marks}${subject.grade ? `/${subject.grade}` : ''}`)
+          : `Subject ${code} was not offered to this candidate`;
+        row.appendChild(cell);
+      }
+      body.appendChild(row);
+    }
+  }
+
+  function renderGradeTable(analytics) {
+    const body = $('#cbse-grade-body');
+    body.innerHTML = '';
+    for (const entry of analytics.gradeDistribution) {
+      const row = el('tr');
+      row.appendChild(el('th', null, entry.grade));
+      row.appendChild(el('td', 'cbse-mono', entry.count));
+      body.appendChild(row);
+    }
+    if (!analytics.gradeDistribution.length) {
+      const row = el('tr');
+      const cell = el('td', 'field-help', 'No grades were printed in this gazette.');
+      cell.colSpan = 2;
+      row.appendChild(cell);
+      body.appendChild(row);
+    }
+  }
+
+  function renderBandTable(analytics) {
+    const body = $('#cbse-band-body');
+    body.innerHTML = '';
+    for (const band of analytics.scoreDistribution) {
+      const row = el('tr');
+      row.appendChild(el('th', null, band.label));
+      row.appendChild(el('td', 'cbse-mono', band.count));
+      body.appendChild(row);
+    }
+    const markBody = $('#cbse-mark-band-body');
+    if (!markBody) return;
+    markBody.innerHTML = '';
+    for (const band of analytics.markBandDistribution ?? []) {
+      const row = el('tr');
+      row.appendChild(el('th', null, band.label));
+      row.appendChild(el('td', 'cbse-mono', band.count));
+      markBody.appendChild(row);
+    }
+  }
+
+  function renderValidation(validation) {
+    const container = $('#cbse-dashboard-checks');
+    container.innerHTML = '';
+    for (const check of validation.checks) {
+      const item = el('li', `cbse-check cbse-check-${check.status}`);
+      item.appendChild(el('span', 'cbse-check-badge', check.status.toUpperCase()));
+      const copy = el('div');
+      copy.appendChild(el('b', null, check.label));
+      copy.appendChild(el('span', 'cbse-check-detail', check.detail));
+      item.appendChild(copy);
+      container.appendChild(item);
+    }
+  }
+
+  function renderStudentList(analytics) {
+    const body = $('#cbse-student-body');
+    body.innerHTML = '';
+    const candidates = state.filteredCandidates ?? [];
+    buildSubjectHead(analytics, $('#cbse-student-head'), ['Roll number', 'Name', 'Status']);
+    const rows = candidates.slice(0, 200);
+    for (const candidate of rows) {
+      body.appendChild(studentRow(candidate, analytics));
+    }
+    const count = $('#cbse-student-count');
+    if (count) {
+      count.textContent = candidates.length === rows.length
+        ? `${candidates.length} record(s) in the current selection`
+        : `${rows.length} of ${candidates.length} record(s) shown`;
+    }
+    if (!rows.length) {
+      const row = el('tr');
+      const cell = el('td', 'field-help', 'No record matches the current filters.');
+      cell.colSpan = 3 + subjectColumns(analytics).length;
+      row.appendChild(cell);
+      body.appendChild(row);
+    }
+  }
+
+  /**
+   * One row of the student table: the identity, the printed status and one
+   * cell for every subject code of the gazette.
+   *
+   * @param {Object} candidate
+   * @param {Object} analytics
+   * @returns {HTMLTableRowElement}
+   */
+  function studentRow(candidate, analytics) {
+    const row = el('tr');
+    row.appendChild(el('td', 'cbse-mono', candidate.rollNo));
+    row.appendChild(el('td', null, candidate.name));
+    row.appendChild(el('td', null, candidate.status));
+    for (const code of subjectColumns(analytics)) {
+      const value = subjectCell(candidate, code);
+      const cell = el('td', 'cbse-mono cbse-subject-cell', value.text);
+      cell.title = value.title;
+      row.appendChild(cell);
+    }
+    return row;
+  }
+
+  function searchStudents(query) {
+    const needle = String(query ?? '').trim().toUpperCase();
+    const body = $('#cbse-student-body');
+    body.innerHTML = '';
+    const analytics = state.analytics ?? {};
+    buildSubjectHead(analytics, $('#cbse-student-head'), ['Roll number', 'Name', 'Status']);
+    if (!needle) {
+      renderStudentList(analytics);
+      return;
+    }
+    const matches = (state.filteredCandidates ?? []).filter(candidate =>
+      candidate.rollNo.toUpperCase().includes(needle) || candidate.name.toUpperCase().includes(needle)
+    );
+    for (const candidate of matches.slice(0, 50)) {
+      body.appendChild(studentRow(candidate, analytics));
+    }
+    if (!matches.length) {
+      const row = el('tr');
+      const cell = el('td', 'field-help', 'No candidate matches that search.');
+      cell.colSpan = 3 + subjectColumns(analytics).length;
+      row.appendChild(cell);
+      body.appendChild(row);
+    }
+  }
+
+  /**
+   * A short plain text summary of the headline numbers, so a figure can be
+   * pasted into a message or a document without opening the export.
+   */
+  function buildHeadlineText() {
+    const dataset = refreshDataset() ?? activeDataset();
+    if (!dataset) return '';
+    const analytics = state.analytics ?? analyticsModule.computeAnalytics(dataset, { filters: state.filters, bands: state.bands ?? analyticsModule.DEFAULT_BANDS, topCount: state.topCount });
+    const meta = dataset.meta ?? {};
+    const totals = analytics.totals;
+    const lines = [];
+    const title = [meta.schoolCode, meta.schoolName, meta.class, meta.year].filter(Boolean).join(' · ');
+    lines.push(title ? `CBSE result analysis — ${title}` : 'CBSE result analysis');
+    if (meta.sourceFileName) lines.push(`Source: ${meta.sourceFileName}`);
+    lines.push(`Total candidates: ${totals.candidates}`);
+    lines.push(`Passed: ${totals.passed}${totals.passPercentage == null ? '' : ` (${totals.passPercentage}% of ${totals.appeared} appeared)`}`);
+    lines.push(`Compartment: ${totals.compartment}`);
+    lines.push(`Essential repeat: ${totals.essentialRepeat}`);
+    lines.push(`Absent: ${totals.absent}`);
+    lines.push(`Appeared candidates: ${totals.appeared}`);
+    if (analytics.subjects.length) {
+      lines.push('');
+      lines.push('Subject averages:');
+      for (const subject of analytics.subjects) {
+        const average = subject.average == null ? 'no marks' : `${subject.average}/${subject.max ?? '?'}`;
+        const percent = subject.averagePercent == null ? '' : ` (${subject.averagePercent}%)`;
+        lines.push(`- ${subject.code} ${subject.name}: ${average}${percent}`);
+      }
+    }
+    const confidence = analytics.confidence?.mean;
+    if (confidence != null) lines.push('', `Mean extraction confidence: ${Math.round(confidence * 100)}%`);
+    return lines.join('\n');
+  }
+
+  async function copyHeadline() {
+    try {
+      const text = buildHeadlineText();
+      if (!text) throw new Error('There is no report to copy yet.');
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const area = document.createElement('textarea');
+        area.value = text;
+        area.setAttribute('readonly', 'readonly');
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand('copy');
+        area.remove();
+      }
+      setStatus('The headline numbers were copied to the clipboard.', 'success');
+    } catch (error) {
+      setStatus(error?.message ?? 'The summary could not be copied.', 'error');
+    }
+  }
+
+  function buildExportContext() {    const dataset = refreshDataset() ?? activeDataset();
+    const analytics = state.analytics ?? analyticsModule.computeAnalytics(dataset, { filters: state.filters, bands: state.bands ?? analyticsModule.DEFAULT_BANDS, topCount: state.topCount });
+    const validation = state.validation ?? validateModule.validateDataset(dataset, analytics);
+    const model = exporterModule.buildExportModel(analytics, dataset, validation.checks, {
+      includeIdentities: state.includeIdentities,
+      corrections: correctionsModule.countCorrections(state.corrections),
+      candidates: state.filteredCandidates ?? dataset.candidates
+    });
+    return { dataset, analytics, validation, model };
+  }
+
+  function downloadBlob(blob, filename) {
+    const { downloadBlob: save } = window.iLoveMyFilesModules['file-utils'];
+    save(blob, filename);
+  }
+
+  async function exportCsv() {
+    try {
+      const { model } = buildExportContext();
+      const bundle = exporterModule.buildCsvBundle(model);
+      const { default: JSZip } = await import('jszip');
+      const zip = new JSZip();
+      for (const [name, text] of Object.entries(bundle)) zip.file(name, text);
+      const blob = await zip.generateAsync({ type: 'blob' });
+      downloadBlob(blob, 'cbse-result-analysis.zip');
+      setStatus('The CSV bundle was downloaded.', 'success');
+    } catch (error) {
+      setStatus(error?.message ?? 'The export failed.', 'error');
+    }
+  }
+
+  async function exportXlsx() {
+    try {
+      const { model } = buildExportContext();
+      const blob = await exporterModule.buildXlsx(exporterModule.buildWorkbookSheets(model));
+      downloadBlob(blob, 'cbse-result-analysis.xlsx');
+      setStatus('The Excel workbook was downloaded.', 'success');
+    } catch (error) {
+      setStatus(error?.message ?? 'The export failed.', 'error');
+    }
+  }
+
+  async function exportPdf() {
+    try {
+      setStatus('Building the PDF report…');
+      const { model, analytics, dataset } = buildExportContext();
+      const blob = await exporterModule.buildPdfReport(model, analytics, dataset);
+      downloadBlob(blob, 'cbse-result-analysis.pdf');
+      setStatus('The PDF summary report was downloaded.', 'success');
+    } catch (error) {
+      setStatus(error?.message ?? 'The export failed.', 'error');
+    }
+  }
+
+  async function exportCharts() {
+    try {
+      const { exportChartPng } = window.iLoveMyFilesModules['cbse-charts'];
+      const containers = $$('.cbse-chart');
+      if (!containers.length) throw new Error('There are no charts to export yet.');
+      for (const container of containers) {
+        const id = container.id.replace('cbse-chart-', '');
+        await exportChartPng(container, `cbse-${id}.png`);
+        await new Promise(resolve => setTimeout(resolve, 120));
+      }
+      setStatus('The chart images were downloaded.', 'success');
+    } catch (error) {
+      setStatus(error?.message ?? 'The chart export failed.', 'error');
+    }
+  }
+
+  function resetAll() {
+    state.datasets = [];
+    state.activeId = null;
+    state.overrides = {};
+    state.corrections = {};
+    state.filters = { year: null, className: null, school: null, region: null, subject: null, status: null, grade: null, scoreMin: null, scoreMax: null };
+    state.includeIdentities = false;
+    $('#cbse-review').hidden = true;
+    $('#cbse-dashboard').hidden = true;
+    $('#cbse-upload-step').hidden = false;
+    const input = $('#cbse-file');
+    if (input) input.value = '';
+    setStatus('Everything was cleared. The uploaded gazette is no longer held in this tab.', 'info');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function bind() {
+    const drop = $('#cbse-drop');
+    const input = $('#cbse-file');
+    if (!drop || !input) return;
+
+    input.addEventListener('change', event => handleFiles(event.target.files));
+    // The header control stays available in every step, so another gazette can
+    // be added without going back to the upload step.
+    $('#cbse-file-more')?.addEventListener('change', event => {
+      handleFiles(event.target.files);
+      event.target.value = '';
+    });
+    drop.addEventListener('dragover', event => {
+      event.preventDefault();
+      drop.classList.add('dragging-over');
+    });
+    drop.addEventListener('dragleave', () => drop.classList.remove('dragging-over'));
+    drop.addEventListener('drop', event => {
+      event.preventDefault();
+      drop.classList.remove('dragging-over');
+      handleFiles(event.dataTransfer?.files ?? []);
+    });
+
+    $('#cbse-apply')?.addEventListener('click', applyReview);
+    $('#cbse-reparse')?.addEventListener('click', () => {
+      const dataset = activeDataset();
+      if (!dataset) return;
+      state.datasets = state.datasets.filter(item => item.datasetId !== dataset.datasetId);
+      state.activeId = state.datasets[state.datasets.length - 1]?.datasetId ?? null;
+      if (!state.datasets.length) {
+        resetAll();
+        return;
+      }
+      renderReview();
+      setStatus('The gazette was removed. Upload it again to parse it once more.', 'info');
+    });
+    $('#cbse-reset')?.addEventListener('click', resetAll);
+    $('#cbse-review-datasets')?.addEventListener('change', event => {
+      state.activeId = event.target.value;
+      clearFilters();
+      renderReview();
+    });
+
+    for (const id of FILTER_INPUTS) {
+      $(id)?.addEventListener('change', () => {
+        readFilters();
+        renderDashboard();
+      });
+    }
+    $('#cbse-filters-reset')?.addEventListener('click', () => {
+      clearFilters();
+      renderDashboard();
+    });
+
+    $('#cbse-top-count')?.addEventListener('change', event => {
+      const value = Number(event.target.value);
+      if (!Number.isFinite(value) || value < 1) return;
+      state.topCount = value;
+      renderDashboard();
+    });
+
+    $('#cbse-include-identities')?.addEventListener('change', event => {
+      state.includeIdentities = event.target.checked;
+      setStatus(event.target.checked
+        ? 'The exports now include the candidate names and roll numbers.'
+        : 'The exports leave the candidate names and roll numbers out.', 'info');
+    });
+    $('#cbse-student-search')?.addEventListener('input', event => searchStudents(event.target.value));
+
+    $('#cbse-export-csv')?.addEventListener('click', exportCsv);
+    $('#cbse-export-xlsx')?.addEventListener('click', exportXlsx);
+    $('#cbse-export-pdf')?.addEventListener('click', exportPdf);
+    $('#cbse-export-charts')?.addEventListener('click', exportCharts);
+    $('#cbse-copy-summary')?.addEventListener('click', copyHeadline);
+    $('#cbse-delete-all')?.addEventListener('click', resetAll);
+
+    $('#cbse-band-editor')?.addEventListener('change', event => {
+      const value = event.target.value;
+      const { DEFAULT_BANDS } = analyticsModule;
+      const presets = {
+        deciles: DEFAULT_BANDS,
+        quartiles: [
+          { id: 'q0', label: '0-24%', min: 0, max: 25 },
+          { id: 'q1', label: '25-49%', min: 25, max: 50 },
+          { id: 'q2', label: '50-74%', min: 50, max: 75 },
+          { id: 'q3', label: '75-100%', min: 75, max: 100.0001 }
+        ],
+        halves: [
+          { id: 'h0', label: '0-49%', min: 0, max: 50 },
+          { id: 'h1', label: '50-100%', min: 50, max: 100.0001 }
+        ]
+      };
+      state.bands = presets[value] ?? DEFAULT_BANDS;
+      renderDashboard();
+    });
+
+    window.addEventListener('resize', () => {
+      clearTimeout(window.__cbseResizeTimer);
+      window.__cbseResizeTimer = setTimeout(() => {
+        const analytics = state.analytics;
+        if (analytics) renderCharts(analytics, activeDataset());
+      }, 220);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bind, { once: true });
+  } else {
+    bind();
+  }
+
+  window.iLoveMyFilesModules['cbse-analyzer'] = { resetAll, state };
+  });
+</script>

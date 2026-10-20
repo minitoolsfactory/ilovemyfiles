@@ -1,5 +1,6 @@
 ---
 import toolData from "../data/tools.json";
+import cbseTool from "../data/cbse-tool.json";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import HomeToolFilters from "../components/HomeToolFilters.astro";
 import HomeStyles from "../components/HomeStyles.astro";
@@ -85,6 +86,15 @@ const popular = ['pdf-merge', 'pdf-compress', 'images-pdf', 'image-resize', 'ima
           <span class="tool-arrow" aria-hidden="true">↗</span>
         </a>
       ))}
+      <a href={`/${cbseTool.slug}/`} class="tool-card" data-tool={cbseTool.id} data-tool-id={cbseTool.id} data-category={cbseTool.category} data-country-gated={cbseTool.id} hidden>
+        <span set:html={icon(cbseTool)} />
+        <span class="tool-card-content">
+          <b>{cbseTool.cardTitle}</b>
+          <span>{cbseTool.cardText}</span>
+          <small>{cbseTool.tag}</small>
+        </span>
+        <span class="tool-arrow" aria-hidden="true">↗</span>
+      </a>
     </div>
     <div id="no-results" class="no-results" hidden>No tools match your search. Try another term.</div>
     <p class="sr-only" id="filter-status" role="status" aria-live="polite"></p>

@@ -1,0 +1,518 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const PALETTE = ['#5d5cf6', '#0f9d9d', '#d98237', '#d05d9a', '#4089e9', '#1a9f70', '#b88b21', '#d9567f'];
+
+  function readToken(name, fallback) {
+    if (typeof getComputedStyle !== 'function') return fallback;
+    const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return value || fallback;
+  }
+
+  function chartColors() {
+    return {
+      text: readToken('--color-text-primary', '#20243b'),
+      muted: readToken('--color-text-muted', '#5c6377'),
+      grid: readToken('--color-border', '#e9ebf3'),
+      surface: readToken('--color-surface', '#ffffff'),
+      accent: readToken('--color-accent', '#5d5cf6'),
+      palette: PALETTE
+    };
+  }
+
+  function el(name, attrs = {}) {
+    const node = document.createElementNS(SVG_NS, name);
+    for (const [key, value] of Object.entries(attrs)) {
+      if (value === undefined || value === null) continue;
+      node.setAttribute(key, String(value));
+    }
+    return node;
+  }
+
+  /**
+   * A round axis: the step is a number a reader can hold in their head and the
+   * top of the axis is a whole multiple of it, so no tick is ever "37.5".
+   */
+  function niceScale(value, targetTicks = 4) {
+    if (!Number.isFinite(value) || value <= 0) return { max: 1, step: 1 };
+    const rawStep = value / targetTicks;
+    const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+    const fraction = rawStep / magnitude;
+    let factor = 10;
+    if (fraction <= 1) factor = 1;
+    else if (fraction <= 2) factor = 2;
+    else if (fraction <= 2.5) factor = 2.5;
+    else if (fraction <= 5) factor = 5;
+    const step = factor * magnitude;
+    return { max: Math.ceil(value / step) * step, step };
+  }
+
+  function formatNumber(value) {
+    if (!Number.isFinite(value)) return '-';
+    if (Number.isInteger(value)) return String(value);
+    return String(Math.round(value * 100) / 100);
+  }
+
+  function makeTooltip(container) {
+    let tip = container.querySelector('.cbse-chart-tip');
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.className = 'cbse-chart-tip';
+      tip.setAttribute('role', 'status');
+      tip.hidden = true;
+      container.appendChild(tip);
+    }
+    return tip;
+  }
+
+  function showTip(container, tip, html, x, y) {
+    tip.innerHTML = html;
+    tip.hidden = false;
+    const bounds = container.getBoundingClientRect();
+    const width = tip.offsetWidth || 160;
+    const left = Math.max(4, Math.min(bounds.width - width - 4, x - width / 2));
+    tip.style.left = `${left}px`;
+    tip.style.top = `${Math.max(0, y - tip.offsetHeight - 10)}px`;
+  }
+
+  function hideTip(tip) {
+    tip.hidden = true;
+  }
+
+  /**
+   * Build a data table that mirrors the chart, for screen readers and for the
+   * "show the numbers" link under every chart.
+   */
+  function buildTable(spec) {
+    const table = document.createElement('table');
+    table.className = 'cbse-chart-table';
+    const caption = document.createElement('caption');
+    caption.textContent = spec.title || 'Chart data';
+    table.appendChild(caption);
+    const head = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    const first = document.createElement('th');
+    first.scope = 'col';
+    first.textContent = spec.categoryLabel || 'Category';
+    headRow.appendChild(first);
+    for (const series of spec.series) {
+      const th = document.createElement('th');
+      th.scope = 'col';
+      th.textContent = series.name;
+      headRow.appendChild(th);
+    }
+    head.appendChild(headRow);
+    table.appendChild(head);
+    const body = document.createElement('tbody');
+    spec.categories.forEach((category, index) => {
+      const row = document.createElement('tr');
+      const th = document.createElement('th');
+      th.scope = 'row';
+      th.textContent = category;
+      row.appendChild(th);
+      for (const series of spec.series) {
+        const cell = document.createElement('td');
+        const value = series.values[index];
+        cell.textContent = spec.valueFormat ? spec.valueFormat(value) : formatNumber(value);
+        row.appendChild(cell);
+      }
+      body.appendChild(row);
+    });
+    table.appendChild(body);
+    return table;
+  }
+
+  function tooltipContent(spec, category, entries) {
+    const rows = entries
+      .map(entry => `<span class="cbse-tip-row"><b>${escapeHtml(entry.label)}</b> ${escapeHtml(spec.valueFormat ? spec.valueFormat(entry.value) : formatNumber(entry.value))}</span>`)
+      .join('');
+    return `<span class="cbse-tip-title">${escapeHtml(category)}</span>${rows}`;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[char]));
+  }
+
+  /**
+   * Render a chart into a container element.
+   *
+   * @param {HTMLElement} container
+   * @param {Object} spec
+   */
+  function renderChart(container, spec) {
+    container.innerHTML = '';
+    container.classList.add('cbse-chart');
+    const colors = chartColors();
+    const tip = makeTooltip(container);
+
+    const width = Math.max(280, container.clientWidth || 640);
+    const isDonut = spec.type === 'donut';
+    const height = spec.height || (isDonut ? 250 : 280);
+    // The bottom margin has to hold the rotated category labels and the title
+    // of the horizontal axis, the left margin the tick labels and the title
+    // of the vertical axis. Without both the titles land on top of the ticks.
+    const margin = isDonut
+      ? { top: 16, right: 16, bottom: 16, left: 16 }
+      : { top: 16, right: 18, bottom: 68, left: 56 };
+    const plotWidth = width - margin.left - margin.right;
+    const plotHeight = height - margin.top - margin.bottom;
+
+    const svg = el('svg', {
+      viewBox: `0 0 ${width} ${height}`,
+      width: '100%',
+      height: String(height),
+      role: 'img',
+      'aria-label': spec.ariaLabel || spec.title || 'Chart',
+      preserveAspectRatio: 'xMidYMid meet'
+    });
+    const title = el('title');
+    title.textContent = spec.title || 'Chart';
+    svg.appendChild(title);
+    const desc = el('desc');
+    desc.textContent = spec.description || '';
+    svg.appendChild(desc);
+
+    if (spec.type === 'donut') renderDonut(svg, spec, colors, width, height, container, tip);
+    else if (spec.type === 'range') renderRange(svg, spec, colors, width, height, margin, plotWidth, plotHeight, container, tip);
+    else if (spec.type === 'stacked') renderStacked(svg, spec, colors, width, height, margin, plotWidth, plotHeight, container, tip);
+    else renderBars(svg, spec, colors, width, height, margin, plotWidth, plotHeight, container, tip);
+
+    container.appendChild(svg);
+
+    if (spec.table !== false) {
+      const details = document.createElement('details');
+      details.className = 'cbse-chart-table-wrap';
+      const summary = document.createElement('summary');
+      summary.textContent = 'Show the numbers';
+      details.appendChild(summary);
+      details.appendChild(buildTable(spec));
+      container.appendChild(details);
+    }
+
+    if (spec.legend !== false && spec.series.length > 1) {
+      const legend = document.createElement('ul');
+      legend.className = 'cbse-chart-legend';
+      spec.series.forEach((series, index) => {
+        const item = document.createElement('li');
+        const swatch = document.createElement('span');
+        swatch.className = 'cbse-chart-swatch';
+        swatch.style.background = series.color || colors.palette[index % colors.palette.length];
+        const text = document.createElement('span');
+        text.textContent = series.name;
+        item.appendChild(swatch);
+        item.appendChild(text);
+        legend.appendChild(item);
+      });
+      container.appendChild(legend);
+    }
+
+    return { svg, colors };
+  }
+
+  function axisText(svg, x, y, text, colors, anchor = 'middle') {
+    const node = el('text', {
+      x: String(x), y: String(y), fill: colors.muted, 'font-size': '11',
+      'text-anchor': anchor, 'font-family': 'inherit'
+    });
+    node.textContent = text;
+    svg.appendChild(node);
+    return node;
+  }
+
+  /**
+   * The title of the vertical axis. It is written along the axis so that it
+   * can never land on top of the tick labels.
+   */
+  function yAxisTitle(svg, x, y, text, colors) {
+    if (!text) return null;
+    const node = el('text', {
+      x: '0', y: '0', fill: colors.muted, 'font-size': '11',
+      'text-anchor': 'middle', 'font-family': 'inherit',
+      transform: `translate(${x} ${y}) rotate(-90)`
+    });
+    node.textContent = text;
+    svg.appendChild(node);
+    return node;
+  }
+
+  /**
+   * A category label below the horizontal axis. Narrow slots get a smaller
+   * font and a steeper angle so the labels stay readable and do not overlap.
+   */
+  function categoryLabel(svg, colors, x, y, category, slot) {
+    const dense = slot < 40;
+    const fontSize = dense ? 9 : 10;
+    const rotation = dense ? -50 : -35;
+    const limit = dense ? 9 : 14;
+    const text = category.length > limit ? `${category.slice(0, limit - 1)}…` : category;
+    const node = el('text', {
+      x: String(x), y: String(y), fill: colors.muted, 'font-size': String(fontSize),
+      'text-anchor': 'end', 'font-family': 'inherit',
+      transform: `rotate(${rotation} ${x} ${y})`
+    });
+    node.textContent = text;
+    if (text !== category) {
+      const title = el('title');
+      title.textContent = category;
+      node.appendChild(title);
+    }
+    svg.appendChild(node);
+    return node;
+  }
+
+  function gridLines(svg, colors, margin, plotWidth, plotHeight, maxValue, step = null) {
+    const intervals = step ? Math.max(1, Math.round(maxValue / step)) : 4;
+    for (let i = 0; i <= intervals; i += 1) {
+      const value = (maxValue / intervals) * i;
+      const y = margin.top + plotHeight - (plotHeight / intervals) * i;
+      svg.appendChild(el('line', {
+        x1: String(margin.left), x2: String(margin.left + plotWidth),
+        y1: String(y), y2: String(y), stroke: colors.grid, 'stroke-width': '1'
+      }));
+      const label = el('text', {
+        x: String(margin.left - 8), y: String(y + 4), fill: colors.muted,
+        'font-size': '10', 'text-anchor': 'end', 'font-family': 'inherit'
+      });
+      label.textContent = formatNumber(Math.round(value * 100) / 100);
+      svg.appendChild(label);
+    }
+  }
+
+  function focusable(node, label, count) {
+    if (count > 24) return;
+    node.setAttribute('tabindex', '0');
+    node.setAttribute('role', 'img');
+    node.setAttribute('aria-label', label);
+    node.classList.add('cbse-chart-point');
+  }
+
+  function renderBars(svg, spec, colors, width, height, margin, plotWidth, plotHeight, container, tip) {
+    const series = spec.series;
+    const categories = spec.categories;
+    const scale = niceScale(Math.max(0, ...series.flatMap(item => item.values.map(value => Number(value) || 0))));
+    const maxValue = scale.max;
+    gridLines(svg, colors, margin, plotWidth, plotHeight, maxValue, scale.step);
+    const slot = plotWidth / Math.max(1, categories.length);
+    const groupWidth = Math.min(48, slot * 0.68);
+    const barWidth = Math.max(3, groupWidth / series.length);
+    const totalPoints = categories.length * series.length;
+
+    categories.forEach((category, index) => {
+      const groupX = margin.left + slot * index + (slot - groupWidth) / 2;
+      series.forEach((item, seriesIndex) => {
+        const value = Number(item.values[index]) || 0;
+        const barHeight = maxValue ? (value / maxValue) * plotHeight : 0;
+        const x = groupX + barWidth * seriesIndex;
+        const y = margin.top + plotHeight - barHeight;
+        const rect = el('rect', {
+          x: String(x), y: String(y), width: String(Math.max(2, barWidth - 2)), height: String(Math.max(0, barHeight)),
+          rx: '3', fill: item.color || colors.palette[seriesIndex % colors.palette.length]
+        });
+        focusable(rect, `${category}, ${item.name}: ${formatNumber(value)}`, totalPoints);
+        const show = event => {
+          const box = container.getBoundingClientRect();
+          showTip(container, tip, tooltipContent(spec, category, [{ label: item.name, value }]), event.clientX - box.left, event.clientY - box.top);
+        };
+        rect.addEventListener('pointerenter', show);
+        rect.addEventListener('pointermove', show);
+        rect.addEventListener('pointerleave', () => hideTip(tip));
+        rect.addEventListener('focus', () => {
+          const box = rect.getBoundingClientRect();
+          showTip(container, tip, tooltipContent(spec, category, [{ label: item.name, value }]), box.left - box.left + box.width / 2, box.top);
+        });
+        rect.addEventListener('blur', () => hideTip(tip));
+        svg.appendChild(rect);
+      });
+      categoryLabel(svg, colors, margin.left + slot * index + slot / 2, margin.top + plotHeight + 16, category, slot);
+    });
+
+    axisText(svg, margin.left + plotWidth / 2, height - 8, spec.xLabel || '', colors);
+    yAxisTitle(svg, 13, margin.top + plotHeight / 2, spec.yLabel || '', colors);
+  }
+
+  function renderStacked(svg, spec, colors, width, height, margin, plotWidth, plotHeight, container, tip) {
+    const categories = spec.categories;
+    const totals = categories.map((_, index) => spec.series.reduce((sum, item) => sum + (Number(item.values[index]) || 0), 0));
+    const scale = niceScale(Math.max(0, ...totals));
+    const maxValue = scale.max;
+    gridLines(svg, colors, margin, plotWidth, plotHeight, maxValue, scale.step);
+    const slot = plotWidth / Math.max(1, categories.length);
+    const barWidth = Math.min(48, slot * 0.6);
+    const totalPoints = categories.length * spec.series.length;
+
+    categories.forEach((category, index) => {
+      const x = margin.left + slot * index + (slot - barWidth) / 2;
+      let cursor = margin.top + plotHeight;
+      const entries = [];
+      spec.series.forEach((item, seriesIndex) => {
+        const value = Number(item.values[index]) || 0;
+        if (!value) return;
+        const barHeight = maxValue ? (value / maxValue) * plotHeight : 0;
+        cursor -= barHeight;
+        const rect = el('rect', {
+          x: String(x), y: String(cursor), width: String(barWidth), height: String(Math.max(1, barHeight)),
+          fill: item.color || colors.palette[seriesIndex % colors.palette.length]
+        });
+        focusable(rect, `${category}, ${item.name}: ${formatNumber(value)}`, totalPoints);
+        const show = event => {
+          const box = container.getBoundingClientRect();
+          showTip(container, tip, tooltipContent(spec, category, [{ label: item.name, value }]), event.clientX - box.left, event.clientY - box.top);
+        };
+        rect.addEventListener('pointerenter', show);
+        rect.addEventListener('pointermove', show);
+        rect.addEventListener('pointerleave', () => hideTip(tip));
+        svg.appendChild(rect);
+        entries.push({ label: item.name, value });
+      });
+      categoryLabel(svg, colors, margin.left + slot * index + slot / 2, margin.top + plotHeight + 16, category, slot);
+    });
+
+    axisText(svg, margin.left + plotWidth / 2, height - 8, spec.xLabel || '', colors);
+    yAxisTitle(svg, 13, margin.top + plotHeight / 2, spec.yLabel || '', colors);
+  }
+
+  function renderRange(svg, spec, colors, width, height, margin, plotWidth, plotHeight, container, tip) {
+    const categories = spec.categories;
+    const rows = spec.series[0].values;
+    const scale = niceScale(Math.max(0, ...rows.flatMap(row => [row.min ?? 0, row.max ?? 0])));
+    const maxValue = scale.max;
+    gridLines(svg, colors, margin, plotWidth, plotHeight, maxValue, scale.step);
+    const slot = plotWidth / Math.max(1, categories.length);
+    const rowHeight = Math.min(26, plotHeight / Math.max(1, categories.length) * 0.55);
+
+    categories.forEach((category, index) => {
+      const row = rows[index] ?? {};
+      const min = Number(row.min) || 0;
+      const max = Number(row.max) || 0;
+      const avg = Number(row.avg);
+      const y = margin.top + (plotHeight / Math.max(1, categories.length)) * index + (plotHeight / Math.max(1, categories.length) - rowHeight) / 2;
+      const x1 = margin.left + (min / maxValue) * plotWidth;
+      const x2 = margin.left + (max / maxValue) * plotWidth;
+      const bar = el('rect', {
+        x: String(x1), y: String(y), width: String(Math.max(2, x2 - x1)), height: String(rowHeight),
+        rx: '4', fill: colors.palette[0], opacity: '0.32'
+      });
+      svg.appendChild(bar);
+      const avgX = margin.left + (avg / maxValue) * plotWidth;
+      const dot = el('circle', { cx: String(avgX), cy: String(y + rowHeight / 2), r: '5', fill: colors.accent });
+      focusable(dot, `${category}: lowest ${formatNumber(min)}, average ${formatNumber(avg)}, highest ${formatNumber(max)}`, categories.length);
+      const show = event => {
+        const box = container.getBoundingClientRect();
+        showTip(container, tip, tooltipContent(spec, category, [
+          { label: 'Lowest', value: min }, { label: 'Average', value: avg }, { label: 'Highest', value: max }
+        ]), event.clientX - box.left, event.clientY - box.top);
+      };
+      dot.addEventListener('pointerenter', show);
+      dot.addEventListener('pointermove', show);
+      dot.addEventListener('pointerleave', () => hideTip(tip));
+      svg.appendChild(dot);
+      categoryLabel(svg, colors, margin.left + slot * index + slot / 2, margin.top + plotHeight + 16, category, slot);
+    });
+
+    axisText(svg, margin.left + plotWidth / 2, height - 8, spec.xLabel || '', colors);
+  }
+
+  function renderDonut(svg, spec, colors, width, height, container, tip) {
+    const series = spec.series[0];
+    const total = series.values.reduce((sum, value) => sum + (Number(value) || 0), 0) || 1;
+    const radius = Math.min(width, height) / 2 - 26;
+    const inner = radius * 0.58;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    let angle = -Math.PI / 2;
+
+    spec.categories.forEach((category, index) => {
+      const value = Number(series.values[index]) || 0;
+      const slice = (value / total) * Math.PI * 2;
+      const end = angle + slice;
+      const large = slice > Math.PI ? 1 : 0;
+      const x1 = centerX + radius * Math.cos(angle);
+      const y1 = centerY + radius * Math.sin(angle);
+      const x2 = centerX + radius * Math.cos(end);
+      const y2 = centerY + radius * Math.sin(end);
+      const ix1 = centerX + inner * Math.cos(end);
+      const iy1 = centerY + inner * Math.sin(end);
+      const ix2 = centerX + inner * Math.cos(angle);
+      const iy2 = centerY + inner * Math.sin(angle);
+      const path = el('path', {
+        d: `M ${x1} ${y1} A ${radius} ${radius} 0 ${large} 1 ${x2} ${y2} L ${ix1} ${iy1} A ${inner} ${inner} 0 ${large} 0 ${ix2} ${iy2} Z`,
+        fill: colors.palette[index % colors.palette.length]
+      });
+      focusable(path, `${category}: ${formatNumber(value)} candidates`, spec.categories.length);
+      const show = event => {
+        const box = container.getBoundingClientRect();
+        showTip(container, tip, tooltipContent(spec, category, [{ label: 'Candidates', value }]), event.clientX - box.left, event.clientY - box.top);
+      };
+      path.addEventListener('pointerenter', show);
+      path.addEventListener('pointermove', show);
+      path.addEventListener('pointerleave', () => hideTip(tip));
+      svg.appendChild(path);
+      angle = end;
+    });
+
+    const centre = el('text', {
+      x: String(centerX), y: String(centerY - 2), fill: colors.text, 'font-size': '20',
+      'text-anchor': 'middle', 'font-family': 'inherit', 'font-weight': '700'
+    });
+    centre.textContent = formatNumber(total);
+    svg.appendChild(centre);
+    const caption = el('text', {
+      x: String(centerX), y: String(centerY + 16), fill: colors.muted, 'font-size': '11',
+      'text-anchor': 'middle', 'font-family': 'inherit'
+    });
+    caption.textContent = spec.centreLabel || 'Candidates';
+    svg.appendChild(caption);
+  }
+
+  /**
+   * Export a rendered chart as a PNG file.
+   *
+   * @param {HTMLElement} container the chart container
+   * @param {string} filename
+   * @returns {Promise<void>}
+   */
+  async function exportChartPng(container, filename) {
+    const svg = container.querySelector('svg');
+    if (!svg) throw new Error('This chart cannot be exported yet.');
+    const clone = svg.cloneNode(true);
+    clone.setAttribute('xmlns', SVG_NS);
+    const width = Number(svg.getAttribute('viewBox')?.split(' ')[2]) || 640;
+    const height = Number(svg.getAttribute('viewBox')?.split(' ')[3]) || 260;
+    const background = el('rect', { x: '0', y: '0', width: String(width), height: String(height), fill: readToken('--color-surface', '#ffffff') });
+    clone.insertBefore(background, clone.firstChild);
+    const source = new XMLSerializer().serializeToString(clone);
+    const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`;
+    const image = new Image();
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = () => reject(new Error('The chart could not be converted to an image.'));
+      image.src = url;
+    });
+    const scale = 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(width * scale);
+    canvas.height = Math.round(height * scale);
+    const context = canvas.getContext('2d');
+    context.fillStyle = readToken('--color-surface', '#ffffff');
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('The chart image could not be created.');
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 30000);
+  }
+
+  window.iLoveMyFilesModules['cbse-charts'] = { renderChart, exportChartPng, formatNumber };
+  });
+</script>

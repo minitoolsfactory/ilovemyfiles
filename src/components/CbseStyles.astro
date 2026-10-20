@@ -1,0 +1,185 @@
+---
+---
+<style is:global>
+/* CBSE Result Analyzer - workspace, dashboard and chart styling. */
+.cbse-app{display:grid;gap:20px;margin:24px 0 40px}
+.cbse-panel{display:grid;gap:18px}
+
+/* Workspace shell, matching the tool cards used across the site. */
+.cbse-workspace{background:var(--color-surface);border:1px solid var(--color-border);border-radius:18px;overflow:hidden}
+.cbse-workspace-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:20px 26px;border-bottom:1px solid var(--color-border);background:var(--color-surface)}
+.cbse-workspace-head>div:first-child{flex:1;min-width:0}
+.cbse-workspace-head h2{font-size:21px;letter-spacing:-.6px;margin:10px 0 4px}
+.cbse-workspace-head p{font-size:11px;color:var(--color-text-muted);margin:0;max-width:74ch;line-height:1.6}
+.cbse-workspace-tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;flex:none;margin-left:auto}
+.cbse-upload-button{cursor:pointer;white-space:nowrap}
+.cbse-workspace-body{padding:22px 26px 26px;display:grid;gap:18px}
+
+.cbse-steps{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.cbse-step{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid var(--color-border);border-radius:999px;font-size:11px;font-weight:700;color:var(--color-text-muted);background:var(--color-surface)}
+.cbse-step span{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:var(--color-surface-soft);color:var(--color-text-secondary);font-size:10px}
+.cbse-step.is-current{border-color:var(--color-accent);color:var(--color-accent-strong);background:var(--color-surface-tint)}
+.cbse-step.is-current span{background:var(--color-accent);color:var(--color-on-accent)}
+
+.cbse-drop{position:relative;border:1.5px dashed var(--color-border-control);border-radius:13px;background:var(--color-surface-soft);min-height:150px;padding:30px 24px;text-align:center;transition:background .2s,border .2s}
+.cbse-drop:hover,.cbse-drop.dragging-over{border-color:var(--color-accent);background:var(--color-surface-tint)}
+.cbse-file-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.cbse-drop-label{display:grid;gap:8px;justify-items:center;cursor:pointer}
+.cbse-drop-label b{font-size:12px;color:var(--color-text-primary)}
+.cbse-drop-label b span{color:var(--color-accent)}
+.cbse-drop-label span{font-size:11px;color:var(--color-text-muted);max-width:56ch;line-height:1.6}
+.cbse-drop-icon{display:grid;place-items:center;width:35px;height:35px;background:var(--color-surface-tint);color:var(--color-accent);border-radius:11px;font-size:18px;font-weight:800}
+.cbse-drop-hint{margin:12px 0 0;font-size:10px;color:var(--color-text-muted);line-height:1.6}
+.cbse-drop:focus-within{outline:3px solid var(--color-focus);outline-offset:3px}
+
+.cbse-review-head{display:grid;gap:8px;justify-items:start}
+.cbse-review-head h3{margin:0;font-size:16px;color:var(--color-text-primary)}
+.cbse-review-head p{margin:0;font-size:12px;color:var(--color-text-secondary);max-width:70ch;line-height:1.6}
+.cbse-review-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.cbse-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:18px;display:grid;gap:12px;align-content:start}
+.cbse-export-card{background:var(--color-surface);border-color:var(--color-accent);border-width:2px}
+.cbse-export-card .cbse-card-head{gap:12px}
+.cbse-card-wide{grid-column:1/-1}
+.cbse-card h4{margin:0;font-size:13px;color:var(--color-text-primary)}
+.cbse-card p{margin:0}
+.cbse-card-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.cbse-card-head h3{margin:0}
+.cbse-inline-field{display:flex;align-items:center;gap:8px}
+.cbse-select-compact{max-width:130px;padding:6px 8px;font-size:11px}
+
+.cbse-field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.cbse-field-row{display:grid;gap:4px}
+.cbse-field-label{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--color-text-secondary)}
+.cbse-field-input{width:100%;border:1px solid var(--color-border-control);border-radius:var(--radius-sm);padding:8px 10px;font-size:12px;background:var(--color-surface);color:var(--color-text-primary)}
+.cbse-field-input-narrow{width:92px;max-width:92px}
+.cbse-field-hint{font-size:10px;color:var(--color-text-muted);line-height:1.4;white-space:nowrap}
+.cbse-max-cell{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.cbse-select{max-width:320px}
+.cbse-empty{margin:0;padding:14px 16px;border:1px dashed var(--color-border-control);border-radius:var(--radius-sm);background:var(--color-surface-soft);font-size:12px;color:var(--color-text-secondary);line-height:1.7}
+
+.cbse-table{width:100%;border-collapse:collapse;font-size:12px}
+.cbse-table th,.cbse-table td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--color-divider);vertical-align:top}
+.cbse-table thead th{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-muted);font-weight:700;white-space:nowrap}
+.cbse-table tbody tr:hover{background:var(--color-surface-soft)}
+.cbse-table-compact th{font-weight:600;color:var(--color-text-secondary)}
+.cbse-table-compact td{width:1%;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cbse-table-wide{min-width:860px}
+.cbse-subject-editor{table-layout:fixed;min-width:720px}
+.cbse-subject-editor th:nth-child(1),.cbse-subject-editor td:nth-child(1){width:92px}
+.cbse-subject-editor th:nth-child(3),.cbse-subject-editor td:nth-child(3){width:136px}
+.cbse-subject-editor th:nth-child(4),.cbse-subject-editor td:nth-child(4){width:auto}
+.cbse-subject-editor td:nth-child(2){min-width:220px}
+.cbse-table-scroll{overflow-x:auto;border:1px solid var(--color-border);border-radius:var(--radius-sm);-webkit-overflow-scrolling:touch}
+.cbse-table-scroll .cbse-table{border:0}
+.cbse-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px}
+.cbse-wrap{word-break:break-word}
+.cbse-subject-head{text-align:center;min-width:58px}
+.cbse-subject-cell{text-align:center;white-space:nowrap;color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.cbse-rank{font-weight:700;color:var(--color-accent-strong);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cbse-number{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cbse-percent{font-weight:700;color:var(--color-text-primary)}
+.cbse-status-cell{white-space:nowrap;font-size:11px;color:var(--color-text-secondary)}
+.cbse-name-cell{white-space:nowrap}
+.cbse-summary-printed{margin:0;padding:10px 12px;border-radius:var(--radius-sm);background:var(--color-surface-tint);display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.cbse-summary-printed-label{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--color-text-secondary)}
+.cbse-summary-totals{display:flex;flex-wrap:wrap;gap:6px}
+.cbse-summary-chip{display:inline-flex;align-items:baseline;gap:5px;padding:3px 9px;border-radius:999px;background:var(--color-surface);border:1px solid var(--color-border);font-size:10px;color:var(--color-text-secondary)}
+.cbse-summary-chip b{font-size:12px;color:var(--color-text-primary);font-variant-numeric:tabular-nums}
+
+.cbse-flag-list{display:flex;flex-wrap:wrap;gap:4px}
+.cbse-flag{display:inline-block;padding:2px 7px;border-radius:999px;background:var(--color-warning-bg);color:var(--color-warning);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.cbse-corrections-note{margin:0;padding:9px 12px;border-radius:var(--radius-sm);background:var(--color-surface-tint);color:var(--color-accent-strong);font-size:11px;line-height:1.6}
+
+.cbse-checks{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.cbse-check{display:grid;grid-template-columns:62px 1fr;gap:10px;align-items:start;padding:10px 12px;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:var(--color-surface-soft)}
+.cbse-check-badge{font-size:9px;font-weight:800;letter-spacing:.6px;padding:3px 6px;border-radius:5px;text-align:center;background:var(--color-surface-tint);color:var(--color-accent-strong)}
+.cbse-check-pass .cbse-check-badge{background:var(--color-success-bg);color:var(--color-success)}
+.cbse-check-warn .cbse-check-badge{background:var(--color-warning-bg);color:var(--color-warning)}
+.cbse-check-fail .cbse-check-badge{background:var(--color-error-bg);color:var(--color-error)}
+.cbse-check div{display:grid;gap:2px}
+.cbse-check b{font-size:12px;color:var(--color-text-primary)}
+.cbse-check-detail{font-size:11px;color:var(--color-text-secondary);line-height:1.6}
+
+.cbse-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+.cbse-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.cbse-kpi{display:grid;gap:4px;padding:16px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface)}
+.cbse-kpi-label{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--color-text-muted)}
+.cbse-kpi-value{font-size:26px;line-height:1.1;color:var(--color-text-primary);font-weight:800}
+.cbse-kpi-note{font-size:10px;color:var(--color-text-secondary);line-height:1.5}
+
+.cbse-filter-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.cbse-search-grid{grid-template-columns:minmax(0,2fr) minmax(0,1fr);align-items:end}
+.cbse-search-action{display:flex;align-items:flex-end}
+.cbse-identity-field{display:flex;align-items:flex-start;gap:8px;font-size:11px;color:var(--color-text-secondary);line-height:1.6;max-width:96ch}
+.cbse-identity-field input{accent-color:var(--color-accent);margin-top:2px}
+
+.cbse-chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.cbse-chart-card{margin:0;padding:14px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface);display:grid;gap:10px;align-content:start}
+.cbse-chart-card figcaption{font-size:12px;font-weight:700;color:var(--color-text-primary)}
+.cbse-chart-host{position:relative;min-height:240px}
+.cbse-chart{position:relative}
+.cbse-chart svg{display:block;width:100%;height:auto;overflow:visible}
+.cbse-chart-point{cursor:pointer;outline:none}
+.cbse-chart-point:focus-visible{outline:3px solid var(--color-focus);outline-offset:2px}
+.cbse-chart-tip{position:absolute;z-index:5;pointer-events:none;display:grid;gap:2px;padding:8px 10px;border-radius:var(--radius-sm);background:var(--color-text-primary);color:var(--color-background);font-size:11px;line-height:1.5;box-shadow:0 8px 20px rgba(20,22,40,.24);max-width:220px}
+.cbse-tip-title{font-weight:800}
+.cbse-tip-row{display:flex;gap:6px;justify-content:space-between}
+.cbse-chart-legend{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--color-text-secondary)}
+.cbse-chart-legend li{display:inline-flex;align-items:center;gap:6px}
+.cbse-chart-swatch{width:10px;height:10px;border-radius:3px;display:inline-block}
+.cbse-chart-table-wrap{margin-top:6px}
+.cbse-chart-table-wrap summary{cursor:pointer;font-size:11px;font-weight:700;color:var(--color-accent-strong)}
+.cbse-chart-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}
+.cbse-chart-table caption{text-align:left;font-size:11px;color:var(--color-text-muted);padding-bottom:4px}
+.cbse-chart-table th,.cbse-chart-table td{border-bottom:1px solid var(--color-divider);padding:5px 6px;text-align:left}
+.cbse-chart-table thead th{color:var(--color-text-muted);font-size:10px;text-transform:uppercase;letter-spacing:.4px}
+
+.cbse-region-note{display:grid;gap:8px;padding:18px;border:1px solid var(--color-border-control);border-radius:var(--radius-md);background:var(--color-surface-soft);margin:22px 0}
+.cbse-region-note b{font-size:14px;color:var(--color-text-primary)}
+.cbse-region-note p{margin:0;font-size:12px;color:var(--color-text-secondary);line-height:1.7;max-width:74ch}
+.cbse-region-list{margin:0;padding-left:18px;font-size:12px;color:var(--color-text-secondary);line-height:1.8}
+
+.cbse-guide{margin:34px 0 0;display:grid;gap:26px}
+.cbse-guide section{display:grid;gap:10px}
+.cbse-guide h2{margin:0;font-size:20px;color:var(--color-text-primary)}
+.cbse-guide h3{margin:0;font-size:15px;color:var(--color-text-primary)}
+.cbse-guide p{margin:0;font-size:13px;line-height:1.8;color:var(--color-text-secondary);max-width:80ch}
+.cbse-guide ul{margin:0;padding-left:18px;font-size:13px;line-height:1.9;color:var(--color-text-secondary);max-width:80ch}
+.cbse-guide-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cbse-guide-card{padding:16px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface);display:grid;gap:6px}
+.cbse-guide-card b{font-size:13px;color:var(--color-text-primary)}
+.cbse-guide-card span{font-size:12px;color:var(--color-text-secondary);line-height:1.6}
+.cbse-sample{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:16px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface-soft)}
+.cbse-sample div{display:grid;gap:2px}
+.cbse-sample b{font-size:20px;color:var(--color-text-primary)}
+.cbse-sample span{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-muted)}
+.cbse-sample-note{font-size:11px;color:var(--color-text-muted);margin:0}
+.cbse-faq details{border:1px solid var(--color-border);border-radius:var(--radius-sm);background:var(--color-surface);padding:12px 14px}
+.cbse-faq summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--color-text-primary)}
+.cbse-faq p{margin:8px 0 0;font-size:12px;line-height:1.8;color:var(--color-text-secondary)}
+.cbse-cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:20px;border-radius:var(--radius-lg);background:linear-gradient(115deg,var(--color-action-hover),var(--color-action));color:var(--color-on-accent)}
+.cbse-cta h2{margin:0;font-size:18px;color:var(--color-on-accent)}
+.cbse-cta p{margin:4px 0 0;font-size:12px;color:var(--color-on-accent);opacity:.92}
+
+@media (max-width:900px){
+.cbse-review-grid{grid-template-columns:1fr}
+.cbse-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+.cbse-field-grid{grid-template-columns:1fr}
+.cbse-search-grid{grid-template-columns:1fr}
+}
+@media (max-width:640px){
+.cbse-workspace-head{flex-direction:column;align-items:flex-start;gap:12px;padding:16px 18px}
+.cbse-workspace-tools{margin-left:0;justify-content:flex-start;width:100%}
+.cbse-workspace-body{padding:16px 18px 20px}
+.cbse-kpis{grid-template-columns:1fr}
+.cbse-chart-grid{grid-template-columns:1fr}
+.cbse-kpi-value{font-size:22px}
+.cbse-steps{gap:6px}
+.cbse-step{font-size:10px;padding:7px 11px}
+.cbse-guide{gap:20px}
+}
+@media (prefers-reduced-motion:reduce){
+.cbse-drop{transition:none}
+}
+</style>

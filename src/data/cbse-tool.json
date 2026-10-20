@@ -1,0 +1,19 @@
+{
+  "id": "cbse-result-analyzer",
+  "slug": "tools/cbse-result-analyzer",
+  "category": "data",
+  "countryGated": true,
+  "cardTitle": "CBSE Result Analyzer",
+  "cardText": "Turn a CBSE result gazette into marks, pass percentage and grade analytics.",
+  "tag": "INDIA · CBSE ANALYTICS",
+  "icon": "teal",
+  "svg": "<path d=\"M4 19V9m5 10V5m5 14v-7m5 7V8\"/>",
+  "keywords": [
+    "cbse result",
+    "cbse result analyzer",
+    "cbse gazette",
+    "cbse marks",
+    "pass percentage",
+    "cbse result pdf to excel"
+  ]
+}

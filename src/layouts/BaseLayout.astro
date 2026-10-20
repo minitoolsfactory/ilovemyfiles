@@ -1,6 +1,7 @@
 ---
 import ThemeToggle from "../components/ThemeToggle.astro";
 import GlobalStyles from "../components/GlobalStyles.astro";
+import GeoGate from "../components/client/geo-gate.astro";
 ---
 <!doctype html>
 <html lang="en">
@@ -43,7 +44,7 @@ import GlobalStyles from "../components/GlobalStyles.astro";
       <span>i<span class="brand-heart">♥</span>MyFiles<span class="brand-dot">.</span></span>
     </a>
     <nav class="topnav" aria-label="Main navigation">
-      <a href="/#tools">Tools</a><a href="/#privacy">Privacy</a><a href="/#how-it-works">How it works</a>
+      <a href="/#tools">Tools</a><a href="/#privacy">Privacy</a><a href="/#how-it-works">How it works</a><a href="/tools/cbse-result-analyzer/" data-country-gated="cbse-result-analyzer" hidden>CBSE Analyzer</a>
     </nav>
     <span class="privacy-pill"><span class="status-dot" aria-hidden="true"></span> Files stay on your device</span>
     <ThemeToggle />
@@ -59,5 +60,6 @@ import GlobalStyles from "../components/GlobalStyles.astro";
     const year = document.getElementById('year');
     if (year) year.textContent = String(new Date().getFullYear());
   </script>
+  <GeoGate />
 </body>
 </html>

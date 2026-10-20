@@ -304,6 +304,17 @@
       "input": ["application/pdf"],
       "output": ["application/pdf"],
       "privacy": "local-processing"
+    },
+    {
+      "id": "cbse-result-analyzer",
+      "name": "CBSE Result Analyzer",
+      "description": "Read a CBSE school or roll-number-wise result gazette and turn it into subject-wise marks, a pass percentage with a stated denominator, grade distributions, compartment statistics and downloadable reports. The interactive analyzer is offered to visitors in India; the guide is open to everyone.",
+      "url": "https://ilovemyfiles.com/tools/cbse-result-analyzer/",
+      "type": "tool",
+      "capabilities": ["cbse-result-analysis", "pdf-to-analytics", "ocr"],
+      "input": ["application/pdf", "text/plain"],
+      "output": ["application/pdf", "text/csv", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "image/png"],
+      "privacy": "local-processing"
     }
   ],
   "crawling": {

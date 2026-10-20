@@ -9,6 +9,9 @@
 
   let activeCategory = 'all';
   let term = '';
+  let gateAllowed = document.documentElement.dataset.countryGate === 'india';
+  const allCountNode = tabs?.querySelector('[data-filter="all"] span');
+  const baseCount = Number(allCountNode?.textContent ?? 0);
 
   if (grid && tabs && !tabs.dataset.initialized) {
   tabs.dataset.initialized = 'true';
@@ -16,6 +19,14 @@
   function filterTools(announce = false) {
     let visible = 0;
     for (const card of grid?.querySelectorAll('.tool-card') ?? []) {
+      if (card.dataset.countryGated) {
+        // India-only entry point: it is revealed by the country policy and it
+        // is listed under "All tools" only, so the category counts stay right.
+        const matches = gateAllowed && activeCategory === 'all';
+        card.hidden = !matches;
+        if (matches) visible++;
+        continue;
+      }
       const matches = (activeCategory === 'all' || card.dataset.category === activeCategory)
         && (card.dataset.search ?? '').includes(term);
       card.hidden = !matches;
@@ -26,6 +37,12 @@
       filterStatus.textContent = visible === 1 ? '1 tool shown' : `${visible} tools shown`;
     }
   }
+
+  document.addEventListener('cbse:gate', () => {
+    gateAllowed = document.documentElement.dataset.countryGate === 'india';
+    if (allCountNode) allCountNode.textContent = String(baseCount + (gateAllowed ? 1 : 0));
+    filterTools(false);
+  });
 
   tabs?.addEventListener('keydown', event => {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;

@@ -33,6 +33,7 @@ Free, private browser-based file tools for images and PDFs. Everything runs loca
 - [Barcode Generator](/barcode-generator/) — Generate barcodes as PNG
 - [Flatten PDF](/flatten-pdf/) — Render pages to images, removing text layer
 - [Make PDF Searchable](/make-pdf-searchable/) — Add selectable text layer to scanned PDFs
+- [CBSE Result Analyzer](/tools/cbse-result-analyzer/) — Turn a CBSE result gazette into marks, pass percentage and grade analytics (available to visitors in India)
 
 ## Privacy
 

@@ -1,0 +1,47 @@
+---
+---
+<script>
+  /**
+   * Reveals India-only entry points after the server has confirmed the
+   * visitor's country. The answer comes from the hosting provider's trusted
+   * country value, computed on the server. When detection fails the entry
+   * points stay hidden.
+   */
+  const GATE_ATTR = 'data-country-gated';
+  const EVENTS = ['cbse:gate'];
+
+  function gatedElements() {
+    return [...document.querySelectorAll(`[${GATE_ATTR}]`)];
+  }
+
+  function applyDecision(allowed) {
+    document.documentElement.dataset.countryGate = allowed ? 'india' : 'hidden';
+    for (const node of gatedElements()) {
+      node.hidden = !allowed;
+    }
+    for (const name of EVENTS) {
+      document.dispatchEvent(new CustomEvent(name, { detail: { allowed } }));
+    }
+  }
+
+  function start() {
+    const nodes = gatedElements();
+    if (!nodes.length) return;
+    applyDecision(false);
+    fetch('/api/geo.json', { headers: { Accept: 'application/json' } })
+      .then(response => (response.ok ? response.json() : null))
+      .then(payload => {
+        if (!payload) return;
+        applyDecision(Boolean(payload.showEntryPoint));
+      })
+      .catch(() => {
+        applyDecision(false);
+      });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once: true });
+  } else {
+    start();
+  }
+</script>

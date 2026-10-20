@@ -1,0 +1,258 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ToolStyles from '../../components/ToolStyles.astro';
+import CbseStyles from '../../components/CbseStyles.astro';
+import CbseAnalyzer from '../../components/CbseAnalyzer.astro';
+import CbseRuntime from '../../components/client/CbseRuntime.astro';
+
+export const prerender = false;
+
+const policy = Astro.locals.geo ?? {
+  region: 'unknown',
+  country: null,
+  showTool: false,
+  showEntryPoint: false,
+  indexable: true,
+  message: 'The interactive CBSE Result Analyzer is available to visitors in India.'
+};
+
+const title = 'CBSE Result Analyzer – Marks, Pass Percentage & School Analytics | iLoveMyFiles';
+const description = 'Analyze CBSE result gazettes with subject-wise marks, pass percentage, grade distribution, compartment statistics and downloadable reports.';
+const canonical = 'https://ilovemyfiles.com/tools/cbse-result-analyzer/';
+
+const faqs = [
+  {
+    question: 'Which CBSE result gazettes can I analyze?',
+    answer: 'School or roll-number-wise gazettes for the CBSE Class 10 (secondary) and Class 12 (senior secondary) examinations. The analyzer reads the school code, school name, region, gazette date, the subject codes of every candidate, the printed marks and grades, the printed result status and any compartment subject codes.'
+  },
+  {
+    question: 'What file formats are supported?',
+    answer: 'PDF and TXT. A text based PDF is read through its text layer, which keeps the printed columns aligned. A scanned PDF is recognised with on-device OCR. A TXT file that was exported from a gazette works the same way. CSV and Excel exports are not supported as an input yet.'
+  },
+  {
+    question: 'Is the pass percentage the same as the one printed in the gazette?',
+    answer: 'The analyzer recalculates every figure from the candidate records and prints the gazette total next to it, so any difference is visible. The headline pass percentage is passed candidates divided by appeared candidates, where appeared candidates are the total candidates minus the candidates printed as absent. Pass percentage over all candidates is shown as a second figure.'
+  },
+  {
+    question: 'Are my files uploaded to a server?',
+    answer: 'No. The gazette is read, parsed and analysed in your browser. Nothing is sent to iLoveMyFiles or to any third party, no account is needed, and the data is dropped from memory when you close the tab or press "Delete all data".'
+  },
+  {
+    question: 'Are student names and roll numbers published anywhere?',
+    answer: 'No. Aggregate analytics never contain a name or a roll number. Student level tables stay hidden until you unlock them for the current session, and exports keep them anonymised unless you have unlocked them. A gazette holds personal data, so treat the file and every export as confidential.'
+  },
+  {
+    question: 'How are the averages calculated?',
+    answer: 'Averages use numeric marks only. Absent candidates, blank cells and values that could not be read as a number are excluded and counted separately. Marks are never converted into a pass or a fail, and the printed result status is never changed.'
+  },
+  {
+    question: 'What if the gazette prints a grade that does not match the mark?',
+    answer: 'That is reported, not corrected. A gazette does not always say which quantity the grade was awarded on, so the analyzer first works out the grading basis of each subject by comparing the printed grades with the known CBSE grade tables. Where the basis is known, the grades are compared with the mark and any disagreement is reported with examples. Where the file does not disclose a basis, the grades are reported as printed and the check is reported as a warning rather than a failure.'
+  },
+  {
+    question: 'Why does a subject show a maximum that I did not set?',
+    answer: 'When the printed marks exceed the published maximum of a subject, the scale is inferred and clearly flagged as inferred. The published maximum is shown next to the field. Set the real maximum in the review step and the averages, percentages and charts are rebuilt. A maximum that the analyzer worked out on its own stays an inference, so the report always says where the scale came from.'
+  },
+  {
+    question: 'Who scored the highest marks?',
+    answer: 'The report opens with the top candidates, ranked by the printed marks as a percentage of the marks available to each candidate, with the total, the percentage and the mark of every subject next to it. You can widen the list to the top 5, 20 or 50. Names and roll numbers stay hidden until you unlock the records, exactly like the student list.'
+  },
+  {
+    question: 'Can I compare two schools or two years?',
+    answer: 'Yes. Upload more than one gazette and the analyzer adds a subject comparison chart across every file, which is useful for comparing a school over two years or a group of schools in one region.'
+  },
+  {
+    question: 'Is the analyzer available outside India?',
+    answer: 'The interactive analyzer is offered to visitors in India. The guide on this page, including the formats, the definitions and the sample output, is open to everyone.'
+  }
+];
+
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map(item => ({
+    '@type': 'Question',
+    name: item.question,
+    acceptedAnswer: { '@type': 'Answer', text: item.answer }
+  }))
+};
+
+const appJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'CBSE Result Analyzer',
+  applicationCategory: 'EducationalApplication',
+  operatingSystem: 'Any modern browser',
+  description,
+  url: canonical,
+  inLanguage: 'en-IN',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
+  featureList: [
+    'Subject-wise marks analytics',
+    'Pass percentage with an explicit denominator',
+    'Grade distribution by subject',
+    'Compartment and essential repeat statistics',
+    'Data quality review before the report is built',
+    'PDF, CSV, Excel and chart image exports'
+  ]
+};
+
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://ilovemyfiles.com/' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://ilovemyfiles.com/#tools' },
+    { '@type': 'ListItem', position: 3, name: 'CBSE Result Analyzer', item: canonical }
+  ]
+};
+---
+
+<BaseLayout>
+  <ToolStyles />
+  <CbseStyles />
+  <Fragment slot="head">
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content={policy.indexable ? 'index,follow' : 'noindex,follow'} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_IN" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="geo.region" content="IN" />
+    <script type="application/ld+json" set:html={JSON.stringify(appJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} />
+  </Fragment>
+
+  <section class="tool-view tool-page-view">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Home</a><span>/</span><a href="/#tools">Tools</a><span>/</span><span aria-current="page">CBSE Result Analyzer</span>
+  </nav>
+
+  <header class="tool-hero">
+    <span class="tool-icon tool-icon-lg icon-teal" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V9m5 10V5m5 14v-7m5 7V8"/></svg></span>
+    <div class="tool-hero-copy">
+      <div class="eyebrow">INDIA · CBSE RESULT ANALYTICS</div>
+      <h1>CBSE Result Analyzer</h1>
+      <p>Upload a CBSE result gazette and turn it into subject-wise marks, a pass percentage with a clear denominator, grade distributions, compartment statistics and downloadable reports. Everything is read in your browser.</p>
+      <span class="micro-trust"><span class="status-dot" aria-hidden="true"></span> Runs locally - the gazette is never uploaded</span>
+    </div>
+  </header>
+
+  {policy.showTool ? (
+    <CbseAnalyzer />
+  ) : (
+    <div class="cbse-region-note" role="note">
+      <b>The interactive analyzer is available to visitors in India</b>
+      <p>{policy.message}</p>
+      <ul class="cbse-region-list">
+        <li>The guide below explains every figure the tool produces and the exact definition behind it.</li>
+        <li>Nothing on this page asks for a login, and no student data is published here.</li>
+        <li>Search engines are welcome to read this page; the sample output below uses invented numbers, not real students.</li>
+      </ul>
+    </div>
+  )}
+
+  <div class="cbse-guide">
+    <section aria-labelledby="cbse-what">
+      <h2 id="cbse-what">What the CBSE Result Analyzer produces</h2>
+      <p>One gazette in, a complete picture of the class out. Every figure is recalculated from the candidate records and shown next to the total the gazette itself printed, so a mismatch can never hide.</p>
+      <div class="cbse-guide-grid">
+        <div class="cbse-guide-card"><b>Headline counts</b><span>Total candidates, passed, compartment, essential repeat, absent, other, and appeared candidates.</span></div>
+        <div class="cbse-guide-card"><b>Top candidates</b><span>The ten highest scoring candidates with their total, their percentage and the marks of every subject, with the top 5, 10, 20 or 50 on demand.</span></div>
+        <div class="cbse-guide-card"><b>Pass percentage</b><span>Passed divided by appeared candidates, and passed divided by all candidates, each with its denominator written out.</span></div>
+        <div class="cbse-guide-card"><b>Subject-wise marks</b><span>Valid records, average, median, lowest, highest, standard deviation and the average as a percentage.</span></div>
+        <div class="cbse-guide-card"><b>Grade distribution</b><span>Every printed grade, overall and split by subject, exactly as the gazette printed it.</span></div>
+        <div class="cbse-guide-card"><b>Compartment statistics</b><span>Which subjects candidates were held back in, counted per subject code.</span></div>
+        <div class="cbse-guide-card"><b>Score bands</b><span>Candidate totals and subject marks counted into bands you choose, from halves to bands of ten per cent.</span></div>
+        <div class="cbse-guide-card"><b>Grading basis</b><span>Which grade table the printed grades of each subject follow, worked out from the file itself.</span></div>
+        <div class="cbse-guide-card"><b>Data quality review</b><span>Duplicate roll numbers, missing marks, impossible marks, unusual subject orders and grades that disagree with the mark.</span></div>
+        <div class="cbse-guide-card"><b>Exports</b><span>A PDF summary report, CSV tables, an Excel workbook and every chart as a PNG image.</span></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="cbse-formats">
+      <h2 id="cbse-formats">Supported gazette formats</h2>
+      <p>The analyzer reads the school or roll-number-wise gazette that a school downloads from the CBSE result portal. It follows the printed column header, so the subject columns are read at their exact position and a candidate who was not offered one of the optional subjects is not shifted into the wrong column.</p>
+      <div class="cbse-guide-grid">
+        <div class="cbse-guide-card"><b>Text based PDF</b><span>Read through the PDF text layer, which keeps the printed monospace columns aligned.</span></div>
+        <div class="cbse-guide-card"><b>Scanned PDF</b><span>Recognised with on-device OCR when the PDF has no usable text layer. Lower confidence is reported.</span></div>
+        <div class="cbse-guide-card"><b>TXT export</b><span>A gazette exported as text works exactly like a PDF and parses with the highest confidence.</span></div>
+        <div class="cbse-guide-card"><b>Several files at once</b><span>Upload more than one gazette to compare subjects, schools or years side by side.</span></div>
+      </div>
+      <p><b>Also read from the gazette:</b> board, examination name, year, class, session, region, school code, school name, gazette date, the printed summary totals and the page count.</p>
+    </section>
+
+    <section aria-labelledby="cbse-sample">
+      <h2 id="cbse-sample">Sample analytics</h2>
+      <p>The figures below are an invented example, shown so you know what a finished report looks like. They are not taken from a real school and no student data is published on this page.</p>
+      <div class="cbse-sample" aria-label="Illustrative example of a finished CBSE result report">
+        <div><b>120</b><span>Candidates</span></div>
+        <div><b>112</b><span>Passed</span></div>
+        <div><b>5</b><span>Compartment</span></div>
+        <div><b>1</b><span>Essential repeat</span></div>
+        <div><b>2</b><span>Absent</span></div>
+        <div><b>93.3%</b><span>Pass % of appeared</span></div>
+        <div><b>94.9%</b><span>Pass % of all</span></div>
+        <div><b>5.0</b><span>Mean extraction confidence</span></div>
+      </div>
+      <p class="cbse-sample-note">Illustrative example only. Your own report always shows the source file name, the import date, the definitions and every data quality warning next to the numbers.</p>
+    </section>
+
+    <section aria-labelledby="cbse-definitions">
+      <h2 id="cbse-definitions">How each number is calculated</h2>
+      <p>Ambiguity in a result report is expensive, so every percentage in the analyzer names its denominator.</p>
+      <ul>
+        <li><b>Appeared candidates</b> = total candidates minus the candidates printed as absent. The result statuses are mutually exclusive, so a candidate is counted once.</li>
+        <li><b>Pass percentage</b> = passed candidates divided by appeared candidates, multiplied by 100.</li>
+        <li><b>Pass percentage of all candidates</b> = passed candidates divided by total candidates, multiplied by 100. Both figures are always shown, never mixed.</li>
+        <li><b>Subject averages</b> use numeric marks only. Absent candidates, blank cells and values that are not numbers are excluded and reported separately.</li>
+        <li><b>Top candidates</b> are ranked by the total of the printed marks as a percentage of the marks available to that candidate. Two candidates with the same percentage share a rank, and a candidate who was offered an optional subject is measured over the subjects they were actually offered.</li>
+        <li><b>Grades</b> are reported exactly as printed. A grade is never used to derive a pass or a fail, and a result status is never derived from marks.</li>
+        <li><b>Grade checks</b> compare a printed grade with a mark only when the grading basis of that subject is known, which means the printed grades follow a known CBSE grade table. A file that does not disclose its grading basis is reported as a warning, never as a failure of the extraction.</li>
+        <li><b>Subject maximums</b> come from the verified CBSE list. If the printed marks exceed that maximum, the scale is flagged as inferred and you can set the real maximum before the report is built.</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="cbse-privacy">
+      <h2 id="cbse-privacy">Privacy and data protection</h2>
+      <p>A result gazette is personal data. This tool is built so that it never becomes someone else's problem.</p>
+      <ul>
+        <li>The gazette is parsed in your browser. No file, no extracted text and no candidate record is sent to a server.</li>
+        <li>Nothing is written to a log, a cookie, local storage or a database, and the data is used to train nothing.</li>
+        <li>Aggregate analytics never contain a name or a roll number. Student tables stay hidden until you unlock them for the session, and exports stay anonymised unless you unlocked them.</li>
+        <li>"Delete all data" clears the analysis immediately, and closing the tab removes it completely.</li>
+        <li>The country check that decides whether the tool is offered is separate from any permission to look at a private record. Being in India does not unlock anybody else's data.</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="cbse-faq" class="cbse-faq">
+      <h2 id="cbse-faq">Frequently asked questions</h2>
+      {faqs.map(item => (
+        <details>
+          <summary>{item.question}</summary>
+          <p>{item.answer}</p>
+        </details>
+      ))}
+    </section>
+
+    <section class="cbse-cta" aria-labelledby="cbse-cta-title">
+      <div>
+        <h2 id="cbse-cta-title">Ready to read your gazette?</h2>
+        <p>Drop in the PDF or TXT file from the CBSE portal and get a full report in a few seconds.</p>
+      </div>
+      {policy.showTool ? (
+        <a class="button button-light" href="#cbse-app">Open the analyzer <span aria-hidden="true">↑</span></a>
+      ) : (
+        <a class="button button-light" href="/#tools">See all file tools <span aria-hidden="true">↗</span></a>
+      )}
+    </section>
+  </div>
+  </section>
+
+  <CbseRuntime />
+</BaseLayout>
