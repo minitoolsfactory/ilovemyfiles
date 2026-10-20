@@ -1,6 +1,5 @@
 ---
 import ThemeToggle from "../components/ThemeToggle.astro";
-import ClientRuntime from "../components/client/ClientRuntime.astro";
 import GlobalStyles from "../components/GlobalStyles.astro";
 ---
 <!doctype html>
@@ -34,7 +33,6 @@ import GlobalStyles from "../components/GlobalStyles.astro";
 
   <footer class="footer"><a class="brand footer-brand" href="/" aria-label="i♥MyFiles home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 3h11l7 7v19H8z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M19 3v8h7M12 17h10M12 22h7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span><span>i<span class="brand-heart">♥</span>MyFiles<span class="brand-dot">.</span></span></a><p>Useful file tools. Thoughtfully simple.</p><span>© <span id="year"></span> i<span class="brand-heart">♥</span>MyFiles</span></footer>
 
-  <ClientRuntime />
   <script>
     const year = document.getElementById('year');
     if (year) year.textContent = String(new Date().getFullYear());

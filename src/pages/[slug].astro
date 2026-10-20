@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import toolData from '../data/tools.json';
 import ToolSeoContent from '../components/ToolSeoContent.astro';
 import ToolWorkspace from '../components/ToolWorkspace.astro';
+import ClientRuntime from '../components/client/ClientRuntime.astro';
 
 const { TOOLS } = toolData;
 export function getStaticPaths() {
@@ -29,4 +30,5 @@ const tool = TOOLS.find(item => item.slug === slug);
       </ToolSeoContent>
     </section>
   )}
+  <ClientRuntime />
 </BaseLayout>

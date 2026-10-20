@@ -1,174 +1,271 @@
 # iLoveMyFiles
 
-**iLoveMyFiles** is a free, privacy-first online suite of browser-based tools for working with PDFs, images, text, and data — right in your browser, no upload required.
+**iLoveMyFiles** is a free, privacy-first suite of 29 browser-based tools for PDFs, images, text, and data. Files are processed locally on your device — the tools do not upload your documents or text to an iLoveMyFiles server, and no account or sign-up is required.
 
-Everything runs locally on your device. Your files never leave your computer, no server receives them, and no sign-up is required. Pick a tool, add your file or text, process it, and download the result.
+Pick a tool, add a file or paste text, adjust the options, run it, and download the result. Everything runs in the browser using JavaScript, WebAssembly, Canvas, and Web Crypto.
+
+## Highlights
+
+- **29 tools** across PDF organization, PDF optimization, PDF conversion, PDF editing, images, and data/text.
+- **Local processing** — files, text, and generated results stay in your browser.
+- **No account, no subscription, no usage limits.**
+- **Batch workflows** — multiple files, per-file settings, individual downloads, or ZIP bundles where supported.
+- **Live previews** — PDF page thumbnails, page selection, zoom, fit-to-page/fit-to-width, and full-screen preview.
+- **Session restore** — files and settings can be restored after a reload, with an explicit Restore or Discard choice.
+- **Recently used tools** — the last six tools you opened are remembered in your browser.
+- **Dark mode** — follows your system preference on first visit and remembers your choice.
+- **Keyboard and accessibility support** — semantic markup, visible focus styles, ARIA labels/live regions, dialog focus trapping, reduced-motion handling, and WCAG 2.2 AA-oriented colour contrast.
+- **No external font requests** — the interface uses a system font stack.
 
 ## How it works
 
-1. **Open a tool** from the home page or a tool category.
-2. **Add your input** — drop a file, paste text, or type a value, depending on the tool.
-3. **Configure options** — sizes, formats, ranges, quality levels, etc.
-4. **Process** — the work happens in your browser using client-side libraries.
-5. **Download** the result — individual files or a ZIP bundle where supported.
+1. Open a tool from the home page, a category, the Popular tools strip, or your Recently used list.
+2. Add input by dragging files onto the drop zone, using the file picker, pasting an image, or typing text.
+3. Adjust the available options — page size, orientation, margins, quality, format, page ranges, fonts, positions, and more.
+4. Run the tool. Processing happens locally in your browser.
+5. Preview the result where supported, then download individual files or a ZIP bundle.
 
-Because processing is local, large files may take longer depending on your device, but nothing is transmitted over the network (except the one-time download of the OCR engine on first use — see the OCR section).
+Large files can take longer depending on your device and available memory. Nothing is transmitted to a server for processing; see [Privacy, storage, and network activity](#privacy-storage-and-network-activity) for the few network requests the site does make.
 
-## Supported tools
+## Complete tool list
 
-Tools are grouped into five categories:
+The 29 tools are grouped into six categories:
 
-- [Organize PDF](#organize-pdf)
-- [Optimize PDF](#optimize-pdf)
-- [Convert PDF](#convert-pdf)
-- [Edit PDF](#edit-pdf)
-- [Image tools](#image-tools)
-- [Data & text](#data--text)
+- [Organize PDF](#organize-pdf) — 6 tools
+- [Optimize PDF](#optimize-pdf) — 2 tools
+- [Convert PDF](#convert-pdf) — 2 tools
+- [Edit PDF](#edit-pdf) — 4 tools
+- [Image tools](#image-tools) — 6 tools
+- [Data & text](#data--text) — 9 tools
 
 ### Organize PDF
 
-| Tool | What it does | Output |
+| Tool | Features | Output |
 | --- | --- | --- |
-| **Merge PDFs** (`merge-pdf`) | Combine two or more PDFs into one document. Reorder files with up/down buttons or drag-and-drop before processing. | One combined PDF |
-| **Split PDF** (`split-pdf`) | Extract pages into individual PDFs saved as a ZIP, or pull out a chosen page range into a single PDF. | ZIP of single-page PDFs, or one PDF |
-| **Delete PDF pages** (`delete-pdf-pages`) | Remove specific pages or page ranges from a document. At least one page must remain. | Trimmed PDF |
-| **Rotate PDF pages** (`rotate-pdf`) | Rotate all pages or selected pages by 90°, 180°, or 270°, clockwise or anticlockwise. | Rotated PDF |
-| **Resize PDF pages** (`resize-pdf`) | Change page size to A4, A3, A2, A1, A0, A5, A6, B5, B4, US Letter, US Legal, Tabloid, US Executive, US Statement, or Folio. Content is scaled to fit and centred; nothing is cropped. | Resized PDF |
-| **Organize PDF pages** (`organize-pdf-pages`) | Reorder pages by typing a new sequence (e.g. `3, 1, 2` or `1-3, 1`). Repeat a number to duplicate a page; omit one to remove it. | Reorganized PDF |
+| **Merge PDFs** (`merge-pdf`) | Combine two or more PDFs. Add, remove, and reorder files or individual pages with drag-and-drop, move controls, or keyboard controls. Live merged-page preview. Optional page size, orientation, margin, and output quality; original page size is kept by default. | One merged PDF |
+| **Split PDF** (`split-pdf`) | Split every page into its own PDF and download a ZIP, or extract selected pages/ranges into one PDF. Accepts multiple PDFs and splits each one separately. | ZIP of single-page PDFs or one extracted PDF |
+| **Delete PDF pages** (`delete-pdf-pages`) | Click pages in the preview to mark them for deletion, or type page numbers/ranges. At least one page must remain. | Trimmed PDF |
+| **Rotate PDF pages** (`rotate-pdf`) | Select a page in the preview and rotate it 90° counter-clockwise, 90° clockwise, or 180°. Each page keeps its own rotation; reset the current page when needed. | Rotated PDF |
+| **Resize PDF pages** (`resize-pdf`) | Change page size to A0–A6, B4, B5, US Letter, US Legal, Tabloid, US Executive, US Statement, or Folio. Choose portrait, landscape, or match each page, plus a margin. Content is scaled to fit and centred without cropping. | Resized PDF |
+| **Organize PDF pages** (`organize-pdf-pages`) | Type a new page order such as `3, 1, 2` or `1-3, 1`. Repeat a page number to duplicate it, use ranges, or omit pages to remove them. Live page preview. | Reorganized PDF |
 
 ### Optimize PDF
 
-| Tool | What it does | Output |
+| Tool | Features | Output |
 | --- | --- | --- |
-| **Compress PDF** (`compress-pdf`) | Shrink file size with three levels: Extreme, Recommended, or Less. Pages are re-rendered as images, so text is no longer selectable afterwards. If compression would make the file larger, the original is kept. | Smaller PDF |
-| **Remove PDF metadata** (`remove-pdf-metadata`) | Inspect document properties — title, author, subject, keywords, creator, producer, dates, language, and XMP — then select which to remove before downloading a cleaned copy. Page content, links, and annotations are untouched. | Cleaned PDF |
+| **Remove PDF metadata** (`remove-pdf-metadata`) | Inspect title, author, subject, keywords, creator application, PDF producer, creation/modification dates, document language, and XMP metadata before changing anything. Select individual properties, select all, or clear the selection, then confirm removal. Page content, links, annotations, and forms are preserved where supported. | Cleaned PDF |
+| **Compress PDF** (`compress-pdf`) | Three levels: Extreme, Recommended, and Less compression. Pages are re-rendered as images, trading text selectability for smaller size. If the result would be larger, the original file is kept. | Smaller PDF |
 
 ### Convert PDF
 
-| Tool | What it does | Output |
+| Tool | Features | Output |
 | --- | --- | --- |
-| **Images to PDF** (`image-to-pdf`) | Combine JPG, PNG, or WebP images into one PDF in the order shown (drag to reorder). Choose page size, orientation, margin, and EXIF orientation is applied automatically. | One PDF |
-| **PDF to images** (`pdf-to-images`) | Render each PDF page as a PNG or JPG image. Choose resolution (36–400 DPI) and export all pages or a page range. Download individually or as a ZIP. | PNG/JPG images |
+| **Images to PDF** (`image-to-pdf`) | Combine JPG, PNG, or WebP images into one PDF in the order shown. Reorder images, choose page size (Fit image, A3, A4, A5, B5, Letter, Legal, Tabloid, Executive), orientation, and margin. EXIF orientation is applied automatically. | One PDF |
+| **PDF to images** (`pdf-to-images`) | Render PDF pages as PNG or JPG at 36–400 DPI. Export every page or select pages/ranges in the preview. Download individually or as a ZIP. | PNG/JPG images or ZIP |
 
 ### Edit PDF
 
-| Tool | What it does | Output |
+| Tool | Features | Output |
 | --- | --- | --- |
-| **Add page numbers** (`add-page-numbers-pdf`) | Stamp sequential page numbers on every page. Choose position (top/bottom, left/centre/right), starting number, number format, font, size, and bold/italic/underline styling. | Numbered PDF |
-| **Watermark PDF** (`watermark-pdf`) | Add a diagonal text watermark to every page — useful for drafts, confidential copies, or branding. Control text, size, opacity, colour, font, rotation angle, and styling. | Watermarked PDF |
-| **Flatten PDF** (`flatten-pdf`) | Render each page to an image and rebuild the PDF so the original text layer is removed — text is no longer selectable, copyable, or searchable. Choose output resolution and JPEG quality or lossless PNG. **Note:** flattening does not make a document confidential; OCR can still read the page images. | Flattened PDF |
-| **Make PDF searchable** (`make-pdf-searchable`) | Turn scanned or image-only PDFs into searchable PDFs. OCR recognises text on every page and overlays an invisible, selectable text layer while keeping the original page look. Choose language, render resolution, and output quality. | Searchable PDF |
+| **Add page numbers** (`add-page-numbers-pdf`) | Add numbers to every page. Choose top/bottom and left/centre/right, starting number, format (`Page 1`, `Pg 1`, `- 1 -`, `1`, or custom text), font, size, and bold/italic/underline styling. | Numbered PDF |
+| **Watermark PDF** (`watermark-pdf`) | Add diagonal text to every page. Control the text, font, size, opacity, colour, bold/italic/underline styling, and rotation angle. | Watermarked PDF |
+| **Flatten PDF** (`flatten-pdf`) | Render each page to an image and rebuild the PDF, removing the selectable text layer. Choose 110/150/200/300 DPI and JPEG quality (60%, 80%, 92%) or lossless PNG. Useful for flattening forms and annotations, but it does not make a document confidential. | Flattened PDF |
+| **Make PDF searchable** (`make-pdf-searchable`) | Add an invisible, selectable OCR text layer to scanned/image-only PDFs while preserving the page appearance. Choose English, Spanish, French, German, Italian, Portuguese, Dutch, Swedish, Danish, Norwegian, or Finnish; choose 110–300 DPI and JPEG/PNG output quality. | Searchable PDF |
 
 ### Image tools
 
-| Tool | What it does | Output |
+All image tools support common browser-readable images and output to JPG, JPEG, PNG, WebP, BMP, GIF, ICO, SVG, and TIFF unless noted.
+
+| Tool | Features | Output |
 | --- | --- | --- |
-| **Image Extension converter** (`image-converter`) | Convert between JPG, PNG, WebP, BMP, GIF, ICO, SVG, and TIFF. Batch-convert many images at once and download them as a ZIP. Optional margin padding. | Converted images |
-| **Image compressor** (`compress-image`) | Reduce JPG/PNG/WebP file size with a quality slider (20–95%) or a target size in kilobytes (best-effort). Output as WebP or JPG. | Smaller images |
-| **Image Size compressor** (`resize-image`) | Resize images to exact pixel dimensions (up to 20,000 px per side) with optional aspect-ratio locking. Add an optional margin. Output as PNG, JPG, WebP, BMP, GIF, ICO, SVG, or TIFF. | Resized images |
-| **Crop image** (`crop-image`) | Drag a selection on a live preview to keep exactly the area you want. Lock aspect ratios (Free, 1:1, 4:3, 16:9, 3:4, 9:16) with live pixel dimensions. Optional margin and output format choice. | Cropped image |
-| **Rotate & flip** (`rotate-image`) | Rotate images by 90° counter-clockwise, 90° clockwise, or 180°, and flip horizontally or vertically. Output as PNG, JPG, WebP, BMP, GIF, ICO, SVG, or TIFF. | Rotated/flipped image |
-| **Watermark image** (`watermark-image`) | Stamp a text watermark onto images — copyright lines, branding, etc. Control text, colour, opacity, size, and one of nine positions (corners, edges, centre). Output as PNG, JPG, WebP, BMP, GIF, ICO, SVG, or TIFF. | Watermarked image |
+| **Image format converter** (`image-converter`) | Batch-convert images between JPG/JPEG, PNG, WebP, BMP, GIF, ICO, SVG, and TIFF. Optional margin padding. Download results individually or as a ZIP. | Converted images |
+| **Image compressor** (`compress-image`) | Reduce file size using a quality slider (20–95%) or a target size in KB (5–50,000 KB, best-effort). Quality mode applies to JPG/WebP; target-size mode works with the supported output formats. | Smaller images |
+| **Image resizer** (`resize-image`) | Set exact width and height up to 20,000 px per side, with optional aspect-ratio locking and margin padding. Per-image settings can be edited individually, applied to all images, or reset. | Resized images |
+| **Crop image** (`crop-image`) | Drag directly on the live preview to select the crop area. Free, 1:1, 4:3, 16:9, 3:4, and 9:16 aspect ratios, live pixel dimensions, optional margin, and output format choice. | Cropped image |
+| **Rotate & flip images** (`rotate-image`) | Rotate 90° counter-clockwise, 90° clockwise, or 180°, and flip horizontally or vertically. Live rotation readout, reset control, and output format choice. | Rotated/flipped image |
+| **Watermark image** (`watermark-image`) | Add a text watermark with selectable position (top-left, top-right, bottom-left, bottom-right, or centre), colour, opacity, size as a percentage of the image, and output format. | Watermarked image |
 
 ### Data & text
 
-| Tool | What it does | Output |
+| Tool | Features | Output |
 | --- | --- | --- |
-| **JSON formatter** (`json-formatter`) | Pretty-print or minify JSON with adjustable indentation (0–8 spaces). Validates input and reports readable error positions. | Formatted JSON |
-| **Base64 encoder** (`base64-encoder`) | Encode text to Base64 or decode Base64 back to readable text. UTF-8 safe, so accents and emoji survive the round trip. | Encoded/decoded text |
-| **Hash generator** (`hash-generator`) | Create SHA-256, SHA-384, or SHA-512 hashes from pasted text or dropped files (one hash per file). Runs locally with the Web Crypto API — useful for checksums and verification. | Hash strings |
-| **Word counter** (`word-counter`) | Count words, characters (with and without spaces), lines, sentences, and paragraphs, plus an estimated reading time (~200 words/minute). | Text statistics |
-| **JSON ↔ CSV** (`json-to-csv`) | Convert a JSON array of objects to CSV, or a CSV table with a header row back to JSON. Values are quoted and escaped correctly, including commas inside values. | Converted table data |
-| **Unit converter** (`unit-converter`) | Convert data size (bytes, 1024-based), length (metres), mass (grams), and time (seconds). Enter a value in the base unit and instantly see every other unit in the category. | Converted values |
-| **OCR - image & PDF** (`ocr`) | Extract selectable text from an image or PDF using Tesseract.js running in your browser (WebAssembly). Choose from English, Spanish, French, German, Italian, Portuguese, Dutch, Russian, Arabic, Simplified Chinese, or Japanese. The engine and language data download once on first use and are cached. | Recognised text file |
-| **QR code generator** (`qr-code-generator`) | Turn any link or text into a scannable QR code. Choose error-correction level (Low, Medium, Quartile, High) and pixel size. Download as PNG. | QR code PNG |
-| **Barcode generator** (`barcode-generator`) | Generate 1D barcodes as PNG images. Supports Code 128, EAN-13, UPC-A, Code 39, and ITF-14 with adjustable bar width and height. | Barcode PNG |
+| **JSON formatter** (`json-formatter`) | Pretty-print or minify JSON with indentation from 0–8 spaces. Validates input and reports readable error positions. | Formatted or minified JSON |
+| **Base64 encoder** (`base64-encoder`) | Encode UTF-8 text to Base64 or decode Base64 back to text. Accents and emoji survive the round trip. | Encoded or decoded text |
+| **Hash generator** (`hash-generator`) | Create SHA-256, SHA-384, or SHA-512 hashes from pasted text or dropped files. Multiple files produce one hash per file. Uses the Web Crypto API locally. | Hash strings |
+| **Word counter** (`word-counter`) | Count words, characters (with and without spaces), lines, sentences, and paragraphs, plus estimated reading time at roughly 200 words/minute. | Text statistics |
+| **JSON ↔ CSV** (`json-to-csv`) | Convert a JSON array of objects to CSV, or a CSV table with a header row to JSON. Handles quoted values, commas, and escaping. | Converted data |
+| **Unit converter** (`unit-converter`) | Convert data size (bytes, KB, MB, GB, TB; 1024-based), length (metres), mass (grams), and time (seconds) into every unit in the selected category. | Converted values |
+| **OCR — image & PDF** (`ocr`) | Extract text from an image or PDF with Tesseract.js. Languages: English, Spanish, French, German, Italian, Portuguese, Dutch, Russian, Arabic, Simplified Chinese, and Japanese. The engine/language data download once on first use and are cached. | Recognised text |
+| **QR code generator** (`qr-code-generator`) | Turn text or a URL into a QR code. Choose error-correction level (L, M, Q, H) and pixel size. Download as PNG. | QR code PNG |
+| **Barcode generator** (`barcode-generator`) | Generate 1D barcodes as PNG. Supports Code 128, EAN-13, UPC-A, Code 39, and ITF-14 with adjustable bar width and height. | Barcode PNG |
 
-## Key features across all tools
+## Shared features
 
-- **100% client-side processing** — files and text are handled entirely in your browser. Nothing is uploaded to a server.
-- **No sign-up, no accounts** — open any tool and start using it immediately.
-- **Free to use** — no subscriptions, no usage limits, no watermarks added by iLoveMyFiles.
-- **Drag-and-drop file input** — most file-based tools accept drag-and-drop as well as the file picker.
-- **Batch processing** — several tools accept multiple files at once (merge, split across multiple files, image converter, hash generator).
-- **Download as ZIP** — split PDF and image converter let you download many results in a single ZIP archive.
-- **Preview before processing** — several tools show page previews so you can select pages visually.
-- **Dark mode** — the site supports a theme toggle for light and dark interfaces.
+### Home page and discovery
 
-## Privacy and security
+- **Popular tools** strip for quick access to frequently used tools.
+- **Recently used tools** — the six most recently opened tools, stored locally in your browser and clearable from the home page.
+- **Live search** across tool names, descriptions, and keywords.
+- **Category filters** with tool counts, `aria-pressed` state, keyboard Arrow/Home/End navigation, and an announced result count.
+- **No-results message** and accessible status updates when the filtered list changes.
 
-- Your files never leave your device. Processing happens locally in the browser.
-- No file contents are sent to any server.
-- The only network fetch is the one-time download of the OCR engine and language data (Tesseract.js via WebAssembly) when you first use an OCR tool; after that it is cached by your browser.
-- iLoveMyFiles does not store your files, does not require an account, and does not track usage beyond standard web analytics.
-- Cloudflare Pages serves a restrictive Content Security Policy with Trusted Types enforcement, and an HSTS policy configured for preload. OCR assets and optional Google Fonts are explicitly allowed by the policy.
+### File input and processing
 
-**Caveats:**
-- Compressing, flattening, or converting PDFs to images makes text no longer selectable or searchable.
-- Flattening a PDF removes the selectable text layer but does **not** make a document confidential — OCR can still recover text from page images, and metadata or annotations may remain.
-- SVG image output wraps the image in an SVG container; it does not trace the image into vector paths.
+- Drag-and-drop, file-picker, and keyboard activation of the drop zone.
+- Paste an image directly with ⌘/Ctrl + V where supported.
+- Multi-file input for tools that support batches.
+- Replace the current file or clear all files and start over.
+- Per-file settings for image resize, with Apply to all and Reset actions.
+- Progress reporting with an accessible progress bar and status messages.
+- Results region with labelled download controls.
+- Individual downloads or ZIP bundles where supported.
+
+### Preview workspace
+
+- PDF page thumbnails and a file strip for multi-file tools.
+- Click pages to select them for page-based operations.
+- Previous/next page and previous/next document navigation.
+- Zoom in/out, fit width, fit page, and full-screen preview.
+- Page and document counters with live-region announcements.
+- Replace/clear file controls without leaving the workspace.
+
+### Sessions and persistence
+
+- The current tool's files and settings are saved locally in IndexedDB shortly after changes.
+- Returning to a tool shows a **Previous session found** banner with **Restore session** and **Discard** options.
+- Session restoration includes files, page selections, per-page rotations, image settings, merge order, text input, and generated output where applicable.
+- PDF preview thumbnails are cached locally, up to 24 previews per tool.
+- Session saving is best-effort and may be unavailable in private browsing, when storage is blocked, or when the browser's storage quota is exceeded.
+
+### Appearance and accessibility
+
+- Light and dark themes, initialised from the system preference and saved locally.
+- Reduced-motion support disables transitions and animations when requested.
+- Keyboard-operable tabs, dialogs, tiles, filters, and preview controls.
+- Dialog focus trapping and focus return.
+- Visible focus indicators and minimum target sizes for small controls.
+- Semantic headings, lists, landmarks, and live regions.
+- No external font downloads.
+
+## Privacy, storage, and network activity
+
+### Local processing
+
+- File contents and pasted text are processed in your browser.
+- Files are not uploaded to an iLoveMyFiles server for processing.
+- Generated results are created as browser blobs for download.
+
+### What is stored in your browser
+
+- **IndexedDB** (`ilovemyfiles-sessions`): saved session metadata, file blobs, and cached PDF previews for session restore.
+- **localStorage**: theme choice (`ilovemyfiles-theme`), recently used tools (`ilovemyfiles-recent-tools`), and recently used fonts.
+- Saved sessions and files remain in your browser until you discard the session, clear site data, or the browser removes them. Use **Discard** and clear site data on shared devices.
+
+### Third-party requests
+
+- **Google AdSense** loads an advertising script (`adsbygoogle.js`) on pages. Google and its advertising partners may use cookies or device data as described in their own policies. File contents and pasted text are not sent to the ad network by these tools.
+- **OCR** downloads the Tesseract.js engine and language data from a CDN on first use; the browser caches them.
+- **PDF rendering** uses a bundled PDF.js worker served from the same site.
+- The site does not include a first-party analytics script.
+
+### Security headers
+
+`public/_headers` configures:
+
+- a Content Security Policy restricting scripts, frames, images, and connections to the required origins;
+- `Strict-Transport-Security` with `includeSubDomains` and `preload`;
+- `X-Content-Type-Options: nosniff`;
+- `X-Frame-Options: DENY`;
+- `Cross-Origin-Opener-Policy: same-origin`;
+- `Referrer-Policy: no-referrer`.
+
+## Caveats and limitations
+
+- **Browser memory is the limit.** Very large PDFs or images may be slow, fail, or need a desktop browser with more memory. Metadata inspection and PDF text-layer conversion work best under 250 MB.
+- **Compression, flattening, and PDF-to-image conversion rasterise pages.** Existing text becomes unselectable and unsearchable.
+- **Flattening is not redaction.** OCR can still read rendered page images, and metadata or annotations may remain.
+- **Compressing may increase size.** If compression would make a PDF larger, the original is kept.
+- **OCR accuracy varies** with scan quality, resolution, language, and page layout.
+- **SVG output wraps the rendered image in an SVG container.** It does not convert the image into traced vector paths.
+- **Session restore depends on browser storage.** Private windows, blocked storage, and quota limits can prevent persistence.
+- **Ads may be blocked.** Ad blockers can prevent AdSense from loading; this does not affect the tools.
 
 ## Tech stack
 
-- **Astro** — static site generator, server-rendered pages and components.
-- **pdf-lib** — PDF creation and manipulation (merge, split, delete, rotate, resize, organize, page numbers, watermark, remove metadata).
-- **pdfjs-dist** — PDF rendering and page previews.
+- **Astro 5** with the **Cloudflare adapter** — static page generation, routing, and deployment.
+- **pdf-lib** — PDF creation and manipulation: merge, split, delete, rotate, resize, organize, page numbers, watermarks, metadata removal, searchable text layers.
+- **pdfjs-dist** — PDF rendering, thumbnails, previews, and text extraction.
 - **Tesseract.js** — on-device OCR for images and PDFs.
-- **jszip** — ZIP archives for split PDF and batch image downloads.
+- **jszip** — ZIP archives for split PDFs and batch image downloads.
 - **jsbarcode** — 1D barcode generation.
 - **qrcode-generator** — QR code generation.
 - **gifenc** — GIF encoding for image conversion.
+- **Canvas, Web Crypto, IndexedDB, and localStorage** — image processing, hashing, session restore, and preferences.
+- **axe-core and Puppeteer** (dev dependencies) — accessibility and browser automation audits.
+- **Node.js 22.22+** for development and builds.
 
 ## Getting started
 
-### Development
-
 ```bash
+npm install
 npm run dev        # start the Astro dev server
 npm run build      # build the static site into dist/
-npm run preview    # preview the production build locally
+npm run preview    # build, then run the Cloudflare/Wrangler preview
 npm run deploy     # build and deploy to Cloudflare Pages
 ```
 
 The dev server can be started in background mode with `astro dev --background` and managed with `astro dev stop`, `astro dev status`, and `astro dev logs`.
 
-### Project structure
+## Project structure
 
 ```
 src/
   pages/
-    index.astro          # home page with all tools
-    [slug].astro         # per-tool landing pages
+    index.astro          # home page, search, categories, popular/recent tools
+    [slug].astro         # generated per-tool landing pages
   layouts/
-    BaseLayout.astro     # shared page layout
+    BaseLayout.astro     # shared shell, header, footer, theme, ads
   components/
-    ToolLauncher.astro
-    ToolOptions.astro
+    ToolWorkspace.astro  # tool page shell, drop zone, session banner, results
+    ToolOptions.astro    # renders per-tool controls
+    ToolSeoContent.astro # tool page headings, breadcrumbs, SEO content
     PreviewWorkspace.astro
     MergeWorkspace.astro
     CropEditor.astro
-    ...and more UI components
-  components/client/     # browser-side interaction & file processing
-    pdf-tools.astro
-    image-tools.astro
-    data-tools.astro
-    ocr.astro
-    font-picker.astro
-    ...and more
+    HomeToolFilters.astro
+    ThemeToggle.astro
+    GlobalStyles.astro
+    client/              # browser-side logic, loaded on tool pages
+      ClientRuntime.astro
+      tool-dialog.astro
+      pdf-tools.astro
+      image-tools.astro
+      metadata-tools.astro
+      data-tools.astro
+      ocr.astro
+      generator-tools.astro
+      preview-workspace.astro
+      merge-workspace.astro
+      crop-editor.astro
+      session-store.astro
+      font-picker.astro
+      dialog-focus-trap.astro
+      ...and supporting modules
   data/
-    tools.json           # tool registry: titles, categories, SEO content
-    tool-config.json     # per-tool input options and controls
-public/                  # static assets
+    tools.json           # tool registry: IDs, categories, card/SEO copy, icons
+    tool-config.json     # per-tool descriptions, accepted files, and option markup
+public/                  # favicon, headers, robots.txt, sitemap, llms.txt
 ```
 
 ## Contributing
 
-iLoveMyFiles is an Astro project. To add or modify a tool:
+To add or modify a tool:
 
-1. Add an entry to `src/data/tools.json` (category, card text, SEO content, keywords).
-2. Add input options to `src/data/tool-config.json` keyed by the tool slug.
-3. Implement or extend the browser-side logic in the relevant `src/components/client/*.astro` component.
-4. Run `npm run build` to verify the static build, then `npm run preview` to test locally.
+1. Add an entry to `src/data/tools.json` (ID, slug, category, card text, SEO content, keywords, icon).
+2. Add the tool's input options to `src/data/tool-config.json`, keyed by the **tool ID** used in `tools.json`.
+3. Implement or extend the browser-side logic in the relevant `src/components/client/*.astro` module.
+4. Reuse the shared preview, session, download, and progress helpers where possible.
+5. Run `npm run build` to verify the static build, then `npm run preview` to test locally.
 
 ## License
 
