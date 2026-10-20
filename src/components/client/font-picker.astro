@@ -76,6 +76,7 @@
     const list = el('ul', 'font-picker-list');
     list.setAttribute('role', 'listbox');
     list.setAttribute('aria-label', label);
+    list.tabIndex = 0;
     const empty = el('li', 'font-picker-empty', 'No matching fonts');
     empty.hidden = true;
     panel.append(search, list, empty);
@@ -92,6 +93,7 @@
       const font = registry.getFont(current);
       const px = options.triggerPx || 14;
       currentLabel.textContent = font ? font.label : current;
+      trigger.setAttribute('aria-label', `${label}: ${font ? font.label : current}`);
       currentLabel.style.font = fontStyleFor(font || { css: 'inherit' }, px);
     }
 
@@ -216,7 +218,7 @@
 
     search.addEventListener('input', () => { renderList(); });
 
-    search.addEventListener('keydown', event => {
+    const handleListKeys = event => {
       if (event.key === 'ArrowDown') { event.preventDefault(); setActive(activeIndex + 1); }
       else if (event.key === 'ArrowUp') { event.preventDefault(); setActive(activeIndex - 1); }
       else if (event.key === 'Home') { event.preventDefault(); setActive(0); }
@@ -226,7 +228,9 @@
         const font = flat[activeIndex];
         if (font) select(font.id);
       } else if (event.key === 'Escape') { event.preventDefault(); setOpen(false); trigger.focus(); }
-    });
+    };
+    search.addEventListener('keydown', handleListKeys);
+    list.addEventListener('keydown', handleListKeys);
 
     trigger.addEventListener('keydown', event => {
       if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {

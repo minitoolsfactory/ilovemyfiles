@@ -21,7 +21,7 @@ const clientConfig = { [tool.id]: Object.fromEntries(Object.entries(toolConfig[t
       </div>
       <a class="tool-back-link" href="/#tools">← All tools</a>
     </header>
-    <div class="session-banner" id="session-banner" hidden>
+    <div class="session-banner" id="session-banner" role="status" aria-live="polite" hidden>
       <div class="session-banner-copy">
         <b>Previous session found</b>
         <p id="session-banner-text">Restore your files and settings where they left off.</p>
@@ -32,12 +32,12 @@ const clientConfig = { [tool.id]: Object.fromEntries(Object.entries(toolConfig[t
       </div>
     </div>
     <div class="wb-body">
-      <section class="wb-stage" id="tool-stage">
+      <section class="wb-stage" id="tool-stage" aria-label="File workspace">
         <div class="wb-stage-inner">
-          <div class="drop-zone" id="drop-zone" tabindex="0" role="button" aria-label="Choose or drop files">
+          <div class="drop-zone" id="drop-zone" tabindex="0" role="button">
             <input id="file-input" type="file" multiple hidden>
-            <div class="upload-icon">↥</div>
-            <b>Drop files here, or <span>browse</span></b>
+            <div class="upload-icon" aria-hidden="true">↥</div>
+            <b id="drop-zone-title">Drop files here, or <span>browse</span></b>
             <p id="file-hint">Choose files from your device</p>
             <p class="drop-paste" id="drop-paste" hidden>Tip: paste an image with ⌘/Ctrl + V</p>
           </div>
@@ -62,13 +62,13 @@ const clientConfig = { [tool.id]: Object.fromEntries(Object.entries(toolConfig[t
           <div id="selected-files" class="selected-files" aria-live="polite"></div>
           <div class="progress-wrap" id="progress-wrap" hidden>
             <div class="progress-head"><span id="progress-label">Processing files…</span><span id="progress-percent">0%</span></div>
-            <div class="progress-track"><span id="progress-bar"></span></div>
+            <div class="progress-track" id="progress-track" role="progressbar" aria-label="Processing progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="progress-bar"></span></div>
           </div>
           <div id="status-message" class="status-message" role="status" aria-live="polite" hidden></div>
-          <div id="results" class="results" hidden></div>
+          <div id="results" class="results" role="region" aria-label="Results" hidden></div>
         </div>
         <div class="wb-side-foot">
-          <span class="local-note"><span class="status-dot"></span> Processed on your device</span>
+          <span class="local-note"><span class="status-dot" aria-hidden="true"></span> Processed on your device</span>
           <button type="button" class="button button-primary" id="run-tool" disabled>Choose files to start <span aria-hidden="true">→</span></button>
           <button type="button" class="session-clear" id="clear-session">Clear saved session</button>
           <p class="session-note">Sessions are saved in this browser on a best-effort basis. Clearing browser data removes them.</p>
@@ -80,7 +80,7 @@ const clientConfig = { [tool.id]: Object.fromEntries(Object.entries(toolConfig[t
 
 <dialog class="preview-dialog" id="preview-dialog" aria-labelledby="preview-title">
   <div class="preview-head"><b id="preview-title">Preview</b><button type="button" class="icon-button" id="preview-close" aria-label="Close preview">×</button></div>
-  <div class="preview-stage" id="preview-stage"></div>
+  <div class="preview-stage" id="preview-stage" role="region" aria-label="Full-size preview"></div>
 </dialog>
 <dialog class="confirm-dialog" id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-note">
   <div class="confirm-head"><b id="confirm-title">Confirm metadata removal</b><button type="button" class="icon-button" id="confirm-close" aria-label="Cancel">×</button></div>

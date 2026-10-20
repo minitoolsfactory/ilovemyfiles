@@ -5,6 +5,7 @@
   const tabs = document.querySelector('#category-tabs');
   const search = document.querySelector('#tool-search');
   const noResults = document.querySelector('#no-results');
+  const filterStatus = document.querySelector('#filter-status');
 
   let activeCategory = 'all';
   let term = '';
@@ -12,7 +13,7 @@
   if (grid && tabs && !tabs.dataset.initialized) {
   tabs.dataset.initialized = 'true';
 
-  function filterTools() {
+  function filterTools(announce = false) {
     let visible = 0;
     for (const card of grid?.querySelectorAll('.tool-card') ?? []) {
       const matches = (activeCategory === 'all' || card.dataset.category === activeCategory)
@@ -21,7 +22,26 @@
       if (matches) visible++;
     }
     if (noResults) noResults.hidden = visible > 0;
+    if (announce && filterStatus) {
+      filterStatus.textContent = visible === 1 ? '1 tool shown' : `${visible} tools shown`;
+    }
   }
+
+  tabs?.addEventListener('keydown', event => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    const buttons = [...tabs.querySelectorAll('button[data-filter]')];
+    if (!buttons.length) return;
+    const index = buttons.indexOf(document.activeElement);
+    if (index < 0) return;
+    event.preventDefault();
+    let next = index;
+    if (event.key === 'ArrowLeft') next = (index - 1 + buttons.length) % buttons.length;
+    if (event.key === 'ArrowRight') next = (index + 1) % buttons.length;
+    if (event.key === 'Home') next = 0;
+    if (event.key === 'End') next = buttons.length - 1;
+    buttons[next].focus();
+    buttons[next].click();
+  });
 
   tabs?.addEventListener('click', event => {
     const button = event.target.closest('button[data-filter]');
@@ -32,12 +52,12 @@
       tab.classList.toggle('active', active);
       tab.setAttribute('aria-pressed', String(active));
     });
-    filterTools();
+    filterTools(true);
   });
 
   search?.addEventListener('input', () => {
     term = search.value.trim().toLowerCase();
-    filterTools();
+    filterTools(true);
   });
   filterTools();
   }

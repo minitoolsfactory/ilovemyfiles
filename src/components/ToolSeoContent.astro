@@ -5,7 +5,7 @@ const { tool } = Astro.props;
 const { CATEGORIES, TOOLS } = toolData;
 const category = CATEGORIES.find(item => item.id === tool.category)?.label ?? 'Tool';
 const related = tool.seo.related.map(id => TOOLS.find(item => item.id === id)).filter(Boolean);
-const icon = (item, large = false) => `<span class="tool-icon icon-${item.icon}${large ? ' tool-icon-lg' : ''}"><svg viewBox="0 0 24 24">${item.svg}</svg></span>`;
+const icon = (item, large = false) => `<span class="tool-icon icon-${item.icon}${large ? ' tool-icon-lg' : ''}" aria-hidden="true"><svg viewBox="0 0 24 24">${item.svg}</svg></span>`;
 ---
 
 <nav class="breadcrumb" aria-label="Breadcrumb">
@@ -17,7 +17,7 @@ const icon = (item, large = false) => `<span class="tool-icon icon-${item.icon}$
     <div class="eyebrow">{category}</div>
     <h1>{tool.cardTitle}</h1>
     <p>{tool.seo.intro}</p>
-    <span class="micro-trust"><span class="status-dot"></span> Runs in your browser - files are never uploaded</span>
+    <span class="micro-trust"><span class="status-dot" aria-hidden="true"></span> Runs in your browser - files are never uploaded</span>
   </div>
 </header>
 <slot />

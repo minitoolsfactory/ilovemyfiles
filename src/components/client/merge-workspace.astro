@@ -83,13 +83,17 @@
   
     const panes = el('div', 'merge-panes');
     const preview = el('div', 'merge-preview');
+    preview.setAttribute('role', 'region');
     preview.setAttribute('aria-label', 'Merged document preview');
+    preview.tabIndex = 0;
     const board = el('div', 'merge-board');
     board.setAttribute('role', 'list');
     board.setAttribute('aria-label', 'Page order');
     panes.append(preview, board);
   
     const status = el('div', 'merge-status');
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
     status.hidden = true;
   
     container.append(bar, panes, status);
@@ -573,14 +577,26 @@
       preview.append(pages);
       updateSummary();
       observeLazy();
-      if (activeNode) { activeNode.tile.classList.add('active'); activeNode.pageEl.classList.add('active'); }
+      if (activeNode) {
+        activeNode.tile.classList.add('active');
+        activeNode.pageEl.classList.add('active');
+        activeNode.tile.setAttribute('aria-current', 'true');
+        activeNode.pageEl.setAttribute('aria-current', 'true');
+      }
     }
   
     function focusNode(node, scroll = true, toNode = true) {
-      nodes.forEach(n => { n.tile.classList.remove('active'); n.pageEl.classList.remove('active'); });
+      nodes.forEach(n => {
+        n.tile.classList.remove('active');
+        n.pageEl.classList.remove('active');
+        n.tile.removeAttribute('aria-current');
+        n.pageEl.removeAttribute('aria-current');
+      });
       activeNode = node;
       node.tile.classList.add('active');
       node.pageEl.classList.add('active');
+      node.tile.setAttribute('aria-current', 'true');
+      node.pageEl.setAttribute('aria-current', 'true');
       ensureRendered(node, true, 2);
       ensureRendered(node, false);
       if (toNode) node.tile.focus({ preventScroll: true });

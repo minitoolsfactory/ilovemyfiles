@@ -96,6 +96,7 @@
       this.docPrevBtn.type = 'button';
       this.docPrevBtn.setAttribute('aria-label', 'Previous document');
       this.docLabel = el('span', 'pv-doclabel', '');
+      this.docLabel.setAttribute('aria-live', 'polite');
       this.docNextBtn = el('button', 'pv-icon-btn', '›');
       this.docNextBtn.type = 'button';
       this.docNextBtn.setAttribute('aria-label', 'Next document');
@@ -107,6 +108,8 @@
       this.prevBtn.type = 'button';
       this.prevBtn.setAttribute('aria-label', 'Previous page');
       this.pageNo = el('span', 'pv-pageno', '1 / 1');
+      this.pageNo.setAttribute('aria-live', 'polite');
+      this.pageNo.setAttribute('aria-atomic', 'true');
       this.nextBtn = el('button', 'pv-icon-btn', '›');
       this.nextBtn.type = 'button';
       this.nextBtn.setAttribute('aria-label', 'Next page');
@@ -168,6 +171,8 @@
   
       this.viewport = el('div', 'pv-viewport');
       this.viewport.tabIndex = 0;
+      this.viewport.setAttribute('role', 'region');
+      this.viewport.setAttribute('aria-label', 'Document preview');
       this.pagesBox = el('div', 'pv-pages');
       this.pagesBox.addEventListener('click', event => {
         if (!this.pageClickSelect || this.kind !== 'pdf') return;
@@ -202,10 +207,13 @@
   
       this.statusEl = el('div', 'pv-status');
       this.statusEl.hidden = true;
+      this.statusEl.setAttribute('role', 'status');
+      this.statusEl.setAttribute('aria-live', 'polite');
       this.viewport.append(this.statusEl);
   
       this.thumbsBox = el('div', 'pv-thumbs');
       this.thumbsBox.hidden = true;
+      this.thumbsBox.setAttribute('role', 'group');
       this.thumbsBox.setAttribute('aria-label', 'Page thumbnails');
       this.thumbsBox.addEventListener('dragover', event => {
         if (this._pageDragFrom === null) return;
@@ -221,6 +229,7 @@
   
       this.filestripBox = el('div', 'pv-filestrip');
       this.filestripBox.hidden = true;
+      this.filestripBox.setAttribute('role', 'group');
       this.filestripBox.setAttribute('aria-label', 'Files in this tool');
       this._dragFrom = null;
       this.filestripBox.addEventListener('dragover', event => {
@@ -312,7 +321,7 @@
       this.addFilesBtn.hidden = !fn;
       this.addFilesBtn.textContent = replace ? 'Replace file' : '+ Add';
       this.addFilesBtn.title = replace ? 'Choose a different file' : 'Add more files';
-      this.addFilesBtn.setAttribute('aria-label', replace ? 'Replace the current file' : 'Add more files');
+      this.addFilesBtn.setAttribute('aria-label', replace ? '+ Replace the current file' : '+ Add more files');
     }
   
     setClearFilesHandler(fn) {
@@ -357,6 +366,7 @@
       this.clear();
       this.kind = 'pdf';
       this.file = file;
+      this.viewport.setAttribute('aria-label', `PDF preview: ${file.name}`);
       const loadToken = this._pdfLoadToken = (this._pdfLoadToken || 0) + 1;
       this.selectable = opts.selectable || null;
       this.showStatus('Loading document…');
@@ -457,8 +467,11 @@
       for (const meta of this.pages) {
         const wrapper = el('div', 'pv-page');
         wrapper.dataset.page = String(meta.num);
+        wrapper.setAttribute('role', 'group');
+        wrapper.setAttribute('aria-label', `Page ${meta.num} of ${this.pageCount}`);
         const content = el('div', 'pv-page-content');
         const badge = el('span', 'pv-page-badge', String(meta.num));
+        badge.setAttribute('aria-hidden', 'true');
         wrapper.append(content, badge);
         meta.el = wrapper;
         meta.content = content;
@@ -608,10 +621,18 @@
       if (best !== this.active) this._setActivePage(best);
     }
   
-    _updatePageno() { this.pageNo.textContent = `${this.active} / ${this.pageCount}`; }
+    _updatePageno() {
+      this.pageNo.textContent = `${this.active} / ${this.pageCount}`;
+      this.pageNo.setAttribute('aria-label', `Page ${this.active} of ${this.pageCount}`);
+    }
 
     _updateActivePageVisuals() {
-      for (const meta of this.pages) meta.el?.classList.toggle('pv-page-current', meta.num === this.active);
+      for (const meta of this.pages) {
+        const active = meta.num === this.active;
+        meta.el?.classList.toggle('pv-page-current', active);
+        if (active) meta.el?.setAttribute('aria-current', 'page');
+        else meta.el?.removeAttribute('aria-current');
+      }
       this._updateThumbActive();
     }
 
@@ -1248,6 +1269,7 @@
       this.kind = 'image';
       this.file = file;
       this.root.classList.add('pv-kind-image');
+      this.viewport.setAttribute('aria-label', `Image preview: ${opts.name || file.name}`);
       this.clearStatus();
       const token = ++this._imageToken;
       const resource = await this._loadImageFile(file);
@@ -1546,6 +1568,7 @@
       this.processedImageCache.clear();
       this.root.classList.remove('pv-kind-image');
       this.kind = null; this.pageCount = 0; this.active = 1;
+      this.viewport.setAttribute('aria-label', 'Document preview');
       this.zoom = 1; this.zoomMode = this._preferredZoomMode;
       this.imageOriginalUrl = null; this.imageProcessedUrl = null;
       this.processedWidth = 0; this.processedHeight = 0; this._imageToken++;

@@ -1,0 +1,31 @@
+<script>
+  const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), iframe, [tabindex]:not([tabindex="-1"])';
+
+  function visibleFocusables(dialog) {
+    return [...dialog.querySelectorAll(FOCUSABLE)].filter(el => el.getClientRects().length > 0);
+  }
+
+  function installTrap(dialog) {
+    if (dialog.dataset.focusTrap === 'true') return;
+    dialog.dataset.focusTrap = 'true';
+    dialog.addEventListener('keydown', event => {
+      if (event.key !== 'Tab') return;
+      const focusables = visibleFocusables(dialog);
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (!dialog.contains(document.activeElement)) {
+        event.preventDefault();
+        first.focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
+  }
+
+  document.querySelectorAll('dialog').forEach(installTrap);
+</script>

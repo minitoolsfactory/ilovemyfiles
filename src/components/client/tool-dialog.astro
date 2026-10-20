@@ -42,6 +42,7 @@
   const results = $('#results');
   const progressWrap = $('#progress-wrap');
   const progressBar = $('#progress-bar');
+  const progressTrack = $('#progress-track');
   const progressPercent = $('#progress-percent');
   const progressLabel = $('#progress-label');
   const closeButton = $('#close-dialog');
@@ -3106,9 +3107,14 @@
   
   function setProgress({ percent, label }) {
     progressWrap.hidden = false;
-    progressBar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
-    progressPercent.textContent = `${percent}%`;
+    const clamped = Math.max(0, Math.min(100, percent));
+    progressBar.style.width = `${clamped}%`;
+    progressPercent.textContent = `${clamped}%`;
     progressLabel.textContent = label || 'Processing files…';
+    if (progressTrack) {
+      progressTrack.setAttribute('aria-valuenow', String(Math.round(clamped)));
+      progressTrack.setAttribute('aria-valuetext', `${Math.round(clamped)}% — ${label || 'Processing files'}`);
+    }
   }
   
   function setBusy(value) {

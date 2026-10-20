@@ -25,6 +25,8 @@
     "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
+    "axe-core": "^4.14.0",
+    "puppeteer-core": "^25.14.0",
     "wrangler": "^4.151.1"
   }
 }
