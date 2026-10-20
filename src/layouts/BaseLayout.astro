@@ -9,7 +9,29 @@ import GlobalStyles from "../components/GlobalStyles.astro";
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f8fc">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3922090398472626" crossorigin="anonymous"></script>
+  <script is:inline>
+    (() => {
+      const client = 'ca-pub-3922090398472626';
+      let loaded = false;
+      const loadAds = () => {
+        if (loaded) return;
+        loaded = true;
+        const script = document.createElement('script');
+        script.async = true;
+        script.crossOrigin = 'anonymous';
+        script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
+        document.head.appendChild(script);
+      };
+      const events = ['pointerdown', 'keydown', 'touchstart', 'scroll'];
+      const options = { passive: true, once: true };
+      for (const event of events) window.addEventListener(event, loadAds, options);
+      const scheduleFallback = () => setTimeout(() => {
+        if (document.visibilityState === 'visible') loadAds();
+      }, 20000);
+      if (document.readyState === 'complete') scheduleFallback();
+      else window.addEventListener('load', scheduleFallback, { once: true });
+    })();
+  </script>
   <GlobalStyles />
   <slot name="head" />
 </head>

@@ -4,6 +4,7 @@ import toolData from '../data/tools.json';
 import ToolSeoContent from '../components/ToolSeoContent.astro';
 import ToolWorkspace from '../components/ToolWorkspace.astro';
 import ClientRuntime from '../components/client/ClientRuntime.astro';
+import ToolStyles from '../components/ToolStyles.astro';
 
 const { TOOLS } = toolData;
 export function getStaticPaths() {
@@ -14,6 +15,7 @@ const { slug } = Astro.params;
 const tool = TOOLS.find(item => item.slug === slug);
 ---
 <BaseLayout>
+  <ToolStyles />
   <Fragment slot="head">
     <title>{tool?.seo?.title ?? 'iLoveMyFiles'}</title>
     <meta name="description" content={tool?.seo?.description ?? ''} />

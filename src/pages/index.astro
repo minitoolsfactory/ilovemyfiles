@@ -2,6 +2,7 @@
 import toolData from "../data/tools.json";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import HomeToolFilters from "../components/HomeToolFilters.astro";
+import HomeStyles from "../components/HomeStyles.astro";
 
 const { TOOLS, CATEGORIES } = toolData;
 const categoryCount = id => id === 'all' ? TOOLS.length : TOOLS.filter(tool => tool.category === id).length;
@@ -10,6 +11,7 @@ const icon = (tool, large = false) => `<span class="tool-icon icon-${tool.icon}$
 const popular = ['pdf-merge', 'pdf-compress', 'images-pdf', 'image-resize', 'image-convert'].map(toolById).filter(Boolean);
 ---
 <BaseLayout>
+  <HomeStyles />
   <Fragment slot="head">
     <meta name="description" content="Free, private file tools. Convert, compress and resize images, create PDFs, merge PDFs and split PDF pages directly in your browser.">
     <meta name="robots" content="index,follow">
