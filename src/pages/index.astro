@@ -3,6 +3,7 @@ import toolData from "../data/tools.json";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import HomeToolFilters from "../components/HomeToolFilters.astro";
 import HomeStyles from "../components/HomeStyles.astro";
+import Overrides from "../components/Overrides.astro";
 
 const { TOOLS, CATEGORIES } = toolData;
 const categoryCount = id => id === 'all' ? TOOLS.length : TOOLS.filter(tool => tool.category === id).length;
@@ -100,4 +101,5 @@ const popular = ['pdf-merge', 'pdf-compress', 'images-pdf', 'image-resize', 'ima
   </section>
   <section class="bottom-cta"><div><h2>Ready to get it done?</h2><p>Your next file task is just a few clicks away.</p></div><a href="/#tools" class="button button-light">Choose a tool <span aria-hidden="true">↗</span></a></section>
   <HomeToolFilters />
+  <Overrides />
 </BaseLayout>

@@ -5,6 +5,7 @@ import ToolSeoContent from '../components/ToolSeoContent.astro';
 import ToolWorkspace from '../components/ToolWorkspace.astro';
 import ClientRuntime from '../components/client/ClientRuntime.astro';
 import ToolStyles from '../components/ToolStyles.astro';
+import Overrides from '../components/Overrides.astro';
 
 const { TOOLS } = toolData;
 export function getStaticPaths() {
@@ -33,4 +34,5 @@ const tool = TOOLS.find(item => item.slug === slug);
     </section>
   )}
   <ClientRuntime />
+  <Overrides />
 </BaseLayout>

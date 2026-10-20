@@ -44,6 +44,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .status-dot {display:inline-block;width:7px;height:7px;background:#25b77b;border-radius:50%;box-shadow:0 0 0 3px #dff7eb
 }
+.eyebrow {display:flex;align-items:center;gap:8px;color:var(--purple);font-size:10px;font-weight:800;letter-spacing:1.7px
+}
+.eyebrow-icon {font-size:15px
+}
 .button {border:0;display:inline-flex;align-items:center;justify-content:center;gap:16px;border-radius:10px;padding:14px 18px;font-weight:700;font-size:12px;transition:transform .15s,background .15s;white-space:nowrap
 }
 .button:hover {transform:translateY(-1px)
@@ -54,9 +58,25 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .button-primary:disabled {opacity:.5;cursor:not-allowed;transform:none
 }
+.micro-trust {display:flex;align-items:center;gap:7px;color:#81879a;font-size:10px
+}
+.micro-trust svg {width:17px;height:17px;color:#5f9d80
+}
 .tool-icon {flex:0 0 42px;width:42px;height:42px;border-radius:12px;display:grid;place-items:center
 }
 .tool-icon svg {width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round
+}
+.icon-purple {color:#6866ed;background:#f0efff
+}
+.icon-green {color:#1a9f70;background:#e7f8ef
+}
+.icon-orange {color:#d98237;background:#fff1e3
+}
+.icon-blue {color:#4089e9;background:#e9f3ff
+}
+.icon-pink {color:#d05d9a;background:#ffedf5
+}
+.icon-yellow {color:#b88b21;background:#fff7db
 }
 .footer {max-width:1100px;margin:auto;border-top:1px solid #eff0f6;padding:23px 0 28px;display:flex;align-items:center;gap:20px;color:#989daf;font-size:10px
 }
@@ -98,6 +118,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 *, *::before, *::after {scroll-behavior:auto!important;transition:none!important;animation:none!important
 }
 }
+.icon-teal {color:#0f9d9d;background:#e2f7f7
+}
 .theme-toggle {margin-left:-16px;border:1px solid #e8eaf2;background:#fff;color:#626a80;width:36px;height:36px;border-radius:50%;font-size:14px;display:grid;place-items:center;flex:0 0 auto;transition:color .2s,border-color .2s
 }
 .theme-toggle:hover {color:var(--purple);border-color:#c7c6ff
@@ -116,13 +138,21 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 [data-theme="dark"] .theme-toggle {background:#181b2e;border-color:#2a2f4a;color:#a8aec7
 }
+[data-theme="dark"] .micro-trust {color:#8289a6
+}
 [data-theme="dark"] .footer {border-color:#22263d;color:#7f86a3
 }
 [data-theme="dark"] .footer-brand {color:#dfe2f0
 }
+.icon-rose {color:#d9567f;background:#ffe9f0
+}
 .tool-icon-lg {width:58px;height:58px;flex:0 0 58px;border-radius:16px
 }
 .tool-icon-lg svg {width:31px;height:31px
+}
+.steps {margin:0;padding-left:20px;display:grid;gap:9px;font-size:13px;line-height:1.7;color:#5d647a
+}
+[data-theme="dark"] .steps {color:#b6bcd2
 }
 .button {border-radius:12px
 }
@@ -147,88 +177,5 @@ body {font-size:15px
 ::view-transition-old(root) {animation:fadeOut .2s ease
 }
 ::view-transition-new(root) {animation:fadeIn .25s ease
-}
-:root {
-  --color-text-primary:#20243b;
-  --color-text-secondary:#4b5268;
-  --color-text-muted:#5c6377;
-  --color-text-subtle:#616881;
-  --color-background:#ffffff;
-  --color-surface:#ffffff;
-  --color-surface-soft:#f7f8fc;
-  --color-surface-tint:#f0efff;
-  --color-border:#e9ebf3;
-  --color-border-control:#7d8497;
-  --color-divider:#e2e5ef;
-  --color-accent:#4b49e8;
-  --color-accent-strong:#4338ca;
-  --color-accent-brand:#5d5cf6;
-  --color-action:#5d5cf6;
-  --color-action-hover:#4b49e8;
-  --color-on-accent:#ffffff;
-  --color-focus:#4338ca;
-  --color-success:#1a7f57;
-  --color-success-bg:#eaf9f1;
-  --color-warning:#8a5a00;
-  --color-warning-bg:#fff7db;
-  --color-error:#b3261e;
-  --color-error-bg:#fdecec;
-  --radius-sm:8px;
-  --radius-md:13px;
-  --radius-lg:17px;
-  --space-1:4px;
-  --space-2:8px;
-  --space-3:13px;
-  --space-4:20px;
-  --space-5:28px;
-  --space-6:40px;
-  --font-xs:10px;
-  --font-sm:11px;
-  --font-md:13px;
-  /* Remap legacy palette names onto validated tokens. */
-  --ink:var(--color-text-primary);
-  --muted:var(--color-text-muted);
-  --line:var(--color-border)
-}
-:root[data-theme="dark"] {
-  --color-text-primary:#e6e8f5;
-  --color-text-secondary:#c3c8dc;
-  --color-text-muted:#9aa1bd;
-  --color-text-subtle:#8b93b0;
-  --color-background:#0e1020;
-  --color-surface:#171a2c;
-  --color-surface-soft:#12142a;
-  --color-surface-tint:#24264a;
-  --color-border:#2a2e47;
-  --color-border-control:#626784;
-  --color-divider:#2a2e47;
-  --color-accent:#b3b0ff;
-  --color-accent-strong:#dcdbff;
-  --color-accent-brand:#8f8dff;
-  --color-action:#5d5cf6;
-  --color-action-hover:#4b49e8;
-  --color-on-accent:#ffffff;
-  --color-focus:#dcdbff;
-  --color-success:#7fd6ab;
-  --color-success-bg:#122a20;
-  --color-warning:#f3c46b;
-  --color-warning-bg:#2a2413;
-  --color-error:#f4a7a7;
-  --color-error-bg:#2a1517;
-  --ink:var(--color-text-primary);
-  --muted:var(--color-text-muted);
-  --line:var(--color-border)
-}
-.sr-only {position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0
-}
-a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible, .skip-link:focus-visible {
-  outline:3px solid var(--color-focus);
-  outline-offset:2px
-}
-.footer, .footer p, .footer>span {color:var(--color-text-muted)
-}
-.button-primary {background:var(--color-action);color:var(--color-on-accent)
-}
-.button-primary:hover {background:var(--color-action-hover)
 }
 </style>
