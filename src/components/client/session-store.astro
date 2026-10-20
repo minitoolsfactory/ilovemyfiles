@@ -1,0 +1,152 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+    const DB_NAME = 'ilovemyfiles-sessions';
+    const DB_VERSION = 1;
+    const SESSION_STORE = 'sessions';
+    const FILE_STORE = 'files';
+    const PREVIEW_STORE = 'previews';
+    const PREVIEW_LIMIT = 24;
+    let dbPromise = null;
+
+    function requestToPromise(request) {
+      return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error || new Error('Browser storage request failed.'));
+      });
+    }
+
+    function transactionDone(transaction) {
+      return new Promise((resolve, reject) => {
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error || new Error('Browser storage transaction failed.'));
+        transaction.onabort = () => reject(transaction.error || new Error('Browser storage transaction was aborted.'));
+      });
+    }
+
+    function openDb() {
+      if (dbPromise) return dbPromise;
+      dbPromise = new Promise((resolve, reject) => {
+        if (typeof indexedDB === 'undefined') {
+          reject(new Error('Browser storage is unavailable in this browser.'));
+          return;
+        }
+        let request;
+        try {
+          request = indexedDB.open(DB_NAME, DB_VERSION);
+        } catch (error) {
+          reject(error);
+          return;
+        }
+        request.onupgradeneeded = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains(SESSION_STORE)) db.createObjectStore(SESSION_STORE, { keyPath: 'tool' });
+          if (!db.objectStoreNames.contains(FILE_STORE)) {
+            const store = db.createObjectStore(FILE_STORE, { keyPath: 'key' });
+            store.createIndex('tool', 'tool');
+          }
+          if (!db.objectStoreNames.contains(PREVIEW_STORE)) {
+            const store = db.createObjectStore(PREVIEW_STORE, { keyPath: 'key' });
+            store.createIndex('tool', 'tool');
+          }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error || new Error('Could not open browser storage.'));
+        request.onblocked = () => reject(new Error('Browser storage is blocked by another tab.'));
+      });
+      return dbPromise;
+    }
+
+    async function withStore(storeName, mode, callback) {
+      const db = await openDb();
+      const transaction = db.transaction(storeName, mode);
+      const store = transaction.objectStore(storeName);
+      const result = await callback(store, transaction);
+      await transactionDone(transaction);
+      return result;
+    }
+
+    function fileRecordKey(tool, id) { return `${tool}:${id}`; }
+
+    async function saveSession(tool, data) {
+      if (!tool) return;
+      await withStore(SESSION_STORE, 'readwrite', store => requestToPromise(store.put({ tool, ...data, updatedAt: Date.now() })));
+    }
+
+    async function loadSession(tool) {
+      if (!tool) return null;
+      return withStore(SESSION_STORE, 'readonly', store => requestToPromise(store.get(tool)));
+    }
+
+    async function deleteSession(tool) {
+      if (!tool) return;
+      const db = await openDb();
+      const transaction = db.transaction([SESSION_STORE, FILE_STORE, PREVIEW_STORE], 'readwrite');
+      transaction.objectStore(SESSION_STORE).delete(tool);
+      for (const storeName of [FILE_STORE, PREVIEW_STORE]) {
+        const store = transaction.objectStore(storeName);
+        const cursorRequest = store.index('tool').openKeyCursor(IDBKeyRange.only(tool));
+        cursorRequest.onsuccess = () => {
+          const cursor = cursorRequest.result;
+          if (!cursor) return;
+          store.delete(cursor.primaryKey);
+          cursor.continue();
+        };
+      }
+      await transactionDone(transaction);
+    }
+
+    async function saveFile(tool, id, blob) {
+      if (!tool || !id || !blob) return;
+      await withStore(FILE_STORE, 'readwrite', store => requestToPromise(store.put({
+        key: fileRecordKey(tool, id), tool, id, blob, size: blob.size, type: blob.type || '', savedAt: Date.now()
+      })));
+    }
+
+    async function loadFiles(tool) {
+      if (!tool) return [];
+      return withStore(FILE_STORE, 'readonly', store => requestToPromise(store.index('tool').getAll(IDBKeyRange.only(tool))));
+    }
+
+    async function deleteFile(tool, id) {
+      if (!tool || !id) return;
+      await withStore(FILE_STORE, 'readwrite', store => requestToPromise(store.delete(fileRecordKey(tool, id))));
+    }
+
+    async function getPreview(tool, key) {
+      if (!tool || !key) return null;
+      return withStore(PREVIEW_STORE, 'readonly', store => requestToPromise(store.get(`${tool}:${key}`)));
+    }
+
+    async function putPreview(tool, key, value) {
+      if (!tool || !key || !value?.blob) return;
+      await withStore(PREVIEW_STORE, 'readwrite', store => requestToPromise(store.put({
+        key: `${tool}:${key}`, tool, cacheKey: key, blob: value.blob, details: value.details || '', savedAt: Date.now()
+      })));
+      await prunePreviews(tool);
+    }
+
+    async function prunePreviews(tool) {
+      const records = await withStore(PREVIEW_STORE, 'readonly', store => requestToPromise(store.index('tool').getAll(IDBKeyRange.only(tool))));
+      if (records.length <= PREVIEW_LIMIT) return;
+      records.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0));
+      const remove = records.slice(0, records.length - PREVIEW_LIMIT);
+      await withStore(PREVIEW_STORE, 'readwrite', store => {
+        for (const record of remove) store.delete(record.key);
+      });
+    }
+
+    async function clearPreview(tool, key) {
+      if (!tool || !key) return;
+      await withStore(PREVIEW_STORE, 'readwrite', store => requestToPromise(store.delete(`${tool}:${key}`)));
+    }
+
+    window.iLoveMyFilesModules['session-store'] = {
+      saveSession, loadSession, deleteSession, saveFile, loadFiles, deleteFile,
+      getPreview, putPreview, prunePreviews, clearPreview,
+      isAvailable: () => typeof indexedDB !== 'undefined'
+    };
+  });
+</script>

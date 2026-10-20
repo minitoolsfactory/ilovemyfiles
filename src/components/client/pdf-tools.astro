@@ -54,7 +54,7 @@
   async function imagesToPdf(files, options, progress) {
     const { PDFDocument } = await getPdfLib();
     const pdf = await PDFDocument.create();
-    const margin = Math.max(0, Math.min(100, Number(options.margin) || 0));
+    const baseMargin = Math.max(0, Math.min(100, Number(options.margin) || 0));
     const pageSize = options.pageSize;
     for (let index = 0; index < files.length; index++) {
       const file = files[index];
@@ -78,6 +78,7 @@
       const fileSetting = (options.fileSettings && options.fileSettings[index]) || {};
       const effectiveSize = fileSetting.pageSize || pageSize;
       const effectiveOrientation = fileSetting.orientation || options.orientation || 'portrait';
+      const margin = fileSetting.margin != null ? Math.max(0, Math.min(100, Number(fileSetting.margin) || 0)) : baseMargin;
       let pageWidth = imageWidth + margin * 2, pageHeight = imageHeight + margin * 2;
       const standard = PDF_PAGE_SIZES[effectiveSize];
       if (standard) {
@@ -103,16 +104,21 @@
     const sizeKey = settings.size || 'original';
     const orientation = settings.orientation || 'auto';
     const m = Math.max(0, Math.min(200, Number(settings.margin) || 0));
-    if (sizeKey === 'original' && m === 0) {
-      const [copied] = await merged.copyPages(source, [pageIndex]);
-      merged.addPage(copied);
-      return;
-    }
     let width = original.width, height = original.height;
-    if (sizeKey !== 'original' && PDF_PAGE_SIZES[sizeKey]) {
+    const explicitSize = sizeKey !== 'original' && PDF_PAGE_SIZES[sizeKey];
+    if (explicitSize) {
       [width, height] = PDF_PAGE_SIZES[sizeKey];
       const landscape = orientation === 'landscape' || (orientation === 'auto' && original.width > original.height);
       if (landscape) [width, height] = [height, width];
+    } else if (orientation === 'landscape' && width < height) {
+      [width, height] = [height, width];
+    } else if (orientation === 'portrait' && width > height) {
+      [width, height] = [height, width];
+    }
+    if (width === original.width && height === original.height && m === 0) {
+      const [copied] = await merged.copyPages(source, [pageIndex]);
+      merged.addPage(copied);
+      return;
     }
     const embedded = await merged.embedPage(srcPage);
     const outPage = merged.addPage([width, height]);
@@ -210,13 +216,15 @@
     const { PDFDocument } = await getPdfLib();
     const source = await PDFDocument.load(await file.arrayBuffer());
     const count = source.getPageCount();
-    const target = PDF_PAGE_SIZES[options.size];
-    if (!target) throw new Error('Choose a target page size.');
-    const orientation = options.orientation || 'portrait';
-    const margin = Math.max(0, Math.min(200, Number(options.margin) || 0));
+    const baseTarget = PDF_PAGE_SIZES[options.size];
+    if (!baseTarget) throw new Error('Choose a target page size.');
     const selection = (options.pages || '').trim();
     const chosen = selection ? new Set(parsePageSelection(selection, count)) : null;
+    const perPage = options.perPage && typeof options.perPage === 'object' ? options.perPage : {};
     const out = await PDFDocument.create();
+    let lastLabel = options.size;
+    let lastOrientation = options.orientation || 'portrait';
+    const labels = new Set();
     for (let index = 0; index < count; index++) {
       progress?.({ percent: Math.round(index / count * 88), label: `Resizing page ${index + 1} of ${count}…` });
       const page = source.getPage(index);
@@ -226,6 +234,13 @@
         out.addPage(copied);
         continue;
       }
+      const pageOptions = perPage[index + 1] || options;
+      const target = PDF_PAGE_SIZES[pageOptions.size] || baseTarget;
+      const orientation = pageOptions.orientation || 'portrait';
+      const margin = Math.max(0, Math.min(200, Number(pageOptions.margin) || 0));
+      lastLabel = pageOptions.size || lastLabel;
+      lastOrientation = orientation;
+      labels.add(`${pageOptions.size || 'custom'}|${orientation}`);
       const original = page.getSize();
       let [width, height] = target;
       const landscape = orientation === 'landscape' || (orientation === 'auto' && original.width > original.height);
@@ -240,9 +255,11 @@
     }
     progress?.({ percent: 95, label: 'Building resized PDF…' });
     const bytes = await out.save();
-    const label = options.size.toUpperCase();
+    const mixed = labels.size > 1;
+    const label = mixed ? 'mixed page sizes' : `${String(lastLabel).toUpperCase()} ${lastOrientation}`;
     const scope = chosen ? `${chosen.size} page(s)` : `${count} page(s)`;
-    return { blob: new Blob([bytes], { type: 'application/pdf' }), name: `${safeBaseName(file.name)}-${options.size}.pdf`, details: `${scope} · ${label} ${orientation}` };
+    const suffix = mixed ? 'resized' : (lastLabel || 'resized');
+    return { blob: new Blob([bytes], { type: 'application/pdf' }), name: `${safeBaseName(file.name)}-${suffix}.pdf`, details: `${scope} · ${label}` };
   }
   
   async function addPageNumbers(file, options, progress) {

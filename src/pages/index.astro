@@ -45,7 +45,7 @@ const popular = ['pdf-merge', 'pdf-compress', 'images-pdf', 'image-resize', 'ima
     <div class="quick-head"><h2>Popular tools</h2></div>
     <div class="quick-grid" id="popular-grid">
       {popular.map(tool => (
-        <a href={`/${tool.slug}/?open=1`} class="quick-card" data-tool={tool.id} data-tool-id={tool.id}>
+        <a href={`/${tool.slug}/`} class="quick-card" data-tool={tool.id} data-tool-id={tool.id}>
           <span set:html={icon(tool)} />
           <b>{tool.cardTitle}</b>
         </a>
@@ -73,7 +73,7 @@ const popular = ['pdf-merge', 'pdf-compress', 'images-pdf', 'image-resize', 'ima
     </div>
     <div class="tool-grid" id="tool-grid">
       {TOOLS.map(tool => (
-        <a href={`/${tool.slug}/?open=1`} class="tool-card" data-tool={tool.id} data-tool-id={tool.id} data-category={tool.category} data-search={`${tool.cardTitle} ${tool.cardText} ${tool.keywords.join(' ')}`.toLowerCase()}>
+        <a href={`/${tool.slug}/`} class="tool-card" data-tool={tool.id} data-tool-id={tool.id} data-category={tool.category} data-search={`${tool.cardTitle} ${tool.cardText} ${tool.keywords.join(' ')}`.toLowerCase()}>
           <span set:html={icon(tool)} />
           <span class="tool-card-content">
             <b>{tool.cardTitle}</b>

@@ -161,6 +161,10 @@
   
       this.noteEl = el('div', 'pv-note');
       this.noteEl.hidden = true;
+
+      this.infoEl = el('div', 'pv-info');
+      this.infoEl.hidden = true;
+      this.infoEl.setAttribute('aria-live', 'polite');
   
       this.viewport = el('div', 'pv-viewport');
       this.viewport.tabIndex = 0;
@@ -231,7 +235,7 @@
       });
       this.filestripBox.addEventListener('drop', event => event.preventDefault());
   
-      root.append(toolbar, this.noteEl, this.viewport, this.thumbsBox, this.filestripBox);
+      root.append(toolbar, this.infoEl, this.noteEl, this.viewport, this.thumbsBox, this.filestripBox);
   
       this._bindToolbar();
   
@@ -965,6 +969,7 @@
         if (entry.url) URL.revokeObjectURL(entry.url);
         this.pdfThumbCache.delete(file);
       }
+      this.root.classList.toggle('pv-with-files', !!files && files.length >= 2);
       if (!files || files.length < 2) {
         box.hidden = true; box.replaceChildren();
         this._filestripKey = null; this._filestripButtons = null; this._filestripSelect = null; this._filestripReorder = null;
@@ -1242,6 +1247,7 @@
       }
       this.kind = 'image';
       this.file = file;
+      this.root.classList.add('pv-kind-image');
       this.clearStatus();
       const token = ++this._imageToken;
       const resource = await this._loadImageFile(file);
@@ -1538,6 +1544,7 @@
       this._filestripKey = null; this._filestripButtons = null; this._filestripSelect = null;
       this.doc?.destroy?.(); this.doc = null;
       this.processedImageCache.clear();
+      this.root.classList.remove('pv-kind-image');
       this.kind = null; this.pageCount = 0; this.active = 1;
       this.zoom = 1; this.zoomMode = this._preferredZoomMode;
       this.imageOriginalUrl = null; this.imageProcessedUrl = null;

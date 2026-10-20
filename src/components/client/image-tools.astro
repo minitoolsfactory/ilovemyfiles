@@ -198,7 +198,7 @@
     const blob = await encodeImage(image, image.naturalWidth, image.naturalHeight, type, 0.9, margin);
     const m = Math.max(0, Math.round(Number(margin) || 0));
     const width = image.naturalWidth + m * 2, height = image.naturalHeight + m * 2;
-    return { blob, name: `${safeBaseName(file.name)}.${ext || extensionFor(type)}`, details: `${width} × ${height} · ${formatBytes(blob.size)}` };
+    return { blob, name: `${safeBaseName(file.name)}.${ext || extensionFor(type)}`, details: `${width} × ${height} · ${formatBytes(blob.size)}`, width, height, sizeBytes: blob.size, mimeType: blob.type || type };
   }
   
   async function resizeImage(file, width, height, keepRatio, type, margin = 0, ext = null) {
@@ -210,7 +210,7 @@
     }
     const blob = await encodeImage(image, width, height, type, 0.9, margin);
     const m = Math.max(0, Math.round(Number(margin) || 0));
-    return { blob, name: `${safeBaseName(file.name)}-${width + m * 2}x${height + m * 2}.${ext || extensionFor(type)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}` };
+    return { blob, name: `${safeBaseName(file.name)}-${width + m * 2}x${height + m * 2}.${ext || extensionFor(type)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}`, width: width + m * 2, height: height + m * 2, sizeBytes: blob.size, mimeType: blob.type || type };
   }
   
   async function cropImage(file, area, type, margin = 0, ext = null) {
@@ -229,7 +229,7 @@
     const m = Math.max(0, Math.round(Number(margin) || 0));
     if (padded !== canvas) { padded.width = 1; padded.height = 1; }
     canvas.width = 1; canvas.height = 1;
-    return { blob, name: `${safeBaseName(file.name)}-cropped.${ext || extensionFor(type)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}` };
+    return { blob, name: `${safeBaseName(file.name)}-cropped.${ext || extensionFor(type)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}`, width: width + m * 2, height: height + m * 2, sizeBytes: blob.size, mimeType: blob.type || type };
   }
   
   async function compressImage(file, options) {
@@ -238,7 +238,7 @@
     const { type, mode, ext } = options;
     if (mode === 'quality') {
       const blob = await encodeImage(image, width, height, type, Number(options.quality) / 100);
-      return { blob, name: `${safeBaseName(file.name)}-compressed.${ext || extensionFor(type)}`, details: `${width} × ${height} · ${formatBytes(blob.size)}` };
+      return { blob, name: `${safeBaseName(file.name)}-compressed.${ext || extensionFor(type)}`, details: `${width} × ${height} · ${formatBytes(blob.size)}`, width, height, sizeBytes: blob.size, mimeType: blob.type || type };
     }
     const target = Number(options.targetKb) * 1024;
     if (!Number.isFinite(target) || target < 5120) throw new Error('Target size must be at least 5 KB.');
@@ -266,7 +266,7 @@
       }
       if (blob.size <= target) break;
     }
-    return { blob: best, name: `${safeBaseName(file.name)}-compressed.${ext || extensionFor(type)}`, details: `${bestWidth} × ${bestHeight} · ${formatBytes(best.size)}${best.size > target ? ' · target not reached' : ''}` };
+    return { blob: best, name: `${safeBaseName(file.name)}-compressed.${ext || extensionFor(type)}`, details: `${bestWidth} × ${bestHeight} · ${formatBytes(best.size)}${best.size > target ? ' · target not reached' : ''}`, width: bestWidth, height: bestHeight, sizeBytes: best.size, mimeType: best.type || type };
   }
   
   async function rotateImage(file, options = {}) {
@@ -291,7 +291,7 @@
     const m = Math.max(0, Math.round(Number(options.margin) || 0));
     if (padded !== canvas) { padded.width = 1; padded.height = 1; }
     canvas.width = 1; canvas.height = 1;
-    return { blob, name: `${safeBaseName(file.name)}-rotated.${options.ext || extensionFor(type)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}` };
+    return { blob, name: `${safeBaseName(file.name)}-rotated.${options.ext || extensionFor(type)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}`, width: width + m * 2, height: height + m * 2, sizeBytes: blob.size, mimeType: blob.type || type };
   }
   
   async function watermarkImage(file, options = {}) {
@@ -325,12 +325,64 @@
     context.fillText(text, x, y);
     const blob = await canvasToBlob(canvas, type, 0.92);
     canvas.width = 1; canvas.height = 1;
-    return { blob, name: `${safeBaseName(file.name)}-watermarked.${options.ext || extensionFor(type)}`, details: `${outWidth} × ${outHeight} · ${formatBytes(blob.size)}` };
+    return { blob, name: `${safeBaseName(file.name)}-watermarked.${options.ext || extensionFor(type)}`, details: `${outWidth} × ${outHeight} · ${formatBytes(blob.size)}`, width: outWidth, height: outHeight, sizeBytes: blob.size, mimeType: blob.type || type };
   }
   
   function readImageDimensions(file) {
     return loadImage(file).then(image => ({ width: image.naturalWidth, height: image.naturalHeight }));
   }
-      window.iLoveMyFilesModules['image-tools'] = { canvasToBmp, convertImage, resizeImage, cropImage, compressImage, rotateImage, watermarkImage, readImageDimensions };
+
+  // Detect the actual container from magic bytes instead of trusting the filename.
+  // This lets the UI warn when a .jpg is really a HEIC/AVIF or similar.
+  async function detectImageType(file) {
+    if (!file) return { mimeType: file?.type || '', format: 'unknown', supported: false };
+    try {
+      const head = new Uint8Array(await file.slice(0, 64).arrayBuffer());
+      const ascii = (start, end) => String.fromCharCode(...head.slice(start, end));
+      const text = ascii(0, Math.min(head.length, 64)).trim().toLowerCase();
+      let format = '', mimeType = '';
+      if (head[0] === 0xFF && head[1] === 0xD8 && head[2] === 0xFF) { format = 'JPG'; mimeType = 'image/jpeg'; }
+      else if (head[0] === 0x89 && ascii(1, 4) === 'PNG') { format = 'PNG'; mimeType = 'image/png'; }
+      else if (ascii(0, 3) === 'GIF') { format = 'GIF'; mimeType = 'image/gif'; }
+      else if (ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP') { format = 'WebP'; mimeType = 'image/webp'; }
+      else if (ascii(0, 2) === 'BM') { format = 'BMP'; mimeType = 'image/bmp'; }
+      else if ((ascii(0, 4) === 'II*\0' || ascii(0, 4) === 'MM\0*')) { format = 'TIFF'; mimeType = 'image/tiff'; }
+      else if (head[0] === 0 && head[1] === 0 && head[2] === 1 && head[3] === 0) { format = 'ICO'; mimeType = 'image/x-icon'; }
+      else if (ascii(4, 8) === 'ftyp') {
+        const brand = ascii(8, 12).toLowerCase();
+        if (brand.includes('heic') || brand.includes('heix') || brand.includes('hevc') || brand.includes('mif1')) { format = 'HEIC'; mimeType = 'image/heic'; }
+        else if (brand.includes('avif')) { format = 'AVIF'; mimeType = 'image/avif'; }
+        else { format = brand.toUpperCase() || 'ISO BMFF'; mimeType = file.type || ''; }
+      }
+      else if (text.startsWith('<svg') || (text.startsWith('<?xml') && text.includes('<svg'))) { format = 'SVG'; mimeType = 'image/svg+xml'; }
+      if (!format) {
+        const byExt = (file.name.split('.').pop() || '').toLowerCase();
+        const map = { jpg: ['JPG', 'image/jpeg'], jpeg: ['JPG', 'image/jpeg'], png: ['PNG', 'image/png'], webp: ['WebP', 'image/webp'], gif: ['GIF', 'image/gif'], bmp: ['BMP', 'image/bmp'], tif: ['TIFF', 'image/tiff'], tiff: ['TIFF', 'image/tiff'], ico: ['ICO', 'image/x-icon'], svg: ['SVG', 'image/svg+xml'], heic: ['HEIC', 'image/heic'], heif: ['HEIF', 'image/heic'], avif: ['AVIF', 'image/avif'] };
+        if (map[byExt]) { [format, mimeType] = map[byExt]; }
+      }
+      const decodable = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'image/svg+xml', 'image/x-icon'].includes(mimeType);
+      return { mimeType: mimeType || file.type || '', format: format || (file.type ? file.type.split('/').pop().toUpperCase() : 'Unknown'), supported: decodable };
+    } catch {
+      return { mimeType: file.type || '', format: 'unknown', supported: false };
+    }
+  }
+
+  async function getImageInfo(file) {
+    const detected = await detectImageType(file);
+    const info = { ...detected, width: null, height: null, decodable: false, error: null };
+    try {
+      const dimensions = await readImageDimensions(file);
+      info.width = dimensions.width;
+      info.height = dimensions.height;
+      info.decodable = true;
+      info.supported = true;
+    } catch {
+      info.error = detected.supported
+        ? 'This image could not be decoded by your browser.'
+        : `This browser cannot preview ${detected.format} images.`;
+    }
+    return info;
+  }
+      window.iLoveMyFilesModules['image-tools'] = { canvasToBmp, convertImage, resizeImage, cropImage, compressImage, rotateImage, watermarkImage, readImageDimensions, detectImageType, getImageInfo };
   });
 </script>

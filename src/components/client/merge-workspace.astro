@@ -12,7 +12,7 @@
     return node;
   }
   
-  function createMergeWorkspace(container, { onAddFiles, onPageSelect, onResetFiles } = {}) {
+  function createMergeWorkspace(container, { onAddFiles, onPageSelect, onResetFiles, onStateChange } = {}) {
     let files = [];
     let orderModel = [];
     let defaultSettings = { size: 'original', orientation: 'auto', margin: 0 };
@@ -46,6 +46,8 @@
     container.replaceChildren();
     let _onPageSelect = onPageSelect || null;
     let _onResetFiles = onResetFiles || null;
+    let _onStateChange = onStateChange || null;
+    const notifyStateChange = () => { if (_onStateChange) _onStateChange(); };
   
     const bar = el('div', 'merge-bar');
     const label = el('span', 'merge-label', 'Merged preview');
@@ -61,7 +63,7 @@
     const resetIcon = el('span', 'merge-btn-icon', '↺');
     const resetText = el('span', 'merge-btn-text', 'Reset order');
     reset.append(resetIcon, resetText);
-    reset.addEventListener('click', () => { orderModel = defaultOrder(); manual = false; activeNode = null; renderOrder(); });
+    reset.addEventListener('click', () => { orderModel = defaultOrder(); manual = false; activeNode = null; renderOrder(); selectFirstPage(); notifyStateChange(); });
     const resetFiles = el('button', 'merge-reset-files', '🗑');
     resetFiles.type = 'button';
     resetFiles.title = 'Clear selected PDFs and choose again';
@@ -74,6 +76,7 @@
       activeNode = null;
       manual = false;
       renderOrder();
+      notifyStateChange();
       if (_onResetFiles) _onResetFiles();
     });
     bar.append(label, summary, add, reset, resetFiles);
@@ -119,7 +122,8 @@
   
     function updateSummary() {
       const total = orderModel.length;
-      summary.textContent = `${total} page${total === 1 ? '' : 's'} · ${files.length} file${files.length === 1 ? '' : 's'}`;
+      const activeIndex = activeNode ? orderModel.findIndex(entry => entry.file === activeNode.file && entry.page === activeNode.page) : -1;
+      summary.textContent = `${total} page${total === 1 ? '' : 's'} · ${files.length} file${files.length === 1 ? '' : 's'}${activeIndex >= 0 ? ` · editing ${activeIndex + 1}` : ''}`;
     }
   
     function updateLabels(node, index) {
@@ -540,6 +544,10 @@
         [width, height] = PDF_PAGE_SIZES[sizeKey];
         const landscape = orientation === 'landscape' || (orientation === 'auto' && orig.width > orig.height);
         if (landscape) [width, height] = [height, width];
+      } else if (orientation === 'landscape' && width < height) {
+        [width, height] = [height, width];
+      } else if (orientation === 'portrait' && width > height) {
+        [width, height] = [height, width];
       }
       const m = Math.max(0, Number(settings.margin) || 0);
       const availW = Math.max(1, width - m * 2);
@@ -578,9 +586,16 @@
       if (toNode) node.tile.focus({ preventScroll: true });
       if (scroll) node.pageEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       applyPreviewSettings(node);
+      updateSummary();
       if (_onPageSelect) _onPageSelect(node);
+      notifyStateChange();
     }
   
+    function selectFirstPage() {
+      if (!orderModel.length) { if (_onPageSelect) _onPageSelect(null); return; }
+      focusNode(getNode(orderModel[0]), false, false);
+    }
+
     function modelFromDom() {
       return [...board.querySelectorAll('.merge-tile')].map(tile => ({ file: tile._node.file, page: tile._node.page }));
     }
@@ -593,6 +608,7 @@
       orderModel.splice(to, 0, moved);
       manual = true;
       renderOrder();
+      notifyStateChange();
       focusNode(node, true, false);
     }
   
@@ -604,7 +620,9 @@
       if (activeNode === node) activeNode = null;
       manual = true;
       renderOrder();
-      if (_onPageSelect) _onPageSelect(activeNode);
+      notifyStateChange();
+      if (activeNode) { if (_onPageSelect) _onPageSelect(activeNode); }
+      else selectFirstPage();
     }
   
     function afterElement(x, y) {
@@ -634,6 +652,7 @@
       orderModel = modelFromDom();
       manual = true;
       renderOrder();
+      notifyStateChange();
     });
     board.addEventListener('dragover', event => {
       if (!dragTile) return;
@@ -645,7 +664,6 @@
     });
     board.addEventListener('drop', event => event.preventDefault());
   
-    reset.addEventListener('click', () => { orderModel = defaultOrder(); manual = false; activeNode = null; renderOrder(); });
   
     async function loadDocument(file) {
       if (docs.has(file)) {
@@ -759,6 +777,7 @@
       rebuildOrderModel();
       if (loadedCount !== filesToLoad.length) renderOrder();
       setStatus(loadErrors.length ? `Could not open ${loadErrors.join('; ')}` : '');
+      if (!activeNode && orderModel.length) selectFirstPage();
       console.debug(`[ilovemyfiles-merge] loaded ${loadedCount} files in ${Math.round(performance.now() - loadStart)}ms`);
     }
   
@@ -785,16 +804,99 @@
     let _onResetFiles = onResetFiles || null;
     }
   
-    return { load, getOrder, destroy, getPageCount: () => orderModel.length,
+    function getState() {
+      const activeIndex = activeNode ? files.indexOf(activeNode.file) : -1;
+      return {
+        manual,
+        active: activeIndex >= 0 ? { fileIndex: activeIndex, page: activeNode.page } : null,
+        defaultSettings: { ...defaultSettings },
+        order: orderModel.map(entry => ({ fileIndex: files.indexOf(entry.file), page: entry.page })).filter(entry => entry.fileIndex >= 0),
+        pageSettings: [...pageSettings.entries()].map(([key, value]) => {
+          const [rawFile, rawPage] = key.split(':');
+          const fileIndex = files.findIndex(file => fileId(file) === Number(rawFile));
+          return { fileIndex, page: Number(rawPage), ...value };
+        }).filter(entry => entry.fileIndex >= 0)
+      };
+    }
+
+    function restoreState(state) {
+      if (!state) return;
+      if (state.defaultSettings) defaultSettings = { ...defaultSettings, ...state.defaultSettings };
+      pageSettings.clear();
+      for (const entry of state.pageSettings || []) {
+        const file = files[entry.fileIndex];
+        if (!file || !entry.page) continue;
+        const { fileIndex, page, ...value } = entry;
+        pageSettings.set(`${fileId(file)}:${page}`, { ...defaultSettings, ...value });
+      }
+      if (Array.isArray(state.order) && state.order.length) {
+        const next = [];
+        const seen = new Set();
+        for (const entry of state.order) {
+          const file = files[entry.fileIndex];
+          const pageCount = file ? counts.get(file) || 0 : 0;
+          if (!file || entry.page < 1 || entry.page > pageCount) continue;
+          const key = `${fileId(file)}:${entry.page}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          next.push({ file, page: entry.page });
+        }
+        for (const entry of defaultOrder()) {
+          const key = `${fileId(entry.file)}:${entry.page}`;
+          if (!seen.has(key)) next.push(entry);
+        }
+        orderModel = next;
+        manual = true;
+      } else {
+        orderModel = defaultOrder();
+        manual = !!state.manual;
+      }
+      renderOrder();
+      if (state.active) {
+        const file = files[state.active.fileIndex];
+        const node = file ? getNode({ file, page: state.active.page }) : null;
+        if (node && orderModel.some(entry => entry.file === file && entry.page === state.active.page)) focusNode(node, false, false);
+      }
+      if (!activeNode && orderModel.length) selectFirstPage();
+    }
+
+    return { load, getOrder, getState, restoreState, destroy, getPageCount: () => orderModel.length,
       getDefaultSettings: () => ({ ...defaultSettings }),
-      setDefaultSettings: (settings) => { defaultSettings = { ...defaultSettings, ...settings }; },
+      setDefaultSettings: (settings) => { defaultSettings = { ...defaultSettings, ...settings }; notifyStateChange(); },
       getActiveKey: () => activeNode ? activeNode.key : null,
+      getActiveIndex: () => activeNode ? orderModel.findIndex(entry => entry.file === activeNode.file && entry.page === activeNode.page) : -1,
+      selectRelative: (delta) => {
+        if (!orderModel.length || !delta) return;
+        const current = activeNode ? orderModel.findIndex(entry => entry.file === activeNode.file && entry.page === activeNode.page) : -1;
+        const base = current < 0 ? 0 : current;
+        const next = Math.max(0, Math.min(orderModel.length - 1, base + delta));
+        if (next === current) return;
+        focusNode(getNode(orderModel[next]), true, false);
+      },
       getActiveSettings: () => activeNode ? { ...(pageSettings.get(activeNode.key) || defaultSettings) } : { ...defaultSettings },
       refreshActivePreview: () => { if (activeNode) applyPreviewSettings(activeNode); },
+      applyActiveToAll: () => {
+        if (!activeNode) return;
+        const settings = pageSettings.get(activeNode.key) || { ...defaultSettings };
+        for (const node of nodes.values()) {
+          pageSettings.set(node.key, { ...settings });
+          applyPreviewSettings(node);
+        }
+        defaultSettings = { ...defaultSettings, ...settings };
+        notifyStateChange();
+      },
+      resetActiveSettings: () => {
+        if (!activeNode) return;
+        pageSettings.delete(activeNode.key);
+        applyPreviewSettings(activeNode);
+        if (_onPageSelect) _onPageSelect(activeNode);
+        notifyStateChange();
+      },
       setActiveSettings: (patch) => {
-        if (!activeNode) { defaultSettings = { ...defaultSettings, ...patch }; return; }
+        if (!activeNode) { defaultSettings = { ...defaultSettings, ...patch }; notifyStateChange(); return; }
         const current = pageSettings.get(activeNode.key) || { ...defaultSettings };
         pageSettings.set(activeNode.key, { ...current, ...patch });
+        notifyStateChange();
       },
       setPageSelectHandler: (fn) => { _onPageSelect = fn || null; }
     };

@@ -17,10 +17,10 @@ const icon = (item, large = false) => `<span class="tool-icon icon-${item.icon}$
     <div class="eyebrow">{category}</div>
     <h1>{tool.cardTitle}</h1>
     <p>{tool.seo.intro}</p>
-    <a class="button button-primary" href={`/${tool.slug}/?open=1`} data-tool-id={tool.id}>Open {tool.cardTitle} tool <span aria-hidden="true">→</span></a>
     <span class="micro-trust"><span class="status-dot"></span> Runs in your browser - files are never uploaded</span>
   </div>
 </header>
+<slot />
 <div class="tool-content">
   <div class="tool-main">
     <h2>How to use it</h2>

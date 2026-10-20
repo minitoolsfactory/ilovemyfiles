@@ -4,7 +4,8 @@
   window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
     window.iLoveMyFilesModules ??= {};
       const { formatBytes, downloadBlob, safeBaseName, updateProgress, parsePageSelection, parsePageOrder } = window.iLoveMyFilesModules['file-utils'];
-      const { convertImage, compressImage, resizeImage, rotateImage, cropImage, watermarkImage, readImageDimensions } = window.iLoveMyFilesModules['image-tools'];
+      const { convertImage, compressImage, resizeImage, rotateImage, cropImage, watermarkImage, readImageDimensions, getImageInfo } = window.iLoveMyFilesModules['image-tools'];
+      const sessionStore = window.iLoveMyFilesModules['session-store'];
       const { imagesToPdf, mergePdfs, mergePdfPages, splitPdf, deletePdfPages, rotatePdfPages, addPageNumbers, addPdfWatermark, loadWatermarkFont, organizePdfPages, pdfToImages, compressPdf, resizePdfPages, normalizeAngle, COMPRESSION_LEVELS, PDF_PAGE_SIZES } = window.iLoveMyFilesModules['pdf-tools'];
       const { inspectPdfMetadata, removePdfMetadata } = window.iLoveMyFilesModules['metadata-tools'];
       const { formatJson, base64Convert, hashText, hashFiles, countTextReport, jsonToCsv, csvToJson, convertUnits } = window.iLoveMyFilesModules['data-tools'];
@@ -44,6 +45,11 @@
   const progressPercent = $('#progress-percent');
   const progressLabel = $('#progress-label');
   const closeButton = $('#close-dialog');
+  const sessionBanner = $('#session-banner');
+  const sessionBannerText = $('#session-banner-text');
+  const sessionRestore = $('#session-restore');
+  const sessionDiscard = $('#session-discard');
+  const clearSessionButton = $('#clear-session');
   const previewDialog = $('#preview-dialog');
   const previewTitle = $('#preview-title');
   const previewStage = $('#preview-stage');
@@ -62,8 +68,40 @@
   const utilityDownload = $('#utility-download');
   let activeTool = null;
   let files = [];
-  let imagePdfDefaultSettings = { pageSize: 'fit', orientation: 'portrait' };
-  let imagePdfSettings = new Map();
+
+  function createItemSettingsStore(getDefaults) {
+    const overrides = new Map();
+    const defaults = () => (typeof getDefaults === 'function' ? getDefaults() : getDefaults) || {};
+    return {
+      get(id) { return { ...defaults(), ...(overrides.get(id) || {}) }; },
+      getOverride(id) { return overrides.has(id) ? { ...overrides.get(id) } : null; },
+      set(id, value) { overrides.set(id, { ...value }); },
+      delete(id) { return overrides.delete(id); },
+      has(id) { return overrides.has(id); },
+      clear() { overrides.clear(); },
+      entries() { return overrides.entries(); },
+      keys() { return overrides.keys(); },
+      get size() { return overrides.size; }
+    };
+  }
+
+  let imagePdfDefaultSettings = { pageSize: 'fit', orientation: 'portrait', margin: 0 };
+  let imagePdfSettings = createItemSettingsStore(() => imagePdfDefaultSettings);
+  let imageConvertDefaultSettings = { format: 'image/png', margin: 0 };
+  let imageConvertSettings = createItemSettingsStore(() => imageConvertDefaultSettings);
+  let imageCompressDefaultSettings = { format: 'image/webp', mode: 'quality', quality: '78', targetKb: '200' };
+  let imageCompressSettings = createItemSettingsStore(() => imageCompressDefaultSettings);
+  let imageResizeDefaultSettings = { width: '1200', height: '1200', keepRatio: true, format: 'image/webp', margin: 0 };
+  let imageResizeSettings = createItemSettingsStore(() => imageResizeDefaultSettings);
+  let imageRotateDefaultSettings = { rotation: 0, flipH: false, flipV: false, format: 'image/png', margin: 0 };
+  let imageRotateSettings = createItemSettingsStore(() => imageRotateDefaultSettings);
+  let imageCropDefaultSettings = { format: 'image/png', margin: 0 };
+  let imageCropSettings = createItemSettingsStore(() => imageCropDefaultSettings);
+  let imageWatermarkDefaultSettings = { text: '© iLoveMyFiles', position: 'bottom-right', color: '#ffffff', opacity: '0.6', size: '6', format: 'image/png' };
+  let imageWatermarkSettings = createItemSettingsStore(() => imageWatermarkDefaultSettings);
+  let pdfResizeDefaultSettings = { size: 'a4', orientation: 'portrait', margin: 0 };
+  const pdfResizeSettings = createItemSettingsStore(() => pdfResizeDefaultSettings);
+  let pdfResizePage = 1;
   let busy = false;
   let dragIndex = null;
   let lastTrigger = null;
@@ -94,9 +132,17 @@
   let estimateTimer = null;
   let previewIndex = 0;
   let rotateStore = new Map();
-  const imagePreviewIds = new WeakMap();
   const imagePreviewCache = new Map();
-  let nextImagePreviewId = 0;
+  const fileIds = new WeakMap();
+  let nextFileSerial = 1;
+  const imageMeta = new Map();
+  const imageOutput = new Map();
+  let pageOpen = false;
+  let pendingSession = null;
+  let sessionSaveTimer = null;
+  let sessionFilesDirty = false;
+  let persistPaused = false;
+  const SESSION_VERSION = 2;
   let metadataInspection = null;
   let metadataSeq = 0;
   let metadataTimer = null;
@@ -109,6 +155,13 @@
     destroyFontPickers();
     if (tool === 'pdf-watermark') mountFontPicker(panel, 'watermark', 'Watermark font');
     if (tool === 'pdf-page-numbers') mountFontPicker(panel, 'numbers', 'Page-number font');
+    if (panel && multiImageTools.has(tool)) {
+      const block = document.createElement('div');
+      block.className = 'image-bulk-actions';
+      block.hidden = true;
+      block.innerHTML = '<div class="field-actions"><button type="button" class="field-action field-action-primary" data-image-apply-all>Apply to all images</button><button type="button" class="field-action" data-image-reset>Reset this image</button></div><p class="field-help">Each image keeps its own settings. Use Apply to all to copy the selected image\u2019s settings everywhere.</p>';
+      panel.append(block);
+    }
   }
 
   const fontPickers = new Map();
@@ -144,10 +197,11 @@
     'pdf-to-images', 'pdf-remove-metadata', 'pdf-split', 'pdf-merge', 'pdf-ocr', 'pdf-flatten', 'ocr', 'pdf-resize-pages',
     'image-convert', 'image-resize', 'image-compress', 'image-rotate', 'image-watermark', 'images-pdf'
   ]);
-  const selectableInputs = { 'pdf-delete-pages': 'delete-pages', 'pdf-to-images': 'pti-pages', 'pdf-resize-pages': 'resize-pages' };
+  const selectableInputs = { 'pdf-delete-pages': 'delete-pages', 'pdf-to-images': 'pti-pages' };
   const imagePreviewTools = new Set(['image-convert', 'image-resize', 'image-compress', 'image-rotate', 'image-watermark']);
   
   const imageTools = new Set(['image-convert', 'image-compress', 'image-resize', 'image-rotate', 'image-watermark', 'images-pdf']);
+  const multiImageTools = new Set(['image-convert', 'image-compress', 'image-resize', 'image-rotate', 'image-watermark', 'images-pdf']);
   const rotateTools = new Set(['image-rotate', 'pdf-rotate-pages']);
   const singleFileTools = new Set(['image-crop', 'pdf-delete-pages', 'pdf-rotate-pages', 'pdf-page-numbers', 'pdf-watermark', 'pdf-remove-metadata', 'pdf-to-images', 'pdf-organize', 'pdf-compress', 'ocr', 'pdf-ocr', 'pdf-flatten', 'pdf-resize-pages']);
   const textTools = new Set(['data-json', 'data-base64', 'data-wordcount', 'data-json-csv', 'data-units', 'qr-code', 'barcode']);
@@ -197,22 +251,228 @@
   function openToolById(id) {
     if (toolConfig) openTool(id, toolConfig);
   }
-  
-  function initToolDialog(config) {
+
+  function fileKey(file) {
+    if (!file) return '';
+    let id = fileIds.get(file);
+    if (!id) { id = `f${nextFileSerial++}-${Date.now().toString(36)}`; fileIds.set(file, id); }
+    return id;
+  }
+
+  function assignFileId(file, id) {
+    if (!file || !id) return;
+    fileIds.set(file, id);
+    const match = /^f(\d+)-/.exec(id);
+    if (match) nextFileSerial = Math.max(nextFileSerial, Number(match[1]) + 1);
+  }
+
+  function serializeMap(map) { return [...map.entries()].map(([key, value]) => [key, value]); }
+
+  function settingsDefaults() {
+    return {
+      imagePdf: imagePdfDefaultSettings,
+      imageConvert: imageConvertDefaultSettings,
+      imageCompress: imageCompressDefaultSettings,
+      imageResize: imageResizeDefaultSettings,
+      imageRotate: imageRotateDefaultSettings,
+      imageCrop: imageCropDefaultSettings,
+      imageWatermark: imageWatermarkDefaultSettings
+    };
+  }
+
+  function sessionSnapshot() {
+    return {
+      version: SESSION_VERSION,
+      tool: activeTool,
+      files: files.map(file => ({ id: fileKey(file), name: file.name, type: file.type, size: file.size, lastModified: file.lastModified })),
+      selected: previewIndex,
+      settings: {
+        imagePdf: serializeMap(imagePdfSettings),
+        imageConvert: serializeMap(imageConvertSettings),
+        imageCompress: serializeMap(imageCompressSettings),
+        imageResize: serializeMap(imageResizeSettings),
+        imageRotate: serializeMap(imageRotateSettings),
+        imageCrop: serializeMap(imageCropSettings),
+        imageWatermark: serializeMap(imageWatermarkSettings)
+      },
+      rotate: [...rotateStore.entries()].map(([file, value]) => [fileKey(file), value]),
+      pdfPages: serializeMap(pdfResizeSettings),
+      pdfPage: workspace?.currentPage || pdfResizePage || 1,
+      meta: [...imageMeta.entries()].filter(([, value]) => value && !value.loading),
+      output: [...imageOutput.entries()],
+      merge: mergeBoard?.getState?.() || null,
+      text: textTools.has(activeTool) || activeTool === 'data-hash' ? utilityInput.value.slice(0, 250000) : ''
+    };
+  }
+
+  async function persistSessionNow(blobs = false) {
+    if (persistPaused || !activeTool || !sessionStore?.isAvailable()) return;
+    const tool = activeTool;
+    try {
+      if (blobs) {
+        for (const file of files) await sessionStore.saveFile(tool, fileKey(file), file);
+        const stored = await sessionStore.loadFiles(tool);
+        const keep = new Set(files.map(fileKey));
+        for (const record of stored) if (!keep.has(record.id)) await sessionStore.deleteFile(tool, record.id);
+      }
+      if (tool !== activeTool) return;
+      if (!files.length && !utilityInput.value.trim()) {
+        await sessionStore.deleteSession(tool);
+        return;
+      }
+      await sessionStore.saveSession(tool, sessionSnapshot());
+    } catch (error) {
+      // Quota errors and private-mode restrictions must not break the tool.
+      console.warn('[ilovemyfiles] session could not be saved:', error?.message || error);
+    }
+  }
+
+  function schedulePersist({ blobs = false, immediate = false } = {}) {
+    if (persistPaused || !sessionStore?.isAvailable()) return;
+    sessionFilesDirty = sessionFilesDirty || blobs;
+    clearTimeout(sessionSaveTimer);
+    if (immediate) return persistSessionNow(sessionFilesDirty);
+    sessionSaveTimer = setTimeout(() => {
+      sessionSaveTimer = null;
+      const saveBlobs = sessionFilesDirty;
+      sessionFilesDirty = false;
+      persistSessionNow(saveBlobs);
+    }, 850);
+  }
+
+  function showSessionBanner(session) {
+    if (!sessionBanner) return;
+    pendingSession = session;
+    const count = Array.isArray(session.files) ? session.files.length : 0;
+    const when = session.updatedAt ? new Date(session.updatedAt).toLocaleString() : 'earlier';
+    if (sessionBannerText) {
+      sessionBannerText.textContent = count
+        ? `${count} file${count === 1 ? '' : 's'} and your settings were kept from ${when}. Restore them to continue where you left off.`
+        : `Settings from ${when} can be restored.`;
+    }
+    sessionBanner.hidden = false;
+  }
+
+  function hideSessionBanner() {
+    if (sessionBanner) sessionBanner.hidden = true;
+    pendingSession = null;
+  }
+
+  async function offerSession(tool) {
+    if (!sessionStore?.isAvailable()) return;
+    try {
+      const session = await sessionStore.loadSession(tool);
+      if (!session) return;
+      const hasContent = (session.files?.length || 0) > 0 || !!session.text?.trim();
+      if (!hasContent) return;
+      showSessionBanner(session);
+    } catch (error) {
+      console.warn('[ilovemyfiles] saved session could not be read:', error?.message || error);
+    }
+  }
+
+  async function restoreSessionData(session) {
+    if (!session) return;
+    persistPaused = true;
+    try {
+      const records = await sessionStore.loadFiles(activeTool);
+      const byId = new Map(records.map(record => [record.id, record]));
+      const missing = [];
+      const restored = [];
+      for (const meta of session.files || []) {
+        const record = byId.get(meta.id);
+        if (!record?.blob) { missing.push(meta.name); continue; }
+        const file = new File([record.blob], meta.name, { type: meta.type || record.type || '', lastModified: meta.lastModified || Date.now() });
+        assignFileId(file, meta.id);
+        restored.push(file);
+      }
+      files = restored;
+      previewIndex = Math.min(Math.max(0, Number(session.selected) || 0), Math.max(0, files.length - 1));
+      const defaults = settingsDefaults();
+      const restoreMap = (target, rows, fallback) => {
+        target.clear();
+        for (const [id, value] of rows || []) target.set(id, { ...fallback, ...value });
+      };
+      restoreMap(imagePdfSettings, session.settings?.imagePdf, defaults.imagePdf);
+      restoreMap(imageConvertSettings, session.settings?.imageConvert, defaults.imageConvert);
+      restoreMap(imageCompressSettings, session.settings?.imageCompress, defaults.imageCompress);
+      restoreMap(imageResizeSettings, session.settings?.imageResize, defaults.imageResize);
+      restoreMap(imageRotateSettings, session.settings?.imageRotate, defaults.imageRotate);
+      restoreMap(imageCropSettings, session.settings?.imageCrop, defaults.imageCrop);
+      restoreMap(imageWatermarkSettings, session.settings?.imageWatermark, defaults.imageWatermark);
+      restoreMap(pdfResizeSettings, session.pdfPages, pdfResizeDefaultSettings);
+      pdfResizePage = Math.max(1, Number(session.pdfPage) || 1);
+      rotateStore = new Map();
+      for (const [id, value] of session.rotate || []) {
+        const file = files.find(item => fileKey(item) === id);
+        if (file) rotateStore.set(file, value);
+      }
+      imageMeta.clear();
+      for (const [id, value] of session.meta || []) if (files.some(file => fileKey(file) === id)) imageMeta.set(id, value);
+      imageOutput.clear();
+      for (const [id, value] of session.output || []) if (files.some(file => fileKey(file) === id)) imageOutput.set(id, { ...value, status: value.status === 'processing' ? 'idle' : value.status });
+      if (utilityInput && session.text) utilityInput.value = session.text;
+      renderSelected();
+      if (files[previewIndex]) {
+        if (activeTool === 'image-convert') syncConvertSettings(files[previewIndex]);
+        if (activeTool === 'image-compress') syncCompressSettings(files[previewIndex]);
+        if (activeTool === 'image-resize') syncResizeSettings(files[previewIndex]);
+        if (activeTool === 'image-rotate') syncRotateSettings(files[previewIndex]);
+        if (activeTool === 'image-crop') syncCropSettings(files[previewIndex]);
+        if (activeTool === 'image-watermark') syncWatermarkSettings(files[previewIndex]);
+      }
+      files.forEach(updateSelectedRowMeta);
+      updateImageInfo();
+      runButton.disabled = !canRun();
+      setRunButtonLabel(files.length || utilityInput.value.trim() ? 'Process files →' : 'Choose files to start →');
+      if (activeTool === 'pdf-merge' && files.length) {
+        await refreshMergePreview();
+        mergeBoard?.restoreState?.(session.merge);
+        const mergeSettings = mergeBoard?.getActiveSettings?.() || mergeBoard?.getDefaultSettings?.() || { size: 'original', orientation: 'auto', margin: 0 };
+        const sizeEl = $('#merge-page-size');
+        const orientEl = $('#merge-orientation');
+        const marginEl = $('#merge-margin');
+        if (sizeEl) sizeEl.value = mergeSettings.size || 'original';
+        if (orientEl) orientEl.value = mergeSettings.orientation || 'auto';
+        if (marginEl) { marginEl.value = mergeSettings.margin ?? 0; syncMarginPresets(marginEl); }
+      } else {
+        if (activeTool === 'pdf-resize-pages' || activeTool === 'pdf-rotate-pages') {
+          await refreshPreview({ reload: true });
+          if (session.pdfPage) workspace?.goToPage?.(Number(session.pdfPage) || 1);
+        } else {
+          schedulePreviewUpdate(0);
+        }
+      }
+      if (missing.length) {
+        showStatus(`Restored ${files.length} of ${(session.files || []).length} files. Please upload again: ${missing.join(', ')}.`, 'error');
+      } else {
+        showStatus('Session restored. Your files stay on this device.', 'success');
+      }
+    } catch (error) {
+      showStatus(error?.message || 'The saved session could not be restored. Please upload your files again.', 'error');
+    } finally {
+      persistPaused = false;
+    }
+  }
+
+  async function clearSavedSession() {
+    if (!activeTool) return;
+    persistPaused = true;
+    clearTimeout(sessionSaveTimer);
+    try { await sessionStore?.deleteSession(activeTool); }
+    catch (error) { showStatus(error?.message || 'The saved session could not be cleared.', 'error'); }
+    finally { persistPaused = false; }
+    imageMeta.clear();
+    imageOutput.clear();
+    hideSessionBanner();
+    openTool(activeTool, toolConfig);
+    showStatus('Saved session and cached previews were cleared.', 'info');
+    schedulePersist({ blobs: true });
+  }
+
+  function initToolPage(config, initialToolId) {
     toolConfig = config;
-    closeButton.addEventListener('click', () => { if (!busy) dialog.close(); });
-    dialog.addEventListener('click', event => { if (event.target === dialog && !busy) dialog.close(); });
-    document.addEventListener('click', event => {
-      const button = event.target.closest('[data-tool-id]');
-      const id = button?.dataset.toolId;
-      if (!id || !toolConfig?.[id]) return;
-      event.preventDefault();
-      openTool(id, toolConfig);
-    });
-    document.addEventListener('ilovemyfiles:open-tool', event => {
-      const id = event.detail?.id;
-      if (id && toolConfig?.[id]) openTool(id, toolConfig);
-    });
+    if (closeButton) closeButton.addEventListener('click', () => { if (!busy) closeWorkspace(); });
     dropZone.addEventListener('click', () => { input.value = ''; input.click(); });
     dropZone.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); input.value = ''; input.click(); } });
     input.addEventListener('change', () => addFiles([...input.files]));
@@ -223,13 +483,15 @@
     ['dragleave', 'drop'].forEach(type => stage.addEventListener(type, event => { event.preventDefault(); stage.classList.remove('dragging-over'); }));
     stage.addEventListener('drop', event => addFiles([...event.dataTransfer.files]));
     runButton.addEventListener('click', runTool);
-    dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); });
-    dialog.addEventListener('close', () => { clearPreview(); mergeBoard?.destroy(); mergeBoard = null; if (!busy) lastTrigger?.focus?.(); });
     document.addEventListener('paste', handlePaste);
+    document.addEventListener('keydown', handlePreviewArrowKeys);
     previewClose.addEventListener('click', () => previewDialog.close());
     previewDialog.addEventListener('click', event => { if (event.target === previewDialog) previewDialog.close(); });
     previewDialog.addEventListener('close', closePreview);
-    utilityInput.addEventListener('input', () => { if (textTools.has(activeTool) || activeTool === 'data-hash') runButton.disabled = !canRun(); });
+    utilityInput.addEventListener('input', () => {
+      if (textTools.has(activeTool) || activeTool === 'data-hash') runButton.disabled = !canRun();
+      schedulePersist();
+    });
     utilityCopy.addEventListener('click', copyUtilityOutput);
     utilityDownload.addEventListener('click', () => {
       const blob = utilityBlob || new Blob([utilityOutput.value], { type: 'text/plain' });
@@ -242,12 +504,18 @@
         else mergeBoard.setDefaultSettings(patch);
         mergeBoard.refreshActivePreview?.();
       }
-      if (activeTool === 'images-pdf' && (event.target.id === 'pdf-page-size' || event.target.id === 'pdf-page-orientation')) {
-        const patch = { pageSize: $('#pdf-page-size')?.value || 'fit', orientation: $('#pdf-page-orientation')?.value || 'portrait' };
+      if (activeTool === 'pdf-resize-pages' && ['resize-page-size', 'resize-orientation', 'resize-margin'].includes(event.target.id) && files[0]) {
+        savePdfResizeSettings(files[0]);
+      }
+      if (activeTool === 'images-pdf' && (event.target.id === 'pdf-page-size' || event.target.id === 'pdf-page-orientation' || event.target.id === 'pdf-margin')) {
+        const patch = { pageSize: $('#pdf-page-size')?.value || 'fit', orientation: $('#pdf-page-orientation')?.value || 'portrait', margin: Number($('#pdf-margin')?.value) || 0 };
         if (files.length) {
           const file = files[previewIndex];
-          const key = `${file.name}:${file.size}:${file.lastModified}`;
+          const key = fileKey(file);
           imagePdfSettings.set(key, { ...(imagePdfSettings.get(key) || imagePdfDefaultSettings), ...patch });
+          imageOutput.delete(key);
+          updateImageInfo();
+          schedulePersist();
         } else {
           imagePdfDefaultSettings = { ...imagePdfDefaultSettings, ...patch };
         }
@@ -256,6 +524,7 @@
       if (event.target.id === 'compress-mode') {
         $('#quality-option').hidden = event.target.value !== 'quality';
         $('#target-option').hidden = event.target.value !== 'target';
+        if (activeTool === 'image-compress' && files[previewIndex]) saveCompressSettings(files[previewIndex]);
       }
       if (event.target.id === 'compress-format') {
         const mode = $('#compress-mode');
@@ -266,17 +535,82 @@
           $('#quality-option').hidden = true;
           $('#target-option').hidden = false;
         }
+        if (activeTool === 'image-compress' && files[previewIndex]) saveCompressSettings(files[previewIndex]);
       }
+      if (event.target.id === 'resize-format' && activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]);
+      if (event.target.id === 'rotate-format' && activeTool === 'image-rotate' && files[previewIndex]) saveRotateSettings(files[previewIndex]);
+      if (event.target.id === 'crop-format' && activeTool === 'image-crop' && files[previewIndex]) saveCropSettings(files[previewIndex]);
+      if (event.target.id === 'wm-format' && activeTool === 'image-watermark' && files[previewIndex]) saveWatermarkSettings(files[previewIndex]);
       if (event.target.id === 'split-mode') $('#split-pages-wrap').hidden = event.target.value !== 'selected';
       if (event.target.id === 'numbers-format') $('#numbers-custom-wrap').hidden = event.target.value !== 'custom';
-      if (event.target.id === 'resize-width' || event.target.id === 'resize-height') updateResizeDimension(event.target.id);
+      if (event.target.id === 'resize-width' || event.target.id === 'resize-height') { updateResizeDimension(event.target.id); if (activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]); }
       schedulePreviewUpdate();
     });
     optionsBox.addEventListener('input', event => {
-      if (event.target.id === 'quality') $('#quality-value').textContent = `${event.target.value}%`;
-      if (event.target.id === 'wm-opacity') $('#wm-opacity-value').textContent = `${Math.round(event.target.value * 100)}%`;
-      if (event.target.id?.includes('margin')) animateValue(event.target);
-      if (event.target.id === 'resize-width' || event.target.id === 'resize-height') updateResizeDimension(event.target.id);
+      if (event.target.id === 'quality') {
+        $('#quality-value').textContent = `${event.target.value}%`;
+        if (activeTool === 'image-compress' && files[previewIndex]) saveCompressSettings(files[previewIndex]);
+      }
+      if (event.target.id === 'wm-opacity') {
+        $('#wm-opacity-value').textContent = `${Math.round(event.target.value * 100)}%`;
+        if (activeTool === 'image-watermark' && files[previewIndex]) saveWatermarkSettings(files[previewIndex]);
+      }
+      if (activeTool === 'pdf-resize-pages' && event.target.id === 'resize-margin' && files[0]) savePdfResizeSettings(files[0]);
+      if (activeTool === 'pdf-merge' && mergeBoard && ['merge-page-size', 'merge-orientation', 'merge-margin'].includes(event.target.id)) {
+        const patch = { size: $('#merge-page-size')?.value || 'original', orientation: $('#merge-orientation')?.value || 'auto', margin: Number($('#merge-margin')?.value) || 0 };
+        if (mergeBoard.getActiveKey()) mergeBoard.setActiveSettings(patch);
+        else mergeBoard.setDefaultSettings(patch);
+        mergeBoard.refreshActivePreview?.();
+      }
+      if (activeTool === 'images-pdf' && event.target.id === 'pdf-margin' && files.length) {
+        const file = files[previewIndex];
+        const key = fileKey(file);
+        imagePdfSettings.set(key, { ...imagePdfSettings.get(key), margin: Number(event.target.value) || 0 });
+        imageOutput.delete(key);
+        updateImageInfo();
+        schedulePersist();
+      }
+      if (event.target.id?.includes('margin')) {
+        animateValue(event.target);
+        if (activeTool === 'image-convert' && event.target.id === 'convert-margin' && files[previewIndex]) {
+          saveConvertSettings(files[previewIndex], $('#image-format')?.value, null, Number(event.target.value) || 0);
+        }
+        if (activeTool === 'image-resize' && event.target.id === 'image-resize-margin' && files[previewIndex]) {
+          saveResizeSettings(files[previewIndex]);
+        }
+        if (activeTool === 'image-rotate' && event.target.id === 'rotate-image-margin' && files[previewIndex]) {
+          saveRotateSettings(files[previewIndex]);
+        }
+        if (activeTool === 'image-crop' && event.target.id === 'crop-margin' && files[previewIndex]) {
+          saveCropSettings(files[previewIndex]);
+        }
+      }
+      if (event.target.id === 'compress-format') {
+        if (activeTool === 'image-compress' && files[previewIndex]) saveCompressSettings(files[previewIndex]);
+        const mode = $('#compress-mode');
+        const qualityMode = mode.querySelector('option[value="quality"]');
+        qualityMode.disabled = !['image/webp', 'image/jpeg'].includes(event.target.value);
+        if (qualityMode.disabled && mode.value === 'quality') {
+          mode.value = 'target';
+          $('#quality-option').hidden = true;
+          $('#target-option').hidden = false;
+        }
+      }
+      if (event.target.id === 'compress-mode' && activeTool === 'image-compress' && files[previewIndex]) saveCompressSettings(files[previewIndex]);
+      if (event.target.id === 'target-kb' && activeTool === 'image-compress' && files[previewIndex]) saveCompressSettings(files[previewIndex]);
+      if (event.target.id === 'resize-width' || event.target.id === 'resize-height') { updateResizeDimension(event.target.id); if (activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]); }
+      if (event.target.id === 'resize-format' && activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]);
+      if (event.target.id === 'keep-ratio' && activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]);
+      if (event.target.id === 'image-resize-margin' && activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]);
+      if (event.target.id === 'rotate-format' && activeTool === 'image-rotate' && files[previewIndex]) saveRotateSettings(files[previewIndex]);
+      if (event.target.id === 'rotate-image-margin' && activeTool === 'image-rotate' && files[previewIndex]) saveRotateSettings(files[previewIndex]);
+      if (event.target.id === 'crop-format' && activeTool === 'image-crop' && files[previewIndex]) saveCropSettings(files[previewIndex]);
+      if (event.target.id === 'crop-margin' && activeTool === 'image-crop' && files[previewIndex]) saveCropSettings(files[previewIndex]);
+      if (event.target.id === 'wm-text' && activeTool === 'image-watermark' && files[previewIndex]) saveWatermarkSettings(files[previewIndex]);
+      if (event.target.id === 'wm-position' && activeTool === 'image-watermark' && files[previewIndex]) saveWatermarkSettings(files[previewIndex]);
+      if (event.target.id === 'wm-color' && activeTool === 'image-watermark' && files[previewIndex]) saveWatermarkSettings(files[previewIndex]);
+      if (event.target.id === 'wm-size' && activeTool === 'image-watermark' && files[previewIndex]) saveWatermarkSettings(files[previewIndex]);
+      if (event.target.id === 'wm-format' && activeTool === 'image-watermark' && files[previewIndex]) saveWatermarkSettings(files[previewIndex]);
       if (activeTool === 'pdf-merge' && mergeBoard && (event.target.id === 'merge-page-size' || event.target.id === 'merge-orientation' || event.target.id === 'merge-margin')) {
         const patch = { size: $('#merge-page-size')?.value || 'original', orientation: $('#merge-orientation')?.value || 'auto', margin: Number($('#merge-margin')?.value) || 0 };
         if (mergeBoard.getActiveKey()) mergeBoard.setActiveSettings(patch);
@@ -287,16 +621,30 @@
       schedulePreviewUpdate();
     });
     optionsBox.addEventListener('click', event => {
+      if (activeTool === 'pdf-merge' && mergeBoard) {
+        if (event.target.closest('#merge-apply-all')) { mergeBoard.applyActiveToAll?.(); schedulePersist(); return; }
+        if (event.target.closest('#merge-reset-page')) { mergeBoard.resetActiveSettings?.(); schedulePersist(); return; }
+      }
+      if (activeTool === 'pdf-resize-pages' && files[0]) {
+        if (event.target.closest('#resize-apply-all')) { applyPdfResizeToAll(files[0]); return; }
+        if (event.target.closest('#resize-reset-page')) { resetPdfResizePage(files[0]); return; }
+      }
+      if (event.target.closest('[data-image-apply-all]')) { applyImageSettingsToAll(); return; }
+      if (event.target.closest('[data-image-reset]')) { resetImageSettings(); return; }
       const chip = event.target.closest('.format-chip');
       if (chip) {
         const group = chip.closest('.format-grid') || chip.parentElement;
         group.querySelectorAll('.format-chip').forEach(node => node.classList.toggle('active', node === chip));
         const hidden = document.querySelector('#image-format');
         if (hidden) hidden.value = chip.dataset.format;
+        if (activeTool === 'image-convert' && files[previewIndex]) {
+          saveConvertSettings(files[previewIndex], chip.dataset.format, chip.dataset.ext || null, Number($('#convert-margin')?.value) || 0);
+        }
       }
       const rotateAct = event.target.closest('[data-op]');
       if (rotateAct) {
         applyRotateOp(rotateAct.dataset.op);
+        if (activeTool === 'image-rotate' && files[previewIndex]) saveRotateSettings(files[previewIndex]);
         return;
       }
       const stepBtn = event.target.closest('.stepper-btn');
@@ -315,18 +663,47 @@
       const preset = event.target.closest('.margin-preset');
       if (preset) {
         const input = document.getElementById(preset.dataset.target);
-        if (input) { input.value = preset.dataset.value; input.dispatchEvent(new Event('input', { bubbles: true })); }
+        if (input) { input.value = preset.dataset.value; syncMarginPresets(input); input.dispatchEvent(new Event('input', { bubbles: true })); }
       }
       schedulePreviewUpdate(60);
     });
+
+    window.addEventListener('pagehide', () => {
+      clearTimeout(sessionSaveTimer);
+      persistSessionNow(sessionFilesDirty);
+    });
+    sessionRestore?.addEventListener('click', async () => {
+      const session = pendingSession;
+      hideSessionBanner();
+      if (session) await restoreSessionData(session);
+    });
+    sessionDiscard?.addEventListener('click', async () => {
+      try { await sessionStore?.deleteSession(activeTool); } catch { /* storage unavailable */ }
+      hideSessionBanner();
+      showStatus('Previous session discarded.', 'info');
+    });
+    clearSessionButton?.addEventListener('click', clearSavedSession);
+
+    if (initialToolId && config[initialToolId]) {
+      openTool(initialToolId, config);
+      offerSession(initialToolId);
+    }
   }
-  
+
+  function closeWorkspace() {
+    pageOpen = false;
+    document.querySelector('#tool-dialog')?.classList.remove('is-active');
+  }
+
   function isPdfFile(file) {
     return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
   }
   
   function ensureWorkspace() {
-    if (!workspace) workspace = new PreviewWorkspace(previewHost);
+    if (!workspace) {
+      workspace = new PreviewWorkspace(previewHost);
+      updateImageInfo();
+    }
     return workspace;
   }
   
@@ -347,7 +724,10 @@
   
   function wireSelection(tool) {
     const inputId = selectableInputs[tool];
-    if (!inputId || !workspace) return;
+    if (!inputId || !workspace) {
+      if (workspace) { workspace.selectable = null; workspace.setSelectListener(null); }
+      return;
+    }
     workspace.selectable = { set: currentSelectionSet(tool) };
     workspace.setSelectListener(set => {
       const target = $(`#${inputId}`);
@@ -412,17 +792,17 @@
     if (activeTool === 'pdf-merge') { await refreshMergePreview(); return; }
     if (previewIndex > files.length - 1) previewIndex = Math.max(0, files.length - 1);
     const file = files[previewIndex];
-    const key = `${file.name}:${file.size}:${file.lastModified}:${activeTool}`;
+    const key = `${fileKey(file)}:${activeTool}`;
     previewHost.hidden = false;
     stage?.classList.add('previewing');
       const ws = ensureWorkspace();
-      ws.setPageClickSelect(activeTool === 'pdf-rotate-pages' || activeTool === 'pdf-delete-pages');
+      ws.setPageClickSelect(activeTool === 'pdf-rotate-pages' || activeTool === 'pdf-delete-pages' || activeTool === 'pdf-resize-pages');
       try {
       const kindMismatch = (isPdfFile(file) && ws.kind !== 'pdf') || (!isPdfFile(file) && ws.kind !== 'image');
       if (reload || workspaceKey !== key || kindMismatch) {
         workspaceKey = key;
         if (isPdfFile(file)) {
-          const loadPromise = ws.loadPdf(file, { thumbnails: false });
+          const loadPromise = ws.loadPdf(file, { thumbnails: true });
           await loadPromise;
           wireSelection(activeTool);
         }
@@ -430,6 +810,12 @@
       }
       else if (isPdfFile(file)) wireSelection(activeTool);
       ws.setActivePageListener(pageNumber => {
+        if (activeTool === 'pdf-resize-pages' || activeTool === 'pdf-rotate-pages') schedulePersist();
+        if (activeTool === 'pdf-resize-pages') {
+          syncPdfResizeSettings(file, pageNumber);
+          previewPdfResize();
+          return;
+        }
         if (activeTool === 'pdf-rotate-pages') {
           const rotations = transformFor(file).pageRotations || {};
           const pageRotation = normalizeAngle(rotations[pageNumber] || 0);
@@ -473,13 +859,16 @@
         showStatus(`Moved to position ${to + 1}.`, 'info');
       }, index => {
         if (index < 0 || index >= files.length) return;
-        files.splice(index, 1);
+        const [removed] = files.splice(index, 1);
+        forgetFile(removed);
         if (files.length === 0) previewIndex = 0;
         else if (previewIndex >= files.length) previewIndex = files.length - 1;
         else if (index < previewIndex) previewIndex -= 1;
         renderSelected();
         runButton.disabled = !canRun();
+        applySelectedItemControls();
         schedulePreviewUpdate();
+        schedulePersist();
       }, () => {
         files = [];
         previewIndex = 0;
@@ -514,14 +903,45 @@
   function syncImagePdfControls() {
     if (activeTool !== 'images-pdf' || !files.length) return;
     const file = files[previewIndex];
-    const key = `${file.name}:${file.size}:${file.lastModified}`;
+    const key = fileKey(file);
     const settings = imagePdfSettings.get(key) || imagePdfDefaultSettings;
     const sizeEl = $('#pdf-page-size');
     const orientEl = $('#pdf-page-orientation');
+    const marginEl = $('#pdf-margin');
     if (sizeEl) sizeEl.value = settings.pageSize || 'fit';
     if (orientEl) orientEl.value = settings.orientation || 'portrait';
+    if (marginEl) { marginEl.value = String(settings.margin ?? 0); syncMarginPresets(marginEl); }
   }
-  
+
+  function forgetFile(file) {
+    if (!file) return;
+    const key = fileKey(file);
+    imageOutput.delete(key);
+    imagePdfSettings.delete(key);
+    imageConvertSettings.delete(key);
+    imageCompressSettings.delete(key);
+    imageResizeSettings.delete(key);
+    imageRotateSettings.delete(key);
+    imageCropSettings.delete(key);
+    imageWatermarkSettings.delete(key);
+    for (const id of [...pdfResizeSettings.keys()]) if (id === key || id.startsWith(`${key}:`)) pdfResizeSettings.delete(id);
+  }
+
+  function applySelectedItemControls() {
+    const file = files[previewIndex];
+    if (!file) { updateImageInfo(); return; }
+    syncRotateControls();
+    syncImagePdfControls();
+    if (activeTool === 'image-convert') syncConvertSettings(file);
+    if (activeTool === 'image-compress') syncCompressSettings(file);
+    if (activeTool === 'image-resize') syncResizeSettings(file);
+    if (activeTool === 'image-rotate') syncRotateSettings(file);
+    if (activeTool === 'image-crop') syncCropSettings(file);
+    if (activeTool === 'image-watermark') syncWatermarkSettings(file);
+    ensureImageMeta(file);
+    updateImageInfo();
+  }
+
   function setPreviewIndex(index) {
     const next = Math.max(0, Math.min(index, files.length - 1));
     if (next === previewIndex) return;
@@ -530,14 +950,206 @@
     for (const row of selected.querySelectorAll('.selected-file[data-file-index]')) {
       row.classList.toggle('preview-active', Number(row.dataset.fileIndex) === previewIndex);
     }
-    syncRotateControls();
-    syncImagePdfControls();
+    applySelectedItemControls();
     schedulePreviewUpdate();
+    schedulePersist();
+  }
+
+  function handlePreviewArrowKeys(event) {
+    if (!pageOpen || busy) return;
+    if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    const target = event.target;
+    if (target instanceof Element) {
+      if (target.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""]')) return;
+      if (target.isContentEditable) return;
+    }
+    if (document.querySelector('dialog[open]')) return;
+    const delta = event.key === 'ArrowRight' ? 1 : -1;
+    if (activeTool === 'pdf-merge') {
+      if (!mergeBoard || !files.length) return;
+      event.preventDefault();
+      mergeBoard.selectRelative?.(delta);
+      return;
+    }
+    if (!files.length || !previewTools.has(activeTool)) return;
+    const isPdf = isPdfFile(files[previewIndex]);
+    if (!isPdf && files.length > 1) {
+      event.preventDefault();
+      setPreviewIndex(previewIndex + delta);
+      return;
+    }
+    if (isPdf && workspace && workspace.kind === 'pdf' && workspace.pageCount > 1) {
+      event.preventDefault();
+      workspace.goToPage(workspace.active + delta);
+    }
+  }
+
+  function extensionOf(name) {
+    const match = /\.([^.]+)$/.exec(name || '');
+    return match ? `.${match[1].toLowerCase()}` : '';
+  }
+
+  function formatLabel(type) {
+    const map = {
+      'image/jpeg': 'JPG', 'image/png': 'PNG', 'image/webp': 'WebP', 'image/bmp': 'BMP',
+      'image/gif': 'GIF', 'image/x-icon': 'ICO', 'image/svg+xml': 'SVG', 'image/tiff': 'TIFF',
+      'image/heic': 'HEIC', 'image/avif': 'AVIF', 'application/pdf': 'PDF'
+    };
+    return map[type] || (type ? type.replace('image/', '').toUpperCase() : 'Unknown');
+  }
+
+  function currentImageSettings(file) {
+    const key = fileKey(file);
+    if (activeTool === 'images-pdf') return imagePdfSettings.get(key) || imagePdfDefaultSettings;
+    if (activeTool === 'image-convert') return imageConvertSettings.get(key) || imageConvertDefaultSettings;
+    if (activeTool === 'image-compress') return imageCompressSettings.get(key) || imageCompressDefaultSettings;
+    if (activeTool === 'image-resize') return imageResizeSettings.get(key) || imageResizeDefaultSettings;
+    if (activeTool === 'image-rotate') return imageRotateSettings.get(key) || imageRotateDefaultSettings;
+    if (activeTool === 'image-crop') return imageCropSettings.get(key) || imageCropDefaultSettings;
+    if (activeTool === 'image-watermark') return imageWatermarkSettings.get(key) || imageWatermarkDefaultSettings;
+    return null;
+  }
+
+  function outputPlan(file, meta) {
+    const settings = currentImageSettings(file);
+    if (!settings) return null;
+    const plan = { format: '', dimensions: '', note: '' };
+    if (activeTool === 'image-convert') {
+      plan.format = formatLabel(settings.format);
+      plan.note = settings.margin ? `Margin ${settings.margin}px` : '';
+    } else if (activeTool === 'image-resize') {
+      plan.format = formatLabel(settings.format);
+      const width = Number(settings.width) || 0;
+      const height = Number(settings.height) || 0;
+      if (settings.keepRatio && meta?.width && meta?.height && width > 0 && height > 0) {
+        const ratio = Math.min(width / meta.width, height / meta.height);
+        plan.dimensions = `${Math.max(1, Math.round(meta.width * ratio))} × ${Math.max(1, Math.round(meta.height * ratio))} px (fitted)`;
+      } else if (width > 0 && height > 0) plan.dimensions = `${width} × ${height} px`;
+      if (settings.margin) plan.note = `Margin ${settings.margin}px`;
+    } else if (activeTool === 'image-compress') {
+      plan.format = formatLabel(settings.format);
+      plan.note = settings.mode === 'target' ? `Target ~${settings.targetKb} KB` : `Quality ${settings.quality}%`;
+    } else if (activeTool === 'image-rotate') {
+      plan.format = formatLabel(settings.format);
+      const rotation = ((Number(settings.rotation) || 0) % 360 + 360) % 360;
+      plan.note = `Rotation ${rotation}°${settings.flipH ? ' · flipped H' : ''}${settings.flipV ? ' · flipped V' : ''}`;
+      if (meta?.width && meta?.height && (rotation === 90 || rotation === 270)) plan.dimensions = `${meta.height} × ${meta.width} px`;
+      else if (meta?.width && meta?.height) plan.dimensions = `${meta.width} × ${meta.height} px`;
+    } else if (activeTool === 'image-watermark') {
+      plan.format = formatLabel(settings.format);
+      plan.note = `Watermark at ${settings.position}`;
+    } else if (activeTool === 'images-pdf') {
+      plan.format = 'PDF';
+      plan.note = `Page size ${settings.pageSize || 'fit'}${Number(settings.margin) > 0 ? ` · ${settings.margin}pt margin` : ''}`;
+    }
+    return plan;
+  }
+
+  function imageMetaValue(file) {
+    const info = imageMeta.get(fileKey(file));
+    if (!info) ensureImageMeta(file);
+    return info && !info.loading ? info : null;
+  }
+
+  async function ensureImageMeta(file) {
+    if (!file || !file.type?.startsWith('image/')) return null;
+    const key = fileKey(file);
+    const existing = imageMeta.get(key);
+    if (existing && !existing.loading) return existing;
+    if (existing?.loading) return existing.promise;
+    const entry = { loading: true };
+    entry.promise = (async () => {
+      try {
+        const info = await getImageInfo(file);
+        const value = { ...info, fileName: file.name, extension: extensionOf(file.name), originalType: file.type || '', originalSize: file.size };
+        imageMeta.set(key, value);
+        if (files[previewIndex] === file) updateImageInfo();
+        updateSelectedRowMeta(file);
+        schedulePersist();
+        return value;
+      } catch (error) {
+        const value = { fileName: file.name, extension: extensionOf(file.name), originalType: file.type || '', originalSize: file.size, mimeType: file.type || '', format: formatLabel(file.type), supported: false, error: error?.message || 'Could not read this image.' };
+        imageMeta.set(key, value);
+        if (files[previewIndex] === file) updateImageInfo();
+        updateSelectedRowMeta(file);
+        return value;
+      }
+    })();
+    imageMeta.set(key, entry);
+    return entry.promise;
+  }
+
+  function updateSelectedRowMeta(file) {
+    if (!file) return;
+    const row = selected.querySelector(`.selected-file[data-file-key="${CSS.escape(fileKey(file))}"]`);
+    if (!row) return;
+    const metaEl = row.querySelector('.selected-file-meta');
+    if (!metaEl) return;
+    const info = imageMeta.get(fileKey(file));
+    if (!info || info.loading) { metaEl.textContent = formatBytes(file.size); return; }
+    const parts = [formatBytes(file.size)];
+    if (info.width && info.height) parts.push(`${info.width} × ${info.height} px`);
+    else if (info.format) parts.push(`${info.format} · preview unavailable`);
+    metaEl.textContent = parts.join(' · ');
+    metaEl.title = `${info.fileName || file.name} · ${info.mimeType || file.type || 'unknown type'}`;
+  }
+
+  function imageOutputText(entry) {
+    if (!entry) return null;
+    const parts = [];
+    if (entry.name) parts.push(entry.name);
+    if (entry.width && entry.height) parts.push(`${entry.width} × ${entry.height} px`);
+    if (entry.sizeBytes) parts.push(formatBytes(entry.sizeBytes));
+    return parts.join(' · ');
+  }
+
+  function updateImageInfo() {
+    const imageInfoPanel = workspace?.infoEl;
+    if (!imageInfoPanel) return;
+    const file = files[previewIndex];
+    if (!file || !file.type?.startsWith('image/') || textTools.has(activeTool)) {
+      imageInfoPanel.hidden = true;
+      imageInfoPanel.replaceChildren();
+      return;
+    }
+    const info = imageMeta.get(fileKey(file));
+    const output = imageOutput.get(fileKey(file));
+    const format = info?.format || formatLabel(file.type);
+    const dimensions = info?.width && info?.height ? `${info.width} × ${info.height} px` : (info?.loading ? 'Reading…' : 'Dimensions unavailable');
+    const status = output?.status || (info?.supported === false ? 'failed' : 'ready');
+    const statusText = status === 'completed' ? 'Done' : status === 'processing' ? 'Working' : status === 'failed' ? 'Failed' : 'Ready';
+
+    const row = document.createElement('div');
+    row.className = 'pv-info-row';
+    const type = document.createElement('span');
+    type.className = 'pv-info-type';
+    type.textContent = format;
+    const name = document.createElement('span');
+    name.className = 'pv-info-name';
+    name.textContent = file.name;
+    const meta = document.createElement('span');
+    meta.className = 'pv-info-meta';
+    meta.textContent = `${dimensions} · ${formatBytes(file.size)}`;
+    const badge = document.createElement('span');
+    badge.className = `pv-info-status ${status}`;
+    badge.textContent = statusText;
+    row.append(type, name, meta, badge);
+    imageInfoPanel.replaceChildren(row);
+    imageInfoPanel.hidden = false;
+  }
+
+  function markImageOutput(file, status, patch = {}) {
+    if (!file || !file.type?.startsWith('image/')) return;
+    const key = fileKey(file);
+    imageOutput.set(key, { ...(imageOutput.get(key) || {}), ...patch, status, updatedAt: Date.now() });
+    updateImageInfo();
+    updateSelectedRowMeta(file);
+    schedulePersist();
   }
 
   function imagePreviewCacheKey(file) {
-    let id = imagePreviewIds.get(file);
-    if (!id) { id = ++nextImagePreviewId; imagePreviewIds.set(file, id); }
+    const id = fileKey(file);
     const panel = optionPanels.find(item => item.dataset.toolOptions === activeTool);
     const values = [...(panel?.querySelectorAll('input, select, textarea') || [])]
       .map(control => [control.id, control.value, control.checked]);
@@ -555,11 +1167,26 @@
     return cached;
   }
 
+  async function getCachedImagePreviewAsync(key) {
+    const cached = getCachedImagePreview(key);
+    if (cached) return cached;
+    try {
+      const record = await sessionStore?.getPreview(activeTool, key);
+      if (!record?.blob) return null;
+      const value = { blob: record.blob, details: record.details || '' };
+      cacheImagePreview(key, value);
+      return value;
+    } catch {
+      return null;
+    }
+  }
+
   function cacheImagePreview(key, result) {
     if (!result?.blob || result.blob.size > 8 * 1024 * 1024) return;
     imagePreviewCache.delete(key);
     imagePreviewCache.set(key, { blob: result.blob, details: result.details });
     while (imagePreviewCache.size > 6) imagePreviewCache.delete(imagePreviewCache.keys().next().value);
+    if (activeTool) sessionStore?.putPreview(activeTool, key, result).catch(() => {});
   }
   
   async function applyToolPreview(file) {
@@ -682,25 +1309,30 @@
   
   function previewPdfResize() {
     const ws = workspace;
-    const sizeKey = $('#resize-page-size').value;
-    const dims = PDF_PAGE_SIZES[sizeKey];
-    if (!dims) return;
-    const orientation = $('#resize-orientation').value;
-    const margin = Math.max(0, Math.min(200, Number($('#resize-margin').value) || 0));
-    const input = $('#resize-pages').value.trim();
+    const file = files[0];
+    if (!ws || !file) return;
+    const input = $('#resize-pages')?.value.trim() || '';
     let set = null;
     if (input) { try { set = new Set(parsePageSelection(input, ws.pageCount).map(index => index + 1)); } catch { set = null; } }
     ws.setSizeOverride((num, src) => {
       if (set && !set.has(num)) return null;
+      const settings = pdfResizeSettings.get(pdfResizeKey(file, num));
+      const dims = PDF_PAGE_SIZES[settings.size];
+      if (!dims) return null;
+      const orientation = settings.orientation || 'portrait';
+      const margin = Math.max(0, Math.min(200, Number(settings.margin) || 0));
       let [width, height] = dims;
       const landscape = orientation === 'landscape' || (orientation === 'auto' && src.width > src.height);
       if (landscape) [width, height] = [height, width];
       return { width, height, inset: margin };
     });
-    const label = sizeKey.toUpperCase();
-    const scope = input || 'all pages';
-    ws.setModeLabel(`${label} · ${orientation === 'auto' ? 'match' : orientation}`);
-    ws.setNote(`Pages (${scope}) are scaled to fit ${label}${orientation === 'auto' ? ' matched to each page' : ` ${orientation}`}${margin > 0 ? ` with a ${margin}pt margin` : ''}.`);
+    const page = currentPdfResizePage();
+    const settings = pdfResizeSettings.get(pdfResizeKey(file, page));
+    const label = (settings.size || 'a4').toUpperCase();
+    const orientation = settings.orientation === 'auto' ? 'match each page' : settings.orientation;
+    const margin = Math.max(0, Number(settings.margin) || 0);
+    ws.setModeLabel(`${label} · ${settings.orientation === 'auto' ? 'match' : settings.orientation}`);
+    ws.setNote(`Page ${page} of ${ws.pageCount} · ${label} ${orientation}${margin > 0 ? ` · ${margin}pt margin` : ''}. Changes apply to this page only — use Apply to all for every page.`);
     ws.reflow();
   }
   
@@ -1170,7 +1802,7 @@
     const seq = ++previewSeq;
     const cacheKey = imagePreviewCacheKey(file);
     try {
-      const cached = getCachedImagePreview(cacheKey);
+      const cached = await getCachedImagePreviewAsync(cacheKey);
       if (cached) {
         ws.setImageProcessed({ ...cached, cacheKey });
         ws.setModeLabel('Live result preview');
@@ -1178,33 +1810,41 @@
         return;
       }
       let result;
-      if (activeTool === 'image-convert') result = await convertImage(file, $('#image-format').value, Number($('#convert-margin')?.value) || 0, activeOption('.format-chip.active')?.dataset.ext || null);
-      else if (activeTool === 'image-resize') {
+      if (activeTool === 'image-convert') {
+        const key = fileKey(file);
+        const s = imageConvertSettings.get(key) || imageConvertDefaultSettings;
+        result = await convertImage(file, s.format, s.margin, s.ext || null);
+      } else if (activeTool === 'image-resize') {
         const width = Number($('#resize-width').value), height = Number($('#resize-height').value);
         if (!(width > 0 && height > 0)) { ws.setNote('Enter a width and height to preview the resized result.'); return; }
-        result = await resizeImage(file, width, height, $('#keep-ratio').checked, $('#resize-format').value, Number($('#image-resize-margin')?.value) || 0, selectExt('resize-format'));
+        const key = fileKey(file);
+        const s = imageResizeSettings.get(key) || imageResizeDefaultSettings;
+        result = await resizeImage(file, width, height, $('#keep-ratio').checked, s.format, s.margin, s.ext);
       }
-      else if (activeTool === 'image-compress') result = await compressImage(file, {
-        type: $('#compress-format').value,
-        mode: $('#compress-mode').value,
-        quality: $('#quality')?.value,
-        targetKb: $('#target-kb')?.value,
-        ext: selectExt('compress-format')
-      });
+      else if (activeTool === 'image-compress') {
+        const key = fileKey(file);
+        const s = imageCompressSettings.get(key) || imageCompressDefaultSettings;
+        result = await compressImage(file, { type: s.format, mode: s.mode, quality: s.quality, targetKb: s.targetKb, ext: s.ext });
+      }
       else if (activeTool === 'image-rotate') {
         const entry = transformFor(file);
-        const margin = Number($('#rotate-image-margin')?.value) || 0;
-        if (!entry.rotation && !entry.flipH && !entry.flipV && !margin) { ws.clearImageProcessed(); ws.setNote('Rotate, flip or add a margin to preview the result.'); return; }
-        result = await rotateImage(file, {
-          rotation: entry.rotation, flipH: entry.flipH, flipV: entry.flipV, type: $('#rotate-format').value, margin, ext: selectExt('rotate-format')
-        });
+        const key = fileKey(file);
+        const s = imageRotateSettings.get(key) || imageRotateDefaultSettings;
+        if (!s.rotation && !s.flipH && !s.flipV && !s.margin) { ws.clearImageProcessed(); ws.setNote('Rotate, flip or add a margin to preview the result.'); return; }
+        result = await rotateImage(file, { rotation: s.rotation, flipH: s.flipH, flipV: s.flipV, type: s.format, margin: s.margin, ext: s.ext });
+      }
+      else if (activeTool === 'image-crop') {
+        const area = cropEditor?.getCropRect();
+        if (!area || area.width < 1 || area.height < 1) { ws.clearImageProcessed(); ws.setNote('Select a crop area to preview the result.'); return; }
+        const key = fileKey(file);
+        const s = imageCropSettings.get(key) || imageCropDefaultSettings;
+        result = await cropImage(file, area, s.format, s.margin, s.ext);
       }
       else if (activeTool === 'image-watermark') {
         if (!$('#wm-text').value.trim()) { ws.clearImageProcessed(); ws.setNote('Enter watermark text to preview the result.'); return; }
-        result = await watermarkImage(file, {
-          text: $('#wm-text').value, position: $('#wm-position').value, color: $('#wm-color').value,
-          opacity: $('#wm-opacity').value, scale: $('#wm-size').value, type: $('#wm-format').value, ext: selectExt('wm-format')
-        });
+        const key = fileKey(file);
+        const s = imageWatermarkSettings.get(key) || imageWatermarkDefaultSettings;
+        result = await watermarkImage(file, { text: s.text, position: s.position, color: s.color, opacity: s.opacity, scale: s.size, type: s.format, ext: s.ext });
       }
       if (seq !== previewSeq) return;
       if (result) {
@@ -1233,7 +1873,7 @@
     const standard = PDF_PAGE_SIZES[pageSize];
     if (!margin && !standard) { ws.clearImageProcessed(); return; }
     try {
-      const cached = getCachedImagePreview(cacheKey);
+      const cached = await getCachedImagePreviewAsync(cacheKey);
       if (cached) {
         ws.setImageProcessed({ ...cached, cacheKey });
         return;
@@ -1271,10 +1911,15 @@
   
   function openTool(tool, config) {
     rememberRecentTool(tool);
-    activeTool = tool;   files = []; busy = false; dragIndex = null; previewIndex = 0; lastTrigger = document.activeElement; input.value = '';
+    activeTool = tool; files = []; busy = false; dragIndex = null; previewIndex = 0; lastTrigger = document.activeElement; input.value = '';
     rotateStore.clear();
+    imageMeta.clear();
+    imageOutput.clear();
+    sessionFilesDirty = false;
+    clearTimeout(sessionSaveTimer);
     selectedUrls.forEach(URL.revokeObjectURL); selectedUrls.clear();
     clearPreview();
+    hideSessionBanner();
     metadataInspection = null; metadataSeq++; clearTimeout(metadataTimer);
     if (previewDialog.open) previewDialog.close();
     const settings = config[tool];
@@ -1289,8 +1934,22 @@
     activateToolOptions(tool);
     syncRotateControls();
     cropWorkspace.hidden = true;
-    if (tool === 'images-pdf') { imagePdfSettings.clear(); imagePdfDefaultSettings = { pageSize: 'fit', orientation: 'portrait' }; }
-    if (tool === 'image-crop') { const editor = $('#crop-editor'); if (editor) cropEditor = createCropEditor(editor); }
+    if (tool === 'images-pdf') { imagePdfSettings.clear(); imagePdfDefaultSettings = { pageSize: 'fit', orientation: 'portrait', margin: 0 }; }
+    if (tool === 'image-convert') { imageConvertSettings.clear(); imageConvertDefaultSettings = { format: 'image/png', margin: 0 }; }
+    if (tool === 'image-compress') { imageCompressSettings.clear(); imageCompressDefaultSettings = { format: 'image/webp', mode: 'quality', quality: '78', targetKb: '200' }; }
+    if (tool === 'image-resize') { imageResizeSettings.clear(); imageResizeDefaultSettings = { width: '1200', height: '1200', keepRatio: true, format: 'image/webp', margin: 0 }; }
+    if (tool === 'image-rotate') { imageRotateSettings.clear(); imageRotateDefaultSettings = { rotation: 0, flipH: false, flipV: false, format: 'image/png', margin: 0 }; }
+    if (tool === 'image-crop') { imageCropSettings.clear(); imageCropDefaultSettings = { format: 'image/png', margin: 0 }; }
+    if (tool === 'image-watermark') { imageWatermarkSettings.clear(); imageWatermarkDefaultSettings = { text: '© iLoveMyFiles', position: 'bottom-right', color: '#ffffff', opacity: '0.6', size: '6', format: 'image/png' }; }
+    if (tool === 'pdf-resize-pages') {
+      pdfResizeSettings.clear(); pdfResizePage = 1;
+      pdfResizeDefaultSettings = {
+        size: $('#resize-page-size')?.value || 'a4',
+        orientation: $('#resize-orientation')?.value || 'portrait',
+        margin: Number($('#resize-margin')?.value) || 0
+      };
+    }
+    if (tool === 'image-crop') { const editor = $('#crop-editor'); if (editor) cropEditor = createCropEditor(editor, { onChange: () => { if (activeTool === 'image-crop' && files[0]) saveCropArea(files[0]); } }); }
     if (tool === 'pdf-merge' && mergeHost) {
       let board;
       board = createMergeWorkspace(mergeHost, {
@@ -1313,8 +1972,9 @@
           const marginEl = $('#merge-margin');
           if (sizeEl) sizeEl.value = settings.size || 'original';
           if (orientEl) orientEl.value = settings.orientation || 'auto';
-          if (marginEl) marginEl.value = settings.margin ?? 0;
-        }
+          if (marginEl) { marginEl.value = settings.margin ?? 0; syncMarginPresets(marginEl); }
+        },
+        onStateChange: () => schedulePersist()
       });
       mergeBoard = board;
     }
@@ -1332,7 +1992,10 @@
     if (pasteHint) pasteHint.hidden = textMode || !imageTools.has(tool);
     runButton.disabled = true;
     setRunButtonLabel(textMode ? 'Run tool →' : 'Choose files to start →');
-    dialog.showModal();
+    if (workspace?.infoEl) workspace.infoEl.hidden = true;
+    pageOpen = true;
+    dialog.classList.add('is-active');
+    updateImageInfo();
   }
   
   function addFiles(incoming) {
@@ -1349,19 +2012,85 @@
     if (!valid.length) return showStatus('Choose files in a supported format.', 'error');
     if (singleFileTools.has(activeTool)) files = [valid[0]];
     else {
-      const seen = new Set(files.map(file => `${file.name}:${file.size}:${file.lastModified}`));
-      files.push(...valid.filter(file => !seen.has(`${file.name}:${file.size}:${file.lastModified}`)));
+      const seen = new Set(files.map(file => fileKey(file)));
+      files.push(...valid.filter(file => { const key = fileKey(file); if (seen.has(key)) return false; seen.add(key); return true; }));
     }
     if (activeTool === 'images-pdf') {
       valid.forEach(file => {
-        const key = `${file.name}:${file.size}:${file.lastModified}`;
+        const key = fileKey(file);
         if (!imagePdfSettings.has(key)) imagePdfSettings.set(key, { ...imagePdfDefaultSettings });
       });
     }
+    if (activeTool === 'image-convert') {
+      const panel = optionPanels.find(p => p.dataset.toolOptions === 'image-convert');
+      valid.forEach(file => {
+        const key = fileKey(file);
+        if (imageConvertSettings.has(key)) return;
+        const selector = imageFormatForFile(file);
+        const chip = selector && panel ? panel.querySelector(selector) : null;
+        imageConvertSettings.set(key, {
+          ...imageConvertDefaultSettings,
+          format: chip?.dataset.format || imageConvertDefaultSettings.format,
+          ext: (chip && chip.dataset.ext) ? chip.dataset.ext : null
+        });
+      });
+      if (files.length) syncConvertSettings(files[previewIndex]);
+    }
+    if (activeTool === 'image-compress') {
+      valid.forEach(file => {
+        const key = fileKey(file);
+        if (!imageCompressSettings.has(key)) imageCompressSettings.set(key, { ...imageCompressDefaultSettings });
+      });
+      if (files.length) syncCompressSettings(files[previewIndex]);
+    }
+    if (activeTool === 'image-resize') {
+      valid.forEach(file => {
+        const key = fileKey(file);
+        if (!imageResizeSettings.has(key)) imageResizeSettings.set(key, { ...imageResizeDefaultSettings });
+      });
+      if (files.length) syncResizeSettings(files[previewIndex]);
+    }
+    if (activeTool === 'image-rotate') {
+      valid.forEach(file => {
+        const key = fileKey(file);
+        if (!imageRotateSettings.has(key)) imageRotateSettings.set(key, { ...imageRotateDefaultSettings });
+      });
+      if (files.length) syncRotateSettings(files[previewIndex]);
+    }
+    if (activeTool === 'image-crop') {
+      valid.forEach(file => {
+        const key = fileKey(file);
+        if (!imageCropSettings.has(key)) imageCropSettings.set(key, { ...imageCropDefaultSettings });
+      });
+      if (files.length) syncCropSettings(files[previewIndex]);
+    }
+    if (activeTool === 'image-watermark') {
+      valid.forEach(file => {
+        const key = fileKey(file);
+        if (!imageWatermarkSettings.has(key)) imageWatermarkSettings.set(key, { ...imageWatermarkDefaultSettings });
+      });
+      if (files.length) syncWatermarkSettings(files[previewIndex]);
+    }
     if (activeTool === 'pdf-merge' && files.length < 2) showStatus('Add at least two PDF files to merge.', 'info');
     else status.hidden = true;
+    if (activeTool === 'image-resize') {
+      valid.forEach(async file => {
+        const key = fileKey(file);
+        const current = imageResizeSettings.get(key);
+        if (!current || current.width !== imageResizeDefaultSettings.width || current.height !== imageResizeDefaultSettings.height) return;
+        const info = await ensureImageMeta(file);
+        if (!info?.width || !info?.height) return;
+        imageResizeSettings.set(key, { ...current, width: String(info.width), height: String(info.height) });
+        if (files[previewIndex] === file) syncResizeSettings(file);
+        schedulePersist();
+      });
+    }
+    valid.forEach(file => {
+      if (file.type.startsWith('image/')) ensureImageMeta(file);
+      imageOutput.delete(fileKey(file));
+    });
     renderSelected();
-    if (activeTool === 'image-convert' && files.length) syncConvertFormat(files[0]);
+    schedulePersist({ blobs: true });
     if (activeTool === 'image-compress' && files.length) syncSelectFormat('compress-format', files[0]);
     if (activeTool === 'image-resize' && files.length) syncSelectFormat('resize-format', files[0]);
     if (activeTool === 'image-rotate' && files.length) syncSelectFormat('rotate-format', files[0]);
@@ -1373,7 +2102,7 @@
   }
   
   function handlePaste(event) {
-    if (!dialog.open || busy || !imageTools.has(activeTool)) return;
+    if (!pageOpen || busy || !imageTools.has(activeTool)) return;
     const items = [...(event.clipboardData?.items || [])];
     const pasted = items
       .filter(item => item.kind === 'file' && item.type.startsWith('image/'))
@@ -1427,6 +2156,7 @@
     files.splice(to, 0, moved);
     renderSelected();
     runButton.disabled = !canRun();
+    schedulePersist();
   }
   
   function makeReorderButton(label, aria, onClick) {
@@ -1447,10 +2177,14 @@
     dropZone.classList.toggle('compact', files.length > 0);
     if (previewIndex > files.length - 1) previewIndex = Math.max(0, files.length - 1);
     const multiple = files.length > 1 && previewTools.has(activeTool) && !textTools.has(activeTool);
+    selected.classList.toggle('multi', multiple);
+    const bulk = activeOption('.image-bulk-actions');
+    if (bulk) bulk.hidden = !(multiImageTools.has(activeTool) && files.length > 1);
     selected.replaceChildren();
     files.forEach((file, index) => {
       const row = document.createElement('div'); row.className = 'selected-file'; row.draggable = true;
       row.dataset.fileIndex = String(index);
+      row.dataset.fileKey = fileKey(file);
       if (multiple) {
         row.classList.toggle('preview-active', index === previewIndex);
         row.addEventListener('click', event => { if (!event.target.closest('button')) setPreviewIndex(index); });
@@ -1467,14 +2201,10 @@
         if (dragIndex === null || dragIndex === index) return;
         const [moved] = files.splice(dragIndex, 1);
         files.splice(index, 0, moved);
-    renderSelected();
-    if (activeTool === 'image-convert' && files.length) syncConvertFormat(files[0]);
-    if (activeTool === 'image-compress' && files.length) syncSelectFormat('compress-format', files[0]);
-    if (activeTool === 'image-resize' && files.length) syncSelectFormat('resize-format', files[0]);
-    if (activeTool === 'image-rotate' && files.length) syncSelectFormat('rotate-format', files[0]);
-    if (activeTool === 'image-crop' && files.length) syncSelectFormat('crop-format', files[0]);
-    if (activeTool === 'image-watermark' && files.length) syncSelectFormat('wm-format', files[0]);
-    runButton.disabled = !canRun();
+        dragIndex = null;
+        renderSelected();
+        runButton.disabled = !canRun();
+        schedulePersist();
       });
       const pdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
       const thumb = document.createElement('button');
@@ -1491,8 +2221,9 @@
       thumb.addEventListener('click', () => openPreview({ name: file.name, blob: file }));
       const details = document.createElement('span'); details.className = 'selected-file-info';
       const name = document.createElement('b'); name.textContent = file.name; name.title = file.name;
-      const meta = document.createElement('small'); meta.textContent = formatBytes(file.size);
+      const meta = document.createElement('small'); meta.className = 'selected-file-meta'; meta.textContent = formatBytes(file.size);
       details.append(name, meta);
+      if (file.type.startsWith('image/')) ensureImageMeta(file);
       const controls = document.createElement('span'); controls.className = 'file-controls';
       if (files.length > 1) {
         controls.append(
@@ -1508,9 +2239,12 @@
         results.replaceChildren();
         results.hidden = true;
         status.hidden = true;
+        imageMeta.delete(fileKey(file));
+        imageOutput.delete(fileKey(file));
         renderSelected();
         runButton.disabled = !canRun();
         setRunButtonLabel(files.length ? 'Process files →' : 'Choose files to start →');
+        schedulePersist({ blobs: true });
       });
       row.append(thumb, details, controls, remove); selected.append(row);
     });
@@ -1519,21 +2253,16 @@
       clear.type = 'button'; clear.className = 'clear-files'; clear.textContent = 'Clear all';
       clear.addEventListener('click', () => {
         files = []; results.replaceChildren(); results.hidden = true; input.value = '';
-        rotateStore.clear();
+        rotateStore.clear(); imageMeta.clear(); imageOutput.clear();
         renderSelected(); runButton.disabled = true;
         setRunButtonLabel('Choose files to start →');
         schedulePreviewUpdate();
+        schedulePersist({ blobs: true });
       });
       selected.append(clear);
     }
-    if (activeTool === 'image-resize' && files.length === 1) {
-      readImageDimensions(files[0]).then(({ width, height }) => {
-        if (!$('#resize-width')) return;
-        $('#resize-width').value = width; $('#resize-height').value = height;
-      }).catch(() => {});
-    }
     if (activeTool === 'image-crop') {
-      if (files.length === 1) cropEditor?.load(files[0]).catch(error => showStatus(error.message, 'error'));
+      if (files.length === 1) cropEditor?.load(files[0]).then(() => restoreCropArea(files[0])).catch(error => showStatus(error.message, 'error'));
       else cropEditor?.clear();
     }
     if (activeTool === 'pdf-remove-metadata') scheduleMetadataInspect();
@@ -1646,20 +2375,365 @@
     return map[type] || map[ext] || null;
   }
 
-  function syncConvertFormat(file) {
+  function syncConvertSettings(file) {
     if (activeTool !== 'image-convert' || !file) return;
+    const key = fileKey(file);
+    const settings = imageConvertSettings.get(key) || imageConvertDefaultSettings;
     const panel = optionPanels.find(p => p.dataset.toolOptions === 'image-convert');
     if (!panel) return;
     const grid = panel.querySelector('.format-grid');
-    if (!grid) return;
-    const selector = imageFormatForFile(file);
-    if (!selector) return;
-    const chip = grid.querySelector(selector);
-    if (!chip) return;
-    grid.querySelectorAll('.format-chip').forEach(node => node.classList.toggle('active', node === chip));
     const hidden = panel.querySelector('#image-format');
-    if (hidden) hidden.value = chip.dataset.format;
+    const marginInput = panel.querySelector('#convert-margin');
+    if (grid && hidden) {
+      const chips = [...grid.querySelectorAll('.format-chip')];
+      const chip = chips.find(node => node.dataset.format === settings.format && (settings.ext ? (node.dataset.ext || '') === settings.ext : true))
+        || chips.find(node => node.dataset.format === settings.format);
+      if (chip) {
+        chips.forEach(node => node.classList.toggle('active', node === chip));
+        hidden.value = chip.dataset.format;
+      }
+    }
+    if (marginInput) { marginInput.value = String(settings.margin ?? 0); syncMarginPresets(marginInput); }
     schedulePreviewUpdate();
+  }
+
+  function saveConvertSettings(file, format, ext, margin) {
+    if (activeTool !== 'image-convert' || !file) return;
+    const key = fileKey(file);
+    imageConvertSettings.set(key, { format, ext, margin });
+    imageOutput.delete(key);
+    updateImageInfo();
+    schedulePersist();
+  }
+
+  function syncCompressSettings(file) {
+    if (activeTool !== 'image-compress' || !file) return;
+    const key = fileKey(file);
+    const s = imageCompressSettings.get(key) || imageCompressDefaultSettings;
+    const formatSelect = $('#compress-format');
+    const modeSelect = $('#compress-mode');
+    const qualityInput = $('#quality');
+    const targetInput = $('#target-kb');
+    if (formatSelect) {
+      for (const opt of formatSelect.options) {
+        const matchExt = s.ext ? (opt.dataset.ext || '') === s.ext : true;
+        opt.selected = opt.value === s.format && matchExt;
+      }
+    }
+    if (modeSelect) modeSelect.value = s.mode || 'quality';
+    if (qualityInput) qualityInput.value = s.quality || '78';
+    if (targetInput) targetInput.value = s.targetKb || '200';
+    const qualityOption = $('#quality-option');
+    const targetOption = $('#target-option');
+    if (qualityOption && targetOption) {
+      qualityOption.hidden = s.mode !== 'quality';
+      targetOption.hidden = s.mode !== 'target';
+    }
+    const qualityLabel = $('#quality-value');
+    if (qualityLabel) qualityLabel.textContent = `${qualityInput?.value || s.quality || '78'}%`;
+    schedulePreviewUpdate();
+  }
+
+  function saveCompressSettings(file) {
+    if (activeTool !== 'image-compress' || !file) return;
+    const key = fileKey(file);
+    const formatSelect = $('#compress-format');
+    const modeSelect = $('#compress-mode');
+    const qualityInput = $('#quality');
+    const targetInput = $('#target-kb');
+    const opt = formatSelect?.options[formatSelect?.selectedIndex || 0];
+    imageCompressSettings.set(key, {
+      format: formatSelect?.value || 'image/webp',
+      ext: opt?.dataset.ext || null,
+      mode: modeSelect?.value || 'quality',
+      quality: qualityInput?.value || '78',
+      targetKb: targetInput?.value || '200'
+    });
+    imageOutput.delete(key);
+    updateImageInfo();
+    schedulePersist();
+  }
+
+  function syncResizeSettings(file) {
+    if (activeTool !== 'image-resize' || !file) return;
+    const key = fileKey(file);
+    const s = imageResizeSettings.get(key) || imageResizeDefaultSettings;
+    const widthInput = $('#resize-width');
+    const heightInput = $('#resize-height');
+    const keepRatio = $('#keep-ratio');
+    const formatSelect = $('#resize-format');
+    const marginInput = $('#image-resize-margin');
+    if (widthInput) widthInput.value = s.width || '1200';
+    if (heightInput) heightInput.value = s.height || '1200';
+    if (keepRatio) keepRatio.checked = s.keepRatio !== false;
+    if (formatSelect) {
+      for (const opt of formatSelect.options) {
+        const matchExt = s.ext ? (opt.dataset.ext || '') === s.ext : true;
+        opt.selected = opt.value === s.format && matchExt;
+      }
+    }
+    if (marginInput) { marginInput.value = String(s.margin ?? 0); syncMarginPresets(marginInput); }
+    schedulePreviewUpdate();
+  }
+
+  function saveResizeSettings(file) {
+    if (activeTool !== 'image-resize' || !file) return;
+    const key = fileKey(file);
+    const formatSelect = $('#resize-format');
+    const opt = formatSelect?.options[formatSelect?.selectedIndex || 0];
+    imageResizeSettings.set(key, {
+      width: $('#resize-width')?.value || '1200',
+      height: $('#resize-height')?.value || '1200',
+      keepRatio: $('#keep-ratio')?.checked !== false,
+      format: formatSelect?.value || 'image/webp',
+      ext: opt?.dataset.ext || null,
+      margin: Number($('#image-resize-margin')?.value) || 0
+    });
+    imageOutput.delete(key);
+    updateImageInfo();
+    schedulePersist();
+  }
+
+  function pdfResizeKey(file, page) {
+    return `${fileKey(file)}:${Number(page) || 1}`;
+  }
+
+  function currentPdfResizePage() {
+    const count = workspace?.pageCount || 1;
+    return Math.max(1, Math.min(count, Number(workspace?.currentPage) || pdfResizePage || 1));
+  }
+
+  function syncPdfResizeSettings(file, page = currentPdfResizePage()) {
+    if (activeTool !== 'pdf-resize-pages' || !file) return;
+    pdfResizePage = page;
+    const settings = pdfResizeSettings.get(pdfResizeKey(file, page));
+    const sizeEl = $('#resize-page-size');
+    const orientationEl = $('#resize-orientation');
+    const marginEl = $('#resize-margin');
+    if (sizeEl) sizeEl.value = settings.size || 'a4';
+    if (orientationEl) orientationEl.value = settings.orientation || 'portrait';
+    if (marginEl) { marginEl.value = String(settings.margin ?? 0); syncMarginPresets(marginEl); }
+  }
+
+  function savePdfResizeSettings(file, page = currentPdfResizePage()) {
+    if (activeTool !== 'pdf-resize-pages' || !file) return;
+    pdfResizePage = page;
+    pdfResizeSettings.set(pdfResizeKey(file, page), {
+      size: $('#resize-page-size')?.value || 'a4',
+      orientation: $('#resize-orientation')?.value || 'portrait',
+      margin: Number($('#resize-margin')?.value) || 0
+    });
+    schedulePersist();
+  }
+
+  function applyPdfResizeToAll(file) {
+    if (activeTool !== 'pdf-resize-pages' || !file) return;
+    const page = currentPdfResizePage();
+    const settings = { ...pdfResizeSettings.get(pdfResizeKey(file, page)) };
+    const count = workspace?.pageCount || 1;
+    for (let index = 1; index <= count; index++) pdfResizeSettings.set(pdfResizeKey(file, index), settings);
+    showStatus(`Applied page ${page} settings to all ${count} page${count === 1 ? '' : 's'}.`, 'info');
+    schedulePersist();
+    schedulePreviewUpdate(0);
+  }
+
+  function resetPdfResizePage(file) {
+    if (activeTool !== 'pdf-resize-pages' || !file) return;
+    const page = currentPdfResizePage();
+    pdfResizeSettings.delete(pdfResizeKey(file, page));
+    syncPdfResizeSettings(file, page);
+    showStatus(`Page ${page} restored to the tool defaults.`, 'info');
+    schedulePersist();
+    schedulePreviewUpdate(0);
+  }
+
+  function imageSettingsStore() {
+    switch (activeTool) {
+      case 'images-pdf': return imagePdfSettings;
+      case 'image-convert': return imageConvertSettings;
+      case 'image-compress': return imageCompressSettings;
+      case 'image-resize': return imageResizeSettings;
+      case 'image-rotate': return imageRotateSettings;
+      case 'image-watermark': return imageWatermarkSettings;
+      case 'image-crop': return imageCropSettings;
+      default: return null;
+    }
+  }
+
+  function applyImageSettingsToAll() {
+    if (!multiImageTools.has(activeTool) || files.length < 2) return;
+    const store = imageSettingsStore();
+    if (!store) return;
+    const settings = { ...store.get(fileKey(files[previewIndex])) };
+    for (const file of files) {
+      store.set(fileKey(file), { ...settings });
+      if (activeTool === 'image-rotate') {
+        const entry = transformFor(file);
+        entry.rotation = settings.rotation ?? 0;
+        entry.flipH = settings.flipH ?? false;
+        entry.flipV = settings.flipV ?? false;
+      }
+      imageOutput.delete(fileKey(file));
+    }
+    applySelectedItemControls();
+    schedulePersist();
+    schedulePreviewUpdate(0);
+    showStatus(`Applied this image's settings to all ${files.length} images.`, 'info');
+  }
+
+  async function resetImageSettings() {
+    if (!multiImageTools.has(activeTool) || !files[previewIndex]) return;
+    const store = imageSettingsStore();
+    if (!store) return;
+    const file = files[previewIndex];
+    const key = fileKey(file);
+    store.delete(key);
+    if (activeTool === 'image-rotate') {
+      const entry = transformFor(file);
+      entry.rotation = 0; entry.flipH = false; entry.flipV = false;
+    }
+    if (activeTool === 'image-resize') {
+      const info = await ensureImageMeta(file);
+      if (info?.width && info?.height) store.set(key, { ...store.get(key), width: String(info.width), height: String(info.height) });
+    }
+    imageOutput.delete(key);
+    applySelectedItemControls();
+    schedulePersist();
+    schedulePreviewUpdate(0);
+    showStatus('Reset this image to its defaults.', 'info');
+  }
+
+  function syncRotateSettings(file) {
+    if (activeTool !== 'image-rotate' || !file) return;
+    const key = fileKey(file);
+    const s = imageRotateSettings.get(key) || imageRotateDefaultSettings;
+    const entry = transformFor(file);
+    entry.rotation = s.rotation ?? 0;
+    entry.flipH = s.flipH ?? false;
+    entry.flipV = s.flipV ?? false;
+    const formatSelect = $('#rotate-format');
+    const marginInput = $('#rotate-image-margin');
+    if (formatSelect) {
+      for (const opt of formatSelect.options) {
+        const matchExt = s.ext ? (opt.dataset.ext || '') === s.ext : true;
+        opt.selected = opt.value === s.format && matchExt;
+      }
+    }
+    if (marginInput) { marginInput.value = String(s.margin ?? 0); syncMarginPresets(marginInput); }
+    syncRotateControls();
+    schedulePreviewUpdate();
+  }
+
+  function saveRotateSettings(file) {
+    if (activeTool !== 'image-rotate' || !file) return;
+    const key = fileKey(file);
+    const entry = transformFor(file);
+    const formatSelect = $('#rotate-format');
+    const opt = formatSelect?.options[formatSelect?.selectedIndex || 0];
+    imageRotateSettings.set(key, {
+      rotation: entry.rotation,
+      flipH: entry.flipH,
+      flipV: entry.flipV,
+      format: formatSelect?.value || 'image/png',
+      ext: opt?.dataset.ext || null,
+      margin: Number($('#rotate-image-margin')?.value) || 0
+    });
+    imageOutput.delete(key);
+    updateImageInfo();
+    schedulePersist();
+  }
+
+  function syncCropSettings(file) {
+    if (activeTool !== 'image-crop' || !file) return;
+    const key = fileKey(file);
+    const s = imageCropSettings.get(key) || imageCropDefaultSettings;
+    const formatSelect = $('#crop-format');
+    const marginInput = $('#crop-margin');
+    if (formatSelect) {
+      for (const opt of formatSelect.options) {
+        const matchExt = s.ext ? (opt.dataset.ext || '') === s.ext : true;
+        opt.selected = opt.value === s.format && matchExt;
+      }
+    }
+    if (marginInput) { marginInput.value = String(s.margin ?? 0); syncMarginPresets(marginInput); }
+    schedulePreviewUpdate();
+  }
+
+  function saveCropSettings(file) {
+    if (activeTool !== 'image-crop' || !file) return;
+    const key = fileKey(file);
+    const formatSelect = $('#crop-format');
+    const opt = formatSelect?.options[formatSelect?.selectedIndex || 0];
+    imageCropSettings.set(key, {
+      ...imageCropSettings.get(key),
+      format: formatSelect?.value || 'image/png',
+      ext: opt?.dataset.ext || null,
+      margin: Number($('#crop-margin')?.value) || 0
+    });
+    imageOutput.delete(key);
+    updateImageInfo();
+    schedulePersist();
+  }
+
+  function saveCropArea(file) {
+    if (activeTool !== 'image-crop' || !file || !cropEditor) return;
+    const key = fileKey(file);
+    imageCropSettings.set(key, { ...imageCropSettings.get(key), crop: cropEditor.getCropRect() });
+    imageOutput.delete(key);
+    updateImageInfo();
+    schedulePersist();
+    schedulePreviewUpdate(0);
+  }
+
+  function restoreCropArea(file) {
+    if (activeTool !== 'image-crop' || !file || !cropEditor) return;
+    const crop = imageCropSettings.get(fileKey(file))?.crop;
+    if (crop) cropEditor.setCropRect(crop);
+  }
+
+  function syncWatermarkSettings(file) {
+    if (activeTool !== 'image-watermark' || !file) return;
+    const key = fileKey(file);
+    const s = imageWatermarkSettings.get(key) || imageWatermarkDefaultSettings;
+    const textInput = $('#wm-text');
+    const positionSelect = $('#wm-position');
+    const colorInput = $('#wm-color');
+    const opacityInput = $('#wm-opacity');
+    const sizeInput = $('#wm-size');
+    const formatSelect = $('#wm-format');
+    const opacityLabel = $('#wm-opacity-value');
+    if (textInput) textInput.value = s.text || '© iLoveMyFiles';
+    if (positionSelect) positionSelect.value = s.position || 'bottom-right';
+    if (colorInput) colorInput.value = s.color || '#ffffff';
+    if (opacityInput) opacityInput.value = s.opacity || '0.6';
+    if (sizeInput) sizeInput.value = s.size || '6';
+    if (opacityLabel) opacityLabel.textContent = `${Math.round((s.opacity || 0.6) * 100)}%`;
+    if (formatSelect) {
+      for (const opt of formatSelect.options) {
+        const matchExt = s.ext ? (opt.dataset.ext || '') === s.ext : true;
+        opt.selected = opt.value === s.format && matchExt;
+      }
+    }
+    schedulePreviewUpdate();
+  }
+
+  function saveWatermarkSettings(file) {
+    if (activeTool !== 'image-watermark' || !file) return;
+    const key = fileKey(file);
+    const formatSelect = $('#wm-format');
+    const opt = formatSelect?.options[formatSelect?.selectedIndex || 0];
+    imageWatermarkSettings.set(key, {
+      text: $('#wm-text')?.value || '© iLoveMyFiles',
+      position: $('#wm-position')?.value || 'bottom-right',
+      color: $('#wm-color')?.value || '#ffffff',
+      opacity: $('#wm-opacity')?.value || '0.6',
+      size: $('#wm-size')?.value || '6',
+      format: formatSelect?.value || 'image/png',
+      ext: opt?.dataset.ext || null
+    });
+    imageOutput.delete(key);
+    updateImageInfo();
+    schedulePersist();
   }
 
   function syncSelectFormat(selectId, file) {
@@ -1703,11 +2777,14 @@
   }
   
   function updateResizeDimension(changed) {
-    if (!$('#keep-ratio')?.checked || files.length !== 1) return;
-    readImageDimensions(files[0]).then(({ width, height }) => {
+    if (!$('#keep-ratio')?.checked || !files.length) return;
+    const file = files[previewIndex];
+    readImageDimensions(file).then(({ width, height }) => {
+      if (!width || !height) return;
       const w = Number($('#resize-width').value), h = Number($('#resize-height').value);
-      if (changed === 'resize-width' && w > 0) $('#resize-height').value = Math.max(1, Math.round(w * height / width));
-      if (changed === 'resize-height' && h > 0) $('#resize-width').value = Math.max(1, Math.round(h * width / height));
+      if (changed === 'resize-width' && w > 0) $('#resize-height').value = String(Math.max(1, Math.round(w * height / width)));
+      if (changed === 'resize-height' && h > 0) $('#resize-width').value = String(Math.max(1, Math.round(h * width / height)));
+      if (activeTool === 'image-resize' && files[previewIndex] === file) saveResizeSettings(file);
     }).catch(() => {});
   }
   
@@ -2035,7 +3112,7 @@
   }
   
   function setBusy(value) {
-    busy = value; runButton.disabled = value || !canRun(); closeButton.disabled = value;
+    busy = value; runButton.disabled = value || !canRun(); if (closeButton) closeButton.disabled = value;
     const idle = textTools.has(activeTool) ? 'Run tool →' : 'Process files →';
     setRunButtonLabel(value ? 'Working…' : idle);
   }
@@ -2076,6 +3153,7 @@
       }
       utilityResults.hidden = false;
       showStatus(result.message || 'Done. Copy or download the result.', 'success');
+      schedulePersist();
     } catch (error) {
       showStatus(error?.message || 'Could not process the input.', 'error');
     } finally { setBusy(false); }
@@ -2090,47 +3168,54 @@
     try {
       let outputs = [];
       if (activeTool === 'image-convert') {
-        const type = $('#image-format').value;
-        const margin = Number($('#convert-margin')?.value) || 0;
-        const ext = activeOption('.format-chip.active')?.dataset.ext || null;
-        outputs = await processMany(file => convertImage(file, type, margin, ext));
-      } else if (activeTool === 'image-compress') {
-        const type = $('#compress-format').value;
-        const mode = $('#compress-mode').value;
-        outputs = await processMany(file => compressImage(file, { type, mode, quality: $('#quality')?.value, targetKb: $('#target-kb')?.value, ext: selectExt('compress-format') }));
-      } else if (activeTool === 'image-resize') {
-        const width = Number($('#resize-width').value), height = Number($('#resize-height').value);
-        if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 20000 || height > 20000) throw new Error('Enter width and height between 1 and 20,000 pixels.');
-        const keep = $('#keep-ratio').checked, type = $('#resize-format').value, margin = Number($('#image-resize-margin')?.value) || 0;
-        outputs = await processMany(file => resizeImage(file, width, height, keep, type, margin, selectExt('resize-format')));
-      } else if (activeTool === 'image-rotate') {
-        const type = $('#rotate-format').value;
-        const margin = Number($('#rotate-image-margin')?.value) || 0;
-        if (!margin && !files.some(activeTransformApplied)) throw new Error('Rotate or flip at least one image, or add a margin.');
         outputs = await processMany(file => {
-          const entry = transformFor(file);
-          return rotateImage(file, { rotation: entry.rotation, flipH: entry.flipH, flipV: entry.flipV, type, margin, ext: selectExt('rotate-format') });
+          const key = fileKey(file);
+          const s = imageConvertSettings.get(key) || imageConvertDefaultSettings;
+          return convertImage(file, s.format, s.margin, s.ext || null);
+        });
+      } else if (activeTool === 'image-compress') {
+        outputs = await processMany(file => {
+          const key = fileKey(file);
+          const s = imageCompressSettings.get(key) || imageCompressDefaultSettings;
+          return compressImage(file, { type: s.format, mode: s.mode, quality: s.quality, targetKb: s.targetKb, ext: s.ext });
+        });
+      } else if (activeTool === 'image-resize') {
+        outputs = await processMany(file => {
+          const key = fileKey(file);
+          const s = imageResizeSettings.get(key) || imageResizeDefaultSettings;
+          return resizeImage(file, Number(s.width), Number(s.height), s.keepRatio, s.format, s.margin, s.ext);
+        });
+      } else if (activeTool === 'image-rotate') {
+        outputs = await processMany(file => {
+          const key = fileKey(file);
+          const s = imageRotateSettings.get(key) || imageRotateDefaultSettings;
+          return rotateImage(file, { rotation: s.rotation, flipH: s.flipH, flipV: s.flipV, type: s.format, margin: s.margin, ext: s.ext });
         });
       } else if (activeTool === 'image-crop') {
         const area = cropEditor?.getCropRect();
         if (!area || area.width < 1 || area.height < 1) throw new Error('Select a crop area first.');
-        const type = $('#crop-format').value;
-        const margin = Number($('#crop-margin')?.value) || 0;
-        outputs = await processMany(file => cropImage(file, area, type, margin, selectExt('crop-format')));
+        outputs = await processMany(file => {
+          const key = fileKey(file);
+          const s = imageCropSettings.get(key) || imageCropDefaultSettings;
+          return cropImage(file, area, s.format, s.margin, s.ext);
+        });
       } else if (activeTool === 'image-watermark') {
-        const options = {
-          text: $('#wm-text').value, position: $('#wm-position').value, color: $('#wm-color').value,
-          opacity: $('#wm-opacity').value, scale: $('#wm-size').value, type: $('#wm-format').value, ext: selectExt('wm-format')
-        };
-        if (!options.text.trim()) throw new Error('Enter watermark text first.');
-        outputs = await processMany(file => watermarkImage(file, options));
+        outputs = await processMany(file => {
+          const key = fileKey(file);
+          const s = imageWatermarkSettings.get(key) || imageWatermarkDefaultSettings;
+          return watermarkImage(file, { text: s.text, position: s.position, color: s.color, opacity: s.opacity, scale: s.size, type: s.format, ext: s.ext });
+        });
       } else if (activeTool === 'images-pdf') {
         const fileSettings = files.map(file => {
-          const key = `${file.name}:${file.size}:${file.lastModified}`;
+          const key = fileKey(file);
           const s = imagePdfSettings.get(key) || imagePdfDefaultSettings;
-          return { pageSize: s.pageSize, orientation: s.orientation };
+          return { pageSize: s.pageSize, orientation: s.orientation, margin: Number(s.margin) || 0 };
         });
-        outputs = [await imagesToPdf(files, { pageSize: $('#pdf-page-size').value, orientation: $('#pdf-page-orientation').value, margin: $('#pdf-margin').value, fileSettings }, setProgress)];
+        files.forEach(file => markImageOutput(file, 'processing'));
+        const currentPdf = imagePdfSettings.get(fileKey(files[previewIndex])) || imagePdfDefaultSettings;
+        const pdfOutput = await imagesToPdf(files, { pageSize: $('#pdf-page-size').value, orientation: $('#pdf-page-orientation').value, margin: Number(currentPdf.margin) || 0, fileSettings }, setProgress);
+        outputs = [pdfOutput];
+        files.forEach(file => markImageOutput(file, 'completed', { name: pdfOutput.name, mimeType: 'application/pdf', note: 'Combined into the PDF above.' }));
       } else if (activeTool === 'pdf-merge') {
         const order = mergeBoard?.getOrder?.() || [];
         const mergeMargin = Number($('#merge-margin')?.value) || 0;
@@ -2164,7 +3249,11 @@
         if (!changedPages.length) throw new Error('Select a page and choose a rotation before processing.');
         outputs = [await rotatePdfPages(files[0], rotations, '', setProgress)];
       } else if (activeTool === 'pdf-resize-pages') {
-        outputs = [await resizePdfPages(files[0], { size: $('#resize-page-size').value, orientation: $('#resize-orientation').value, margin: $('#resize-margin').value, pages: $('#resize-pages').value }, setProgress)];
+        const source = files[0];
+        const pageCount = workspace?.pageCount || 1;
+        const perPage = {};
+        for (let page = 1; page <= pageCount; page++) perPage[page] = pdfResizeSettings.get(pdfResizeKey(source, page));
+        outputs = [await resizePdfPages(source, { size: $('#resize-page-size').value, orientation: $('#resize-orientation').value, margin: $('#resize-margin').value, pages: $('#resize-pages').value, perPage }, setProgress)];
       } else if (activeTool === 'pdf-page-numbers') {
         const selectedFont = $('#numbers-font')?.value || 'helvetica';
         const bold = !!$('#numbers-bold')?.checked;
@@ -2208,8 +3297,23 @@ const fontKey = WM_FONTS[selectedFont]?.googleFamily
   async function processMany(callback) {
     const outputs = [];
     for (let index = 0; index < files.length; index++) {
-      setProgress({ percent: Math.round(index / files.length * 90), label: `Processing ${files[index].name}…` });
-      outputs.push(await callback(files[index]));
+      const file = files[index];
+      setProgress({ percent: Math.round(index / files.length * 90), label: `Processing ${file.name}…` });
+      markImageOutput(file, 'processing');
+      try {
+        const result = await callback(file);
+        outputs.push(result);
+        markImageOutput(file, 'completed', {
+          name: result.name,
+          mimeType: result.mimeType || result.blob?.type || '',
+          sizeBytes: result.sizeBytes ?? result.blob?.size,
+          width: result.width,
+          height: result.height
+        });
+      } catch (error) {
+        markImageOutput(file, 'failed', { error: error?.message || 'Processing failed.' });
+        throw error;
+      }
     }
     return outputs;
   }
@@ -2263,6 +3367,6 @@ const fontKey = WM_FONTS[selectedFont]?.googleFamily
       results.append(downloadAll);
     }
   }
-      window.iLoveMyFilesModules['tool-dialog'] = { openToolById, initToolDialog };
+      window.iLoveMyFilesModules['tool-dialog'] = { openToolById, initToolPage };
   });
 </script>
