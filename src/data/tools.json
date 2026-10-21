@@ -1300,7 +1300,7 @@
         "not searchable pdf"
       ],
       "seo": {
-        "title": "Flatten PDF — Remove the Selectable Text Layer | iLoveMyFiles",
+        "title": "Flatten PDF - Remove the Selectable Text Layer | iLoveMyFiles",
         "description": "Flatten a PDF by rendering each page to an image and rebuilding the file, so the original text can no longer be selected, copied or searched. Runs in your browser.",
         "intro": "Flattening renders each page to a picture and builds a new PDF from those images, so the original text content is removed rather than merely hidden. Use it to share a PDF that no longer has a directly selectable text layer.",
         "steps": [
@@ -1315,7 +1315,7 @@
           ],
           [
             "Does flattening make my PDF confidential?",
-            "No. Flattening removes the selectable text layer, but OCR can recover text from the page images, and metadata, annotations or attachments may still be present. For genuinely sensitive information, use a dedicated redaction tool that deletes the underlying content — iLoveMyFiles does not provide one."
+            "No. Flattening removes the selectable text layer, but OCR can recover text from the page images, and metadata, annotations or attachments may still be present. For genuinely sensitive information, use a dedicated redaction tool that deletes the underlying content - iLoveMyFiles does not provide one."
           ],
           [
             "Why did the file get bigger?",
@@ -1350,7 +1350,7 @@
         "scanned pdf to text"
       ],
       "seo": {
-        "title": "Make PDF Searchable (OCR) — Add a Text Layer | iLoveMyFiles",
+        "title": "Make PDF Searchable (OCR) - Add a Text Layer | iLoveMyFiles",
         "description": "Turn scanned or image-only PDFs into searchable PDFs. OCR runs in your browser, keeps the original page look, and adds an invisible, selectable text layer.",
         "intro": "Scanned PDFs are just pictures, so you cannot select or search their text. This tool recognises the text on every page and overlays an invisible layer that follows the original layout, so the pages look the same but the words become selectable and searchable.",
         "steps": [

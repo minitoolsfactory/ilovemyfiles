@@ -79,11 +79,6 @@
       </div>
     </section>
 
-    <section class="cbse-card" aria-labelledby="cbse-checks-title">
-      <h3 id="cbse-checks-title">Data quality checks</h3>
-      <ul class="cbse-checks" id="cbse-checks"></ul>
-    </section>
-
     <section class="cbse-card" aria-labelledby="cbse-flagged-title">
       <h3 id="cbse-flagged-title">Records that need a second look</h3>
       <p class="field-help">Correct the roll number, the name or the result status of a record here. A corrected record keeps the printed value next to your correction, and the report says how many records were changed by hand.</p>
@@ -97,6 +92,33 @@
         </table>
       </div>
     </section>
+
+    <details class="cbse-card cbse-checks-card">
+      <summary><b>Reference</b><span class="field-help">Subject code library and data quality checks, kept out of the way</span></summary>
+      <div class="cbse-reference-grid">
+        <div class="cbse-reference-panel">
+          <h4 id="cbse-checks-title">Data quality checks</h4>
+          <p class="field-help" id="cbse-checks-summary"></p>
+          <ul class="cbse-checks" id="cbse-checks"></ul>
+        </div>
+        <div class="cbse-reference-panel">
+          <h4 id="cbse-kb-title">CBSE subject code library</h4>
+          <p class="field-help">Every subject code CBSE publishes, with the official name and the total mark a gazette prints for it.</p>
+          <div class="cbse-kb-search">
+            <label class="sr-only" for="cbse-kb-search">Search the subject code library</label>
+            <input class="field-control" id="cbse-kb-search" type="search" placeholder="Search by code or name, for example 184 or English" autocomplete="off">
+          </div>
+          <div class="cbse-table-scroll" role="region" tabindex="0" aria-label="CBSE subject code library">
+            <table class="cbse-table cbse-table-compact">
+              <caption class="sr-only">CBSE subject codes, names and published total marks</caption>
+              <thead><tr><th scope="col">Code</th><th scope="col">Subject</th><th scope="col">Group</th><th scope="col">Total</th><th scope="col">Action</th></tr></thead>
+              <tbody id="cbse-kb-body"></tbody>
+            </table>
+          </div>
+          <p class="field-help" id="cbse-kb-count"></p>
+        </div>
+      </div>
+    </details>
 
     <div class="cbse-actions">
       <button type="button" class="button button-primary" id="cbse-apply">Build the report</button>
@@ -230,27 +252,62 @@
       </section>
     </div>
 
-    <section class="cbse-card" aria-labelledby="cbse-dashboard-checks-title">
-      <h3 id="cbse-dashboard-checks-title">Data quality checks in the report</h3>
-      <ul class="cbse-checks" id="cbse-dashboard-checks"></ul>
-    </section>
-
     <section class="cbse-card" aria-labelledby="cbse-student-title">
       <h3 id="cbse-student-title">Student records</h3>
-      <p class="field-help">Every record of the gazette, with one column per subject code. The name and the roll number are the ones printed in your file.</p>
-      <div class="cbse-filter-grid cbse-search-grid">
-        <div><label class="field-label" for="cbse-student-search">Search by roll number or name</label><input class="field-control" id="cbse-student-search" type="search" placeholder="Search" autocomplete="off"></div>
-        <div class="cbse-search-action"><span class="field-help" id="cbse-student-count"></span></div>
+      <p class="field-help">Every record of the gazette, with one column per subject code. Sort by any column, in either direction, and page through the records.</p>
+      <div class="cbse-table-tools">
+        <div class="cbse-tool-field">
+          <label class="field-label" for="cbse-student-search">Search</label>
+          <input class="field-control" id="cbse-student-search" type="search" placeholder="Roll number or name" autocomplete="off">
+        </div>
+        <div class="cbse-tool-field">
+          <label class="field-label" for="cbse-sort-key">Sort by</label>
+          <select class="field-control" id="cbse-sort-key"></select>
+        </div>
+        <button type="button" class="button button-ghost button-small" id="cbse-sort-direction" aria-pressed="false">Ascending</button>
+        <button type="button" class="button button-ghost button-small" id="cbse-sort-clear">Clear sort</button>
+        <span class="field-help cbse-table-count" id="cbse-student-count"></span>
       </div>
-      <div class="cbse-table-scroll" role="region" tabindex="0" aria-label="Candidate records table">
-        <table class="cbse-table">
+      <div class="cbse-table-scroll cbse-table-scroll-tall" role="region" tabindex="0" aria-label="Candidate records table">
+        <table class="cbse-table cbse-student-table">
           <caption class="sr-only">Candidate records</caption>
           <thead id="cbse-student-head"><tr><th scope="col">Roll number</th><th scope="col">Name</th><th scope="col">Status</th></tr></thead>
           <tbody id="cbse-student-body"></tbody>
         </table>
       </div>
+      <div class="cbse-pagination">
+        <button type="button" class="button button-ghost button-small" id="cbse-page-first" title="Go to the first page">« First</button>
+        <button type="button" class="button button-ghost button-small" id="cbse-page-prev" title="Go to the previous page">‹ Prev</button>
+        <span class="cbse-page-label" id="cbse-page-label">Page 1 of 1</span>
+        <button type="button" class="button button-ghost button-small" id="cbse-page-next" title="Go to the next page">Next ›</button>
+        <button type="button" class="button button-ghost button-small" id="cbse-page-last" title="Go to the last page">Last »</button>
+        <div class="cbse-tool-field cbse-tool-field-inline">
+          <label class="field-label" for="cbse-page-size">Rows per page</label>
+          <select class="field-control cbse-select-compact" id="cbse-page-size">
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+            <option value="200">200</option>
+          </select>
+        </div>
+      </div>
     </section>
   </div>
     </div>
   </div>
+
+  <dialog class="cbse-dialog" id="cbse-report-dialog" aria-labelledby="cbse-report-dialog-title">
+    <div class="cbse-dialog-head">
+      <div>
+        <h3 id="cbse-report-dialog-title">Report preview</h3>
+        <p>This is exactly what the PDF contains. Check it, then download it.</p>
+      </div>
+      <button type="button" class="cbse-dialog-close" id="cbse-report-close" aria-label="Close the preview">×</button>
+    </div>
+    <div class="cbse-dialog-body" id="cbse-report-preview" role="region" tabindex="0" aria-label="Report preview"></div>
+    <div class="cbse-dialog-foot">
+      <button type="button" class="button button-ghost button-small" id="cbse-report-cancel">Close</button>
+      <button type="button" class="button button-primary button-small" id="cbse-report-download">Download the PDF</button>
+    </div>
+  </dialog>
 </section>

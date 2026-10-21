@@ -119,14 +119,23 @@ export function validateDataset(dataset, analytics) {
       }
     }
   }
+  // A gazette that prints the grades without the marks is not broken, so it
+  // is reported as what it is instead of as a pile of missing marks.
+  const gradedCells = dataset.candidates.reduce((sum, candidate) => sum
+    + candidate.subjects.filter(subject => subject.code && subject.grade.value).length, 0);
+  const markedCells = dataset.candidates.reduce((sum, candidate) => sum
+    + candidate.subjects.filter(subject => subject.code && subject.marks.value !== null).length, 0);
+  const gradesOnly = markedCells === 0 && gradedCells > 0;
   checks.push({
     id: 'missing-marks',
     label: 'Missing or unreadable marks',
-    status: missingMarks + invalidMarks ? 'warn' : 'pass',
-    count: missingMarks + invalidMarks,
-    detail: missingMarks + invalidMarks
-      ? `${missingMarks} subject cell(s) are blank and ${invalidMarks} could not be read as a number. Averages exclude them.`
-      : 'Every printed subject cell holds a readable mark.'
+    status: gradesOnly ? 'info' : (missingMarks + invalidMarks ? 'warn' : 'pass'),
+    count: gradesOnly ? 0 : missingMarks + invalidMarks,
+    detail: gradesOnly
+      ? `This gazette prints the subject grades without the marks (${gradedCells} grade(s), no mark), so the averages, the totals and the percentages are not available. The grades are reported as printed.`
+      : missingMarks + invalidMarks
+        ? `${missingMarks} subject cell(s) are blank and ${invalidMarks} could not be read as a number. Averages exclude them.`
+        : 'Every printed subject cell holds a readable mark.'
   });
   checks.push({
     id: 'absent-with-marks',

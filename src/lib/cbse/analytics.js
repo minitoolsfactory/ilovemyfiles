@@ -126,7 +126,7 @@ export function buildSubjectTable(dataset, overrides = {}) {
       if (!table.has(subject.code)) {
         table.set(subject.code, {
           code: subject.code,
-          resolved: resolveSubject(subject.code, { overrides }),
+          resolved: resolveSubject(subject.code, { overrides, className: dataset.meta?.class ?? null }),
           occurrences: 0,
           marks: [],
           grades: new Map(),
@@ -266,8 +266,9 @@ export function aggregateScore(candidate, subjectTable = []) {
     available += max;
   }
   return {
-    total: subjects ? total : null,
-    available: subjects ? available : null,
+    // A gazette that prints the grades without the marks has no total.
+    total: available ? total : null,
+    available: available || null,
     percent: available ? round((total / available) * 100) : null,
     subjects
   };
@@ -380,7 +381,8 @@ export function computeAnalytics(dataset, options = {}) {
     if (candidate.status === RESULT_STATUS.ABSENT) continue;
     for (const subject of candidate.subjects) {
       if (!subject.code) continue;
-      if (subject.marks.value === null) continue;
+      // A gazette that prints the grades without the marks still has a grade.
+      if (subject.marks.value === null && !subject.grade.value) continue;
       const grade = subject.grade.value ?? '(none)';
       overallGrades.set(grade, (overallGrades.get(grade) ?? 0) + 1);
     }
@@ -390,16 +392,22 @@ export function computeAnalytics(dataset, options = {}) {
     .sort((a, b) => gradeOrder(a.grade) - gradeOrder(b.grade));
 
   // Candidate level scores.
-  const scores = candidates.map(candidate => {
+  const scored = candidates.map(candidate => {
     const score = aggregateScore(candidate, subjectTable);
+    const graded = candidate.subjects.filter(subject => subject.code && subject.grade.value).length;
     return {
       recordId: candidate.recordId,
       rollNo: candidate.rollNo,
       name: candidate.name,
       status: candidate.status,
+      graded,
       ...score
     };
-  }).filter(entry => entry.percent != null);
+  });
+  const scores = scored.filter(entry => entry.percent != null);
+  // A gazette that prints the grades without the marks has no score to rank
+  // by, so those candidates are ranked by the number of subjects graded.
+  const ungraded = scored.filter(entry => entry.percent == null);
 
   const scoreDistribution = countBands(scores.map(entry => entry.percent), 100, bands).map(band => ({
     ...band,
@@ -413,16 +421,18 @@ export function computeAnalytics(dataset, options = {}) {
   const topCount = Number.isFinite(options.topCount) && options.topCount > 0 ? options.topCount : TOP_PERFORMERS;
   const candidateByRecord = new Map(candidates.map(candidate => [candidate.recordId, candidate]));
   const nameByCode = new Map(subjectTable.map(entry => [entry.code, entry.name]));
-  const ranked = scores
-    .filter(entry => entry.percent != null)
-    .sort((a, b) => (b.percent - a.percent)
-      || (b.total - a.total)
+  const ranked = scores.length
+    ? [...scores].sort((a, b) => (b.percent - a.percent)
+        || (b.total - a.total)
+        || String(a.rollNo ?? '').localeCompare(String(b.rollNo ?? '')))
+    : [...ungraded].sort((a, b) => (b.graded - a.graded)
       || String(a.rollNo ?? '').localeCompare(String(b.rollNo ?? '')));
-  let previousPercent = null;
+  let previousKey = null;
   let previousRank = 0;
   const topPerformers = ranked.slice(0, topCount).map((entry, index) => {
-    const rank = previousPercent === entry.percent ? previousRank : index + 1;
-    previousPercent = entry.percent;
+    const key = entry.percent == null ? null : entry.percent;
+    const rank = key !== null && previousKey === key ? previousRank : index + 1;
+    previousKey = key;
     previousRank = rank;
     const candidate = candidateByRecord.get(entry.recordId);
     return {
@@ -485,12 +495,12 @@ export function computeAnalytics(dataset, options = {}) {
       absentPercentage: total ? round((absent / total) * 100) : null
     },
     definitions: {
-      appeared: 'Appeared candidates = total candidates - candidates with a printed absent (ABST) status.',
-      passPercentage: 'Pass percentage = passed candidates / appeared candidates x 100.',
-      passPercentageOfAll: 'Pass percentage of all candidates = passed candidates / total candidates x 100.',
+      appeared: 'The total candidates minus the candidates printed as absent (ABST).',
+      passPercentage: 'The passed candidates divided by the appeared candidates, times 100.',
+      passPercentageOfAll: 'The passed candidates divided by all the candidates, times 100.',
       averages: 'Subject averages use numeric marks only. Absent, missing and non-numeric entries are excluded.',
       status: 'Result statuses are taken from the printed gazette. They are never derived from marks.',
-      topPerformers: 'The top candidates are ranked by the total of the printed marks as a percentage of the marks available to that candidate. Candidates with the same percentage share a rank.'
+      topPerformers: 'The candidates with the highest total, ranked by the marks they scored as a percentage of the marks available to them. Candidates with the same percentage share a rank.'
     },
     statusDistribution,
     gradeDistribution,
@@ -559,6 +569,9 @@ export function compareWithPrintedSummary(dataset, analytics) {
     { key: 'essentialRepeat', label: 'Essential repeat', printed: printed.essentialRepeat, calculated: totals.essentialRepeat },
     { key: 'absent', label: 'Absent', printed: printed.absent, calculated: totals.absent }
   ];
+  if (printed.other != null || totals.other) {
+    rows.push({ key: 'other', label: 'Other', printed: printed.other ?? null, calculated: totals.other });
+  }
   return rows.map(row => ({
     ...row,
     match: row.printed != null && row.calculated != null ? row.printed === row.calculated : null,

@@ -126,9 +126,11 @@ export function analyseGradeBasis(dataset, options = {}) {
   const byCode = new Map();
   for (const candidate of dataset.candidates ?? []) {
     for (const subject of candidate.subjects) {
-      if (!subject.code || subject.marks.value === null || !subject.grade.value) continue;
+      if (!subject.code || !subject.grade.value) continue;
+      // A gazette that prints the grades without the marks still has a basis.
+      const marks = subject.marks.value ?? 0;
       if (!byCode.has(subject.code)) byCode.set(subject.code, []);
-      byCode.get(subject.code).push({ marks: subject.marks.value, grade: subject.grade.value });
+      byCode.get(subject.code).push({ marks, grade: subject.grade.value });
     }
   }
 

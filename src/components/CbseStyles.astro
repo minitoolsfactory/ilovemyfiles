@@ -75,6 +75,67 @@
 .cbse-wrap{word-break:break-word}
 .cbse-subject-head{text-align:center;min-width:58px}
 .cbse-subject-cell{text-align:center;white-space:nowrap;color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+
+/* Sortable table headings. */
+.cbse-sortable{position:relative;vertical-align:bottom}
+.cbse-sort-button{display:grid;gap:2px;width:100%;border:0;background:none;padding:4px 6px;font:inherit;color:inherit;text-align:left;cursor:pointer;border-radius:6px}
+.cbse-sort-button-block{text-align:center;justify-items:center}
+.cbse-sort-button:hover{background:var(--color-surface-tint)}
+.cbse-sort-button:focus-visible{outline:3px solid var(--color-focus);outline-offset:1px}
+.cbse-sort-arrow{font-size:9px;color:var(--color-accent);min-height:11px}
+.cbse-th-code{font-size:11px;font-weight:800;color:var(--color-text-primary);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.cbse-th-name{font-size:9px;font-weight:600;color:var(--color-text-secondary);line-height:1.25;white-space:normal;overflow-wrap:anywhere}
+.cbse-th-max{font-size:8px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--color-text-muted);white-space:nowrap}
+
+/* Student table: fixed column widths, a fixed height and pagination. */
+.cbse-table-tools{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px}
+.cbse-tool-field{display:grid;gap:4px}
+.cbse-tool-field-inline{display:inline-flex;align-items:center;gap:8px}
+.cbse-table-count{margin-left:auto;align-self:flex-end}
+.cbse-table-scroll-tall{max-height:min(60vh,560px);overflow:auto}
+.cbse-student-table{table-layout:fixed}
+.cbse-student-table thead th{position:sticky;top:0;z-index:2;background:var(--color-surface);box-shadow:inset 0 -1px 0 var(--color-divider)}
+.cbse-student-table tbody td{overflow-wrap:anywhere;word-break:normal}
+.cbse-student-table td:nth-child(1){font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px}
+.cbse-student-table td:nth-child(2){white-space:normal;line-height:1.5}
+.cbse-student-table td:nth-child(3){white-space:normal}
+.cbse-pagination{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:4px}
+.cbse-page-label{font-size:11px;font-weight:700;color:var(--color-text-secondary);white-space:nowrap}
+.cbse-pagination .button[disabled]{opacity:.45;cursor:not-allowed}
+.cbse-tool-field-inline .field-label{white-space:nowrap}
+
+/* Subject code library. */
+.cbse-kb-search{max-width:420px}
+.cbse-kb-search .field-control{width:100%}
+.cbse-kb-use{border:1px solid var(--color-border-control);background:var(--color-surface);color:var(--color-accent-strong);font-size:9px;font-weight:700;padding:4px 8px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.cbse-kb-use:hover{background:var(--color-surface-tint)}
+.cbse-applied{border-color:var(--color-success)!important;box-shadow:0 0 0 3px var(--color-success-bg)}
+
+/* Report preview dialog. */
+.cbse-dialog{width:min(860px,calc(100vw - 28px));max-width:none;max-height:min(90vh,900px);border:0;border-radius:18px;padding:0;background:var(--color-surface);color:var(--color-text-primary);box-shadow:0 25px 90px #20243b35;overflow:hidden}
+.cbse-dialog::backdrop{background:rgba(20,22,40,.45)}
+.cbse-dialog-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:20px 24px;border-bottom:1px solid var(--color-border)}
+.cbse-dialog-head h3{margin:0 0 4px;font-size:17px;color:var(--color-text-primary)}
+.cbse-dialog-head p{margin:0;font-size:11px;color:var(--color-text-secondary)}
+.cbse-dialog-close{border:0;background:var(--color-surface-soft);color:var(--color-text-secondary);width:32px;height:32px;border-radius:50%;font-size:18px;line-height:1;cursor:pointer;flex:none}
+.cbse-dialog-close:hover{background:var(--color-surface-tint);color:var(--color-accent-strong)}
+.cbse-dialog-body{padding:18px 24px;overflow:auto;max-height:calc(90vh - 150px);display:grid;gap:20px}
+.cbse-dialog-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 24px;border-top:1px solid var(--color-border);background:var(--color-surface-soft)}
+.cbse-report-meta h4{margin:0 0 6px;font-size:16px;color:var(--color-text-primary)}
+.cbse-report-meta p{margin:0 0 4px;font-size:12px;color:var(--color-text-secondary)}
+.cbse-report-source{font-size:10px!important;color:var(--color-text-muted)!important}
+.cbse-report-section h4{margin:0 0 8px;font-size:13px;color:var(--color-accent-strong)}
+.cbse-report-section .cbse-table{margin-top:4px}
+.cbse-report-section .cbse-table thead th{background:var(--color-surface-soft);text-transform:uppercase;letter-spacing:.4px;font-size:9px}
+.cbse-report-section .cbse-table tbody tr:nth-child(even){background:var(--color-surface-soft)}
+.cbse-report-num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cbse-report-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}
+.cbse-report-tile{display:grid;gap:2px;padding:12px;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:var(--color-surface-soft)}
+.cbse-report-tile b{font-size:19px;color:var(--color-text-primary);font-variant-numeric:tabular-nums}
+.cbse-report-tile span{font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--color-text-muted)}
+.cbse-report-definitions{display:grid;grid-template-columns:minmax(120px,auto) 1fr;gap:6px 14px;margin:0;font-size:11px;line-height:1.6}
+.cbse-report-definitions dt{font-weight:700;color:var(--color-text-secondary)}
+.cbse-report-definitions dd{margin:0;color:var(--color-text-secondary)}
 .cbse-rank{font-weight:700;color:var(--color-accent-strong);font-variant-numeric:tabular-nums;white-space:nowrap}
 .cbse-number{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cbse-percent{font-weight:700;color:var(--color-text-primary)}
@@ -91,6 +152,12 @@
 .cbse-corrections-note{margin:0;padding:9px 12px;border-radius:var(--radius-sm);background:var(--color-surface-tint);color:var(--color-accent-strong);font-size:11px;line-height:1.6}
 
 .cbse-checks{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.cbse-checks-card>summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;cursor:pointer;list-style-position:outside}
+.cbse-checks-card>summary b{font-size:13px;color:var(--color-text-primary)}
+.cbse-checks-card[open]>summary{margin-bottom:12px}
+.cbse-reference-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.cbse-reference-panel{display:grid;gap:10px;align-content:start;min-width:0}
+.cbse-reference-panel h4{margin:0;font-size:12px;color:var(--color-text-primary)}
 .cbse-check{display:grid;grid-template-columns:62px 1fr;gap:10px;align-items:start;padding:10px 12px;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:var(--color-surface-soft)}
 .cbse-check-badge{font-size:9px;font-weight:800;letter-spacing:.6px;padding:3px 6px;border-radius:5px;text-align:center;background:var(--color-surface-tint);color:var(--color-accent-strong)}
 .cbse-check-pass .cbse-check-badge{background:var(--color-success-bg);color:var(--color-success)}
@@ -164,6 +231,7 @@
 
 @media (max-width:900px){
 .cbse-review-grid{grid-template-columns:1fr}
+.cbse-reference-grid{grid-template-columns:1fr}
 .cbse-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
 .cbse-field-grid{grid-template-columns:1fr}
 .cbse-search-grid{grid-template-columns:1fr}

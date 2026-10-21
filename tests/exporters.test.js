@@ -57,30 +57,33 @@ test('the export model carries the source file, the import date and the definiti
   assert.equal(summary['Pass percentage (of all candidates)'], '97.08%');
 });
 
-test('the subject rows carry the maximum in force and the flags', () => {
+test('the subject rows carry the maximum in force and the main figures', () => {
   const { model: exported } = model();
   const row = exported.subjectRows.find(entry => entry[0] === '086');
-  assert.equal(row[1], 'Social Science');
-  assert.ok(row[14].length > 0);
+  assert.equal(row[1], 'Science');
+  assert.equal(row[2], 100);
+  assert.equal(row[3], 137, 'the number of candidates the code appears for');
+  assert.equal(row[4], 136, 'the number of valid marks');
 });
 
 test('the candidate rows keep the identity out until it is unlocked', () => {
   const locked = model(false).model;
   const lockedRow = locked.candidateRows[0];
+  assert.equal(lockedRow[0], 'Withheld');
   assert.equal(lockedRow[1], 'Withheld');
-  assert.equal(lockedRow[2], 'Withheld');
-  assert.ok(lockedRow[0].startsWith('Candidate '));
+  assert.equal(lockedRow[2], 'PASS');
 
   const unlocked = model(true).model;
   const unlockedRow = unlocked.candidateRows[0];
-  assert.equal(unlockedRow[1], '92000001');
-  assert.equal(unlockedRow[2], 'STUDENT 001');
+  assert.equal(unlockedRow[0], '92000001');
+  assert.equal(unlockedRow[1], 'STUDENT 001');
+  assert.equal(unlockedRow[2], 'PASS');
 });
 
-test('the CSV bundle contains the summary, the subjects, the candidates and the checks', () => {
-  const bundle = buildCsvBundle(model().model);  assert.deepEqual(Object.keys(bundle).sort(), [
+test('the CSV bundle holds the main tables only', () => {
+  const bundle = buildCsvBundle(model().model);
+  assert.deepEqual(Object.keys(bundle).sort(), [
     'candidates.csv',
-    'data-quality.csv',
     'printed-summary.csv',
     'score-bands.csv',
     'subjects.csv',
@@ -88,7 +91,6 @@ test('the CSV bundle contains the summary, the subjects, the candidates and the 
     'top-candidates.csv'
   ]);
   assert.ok(bundle['summary.csv'].includes('Source file'));
-  assert.ok(bundle['data-quality.csv'].includes('Duplicate roll numbers'));
   assert.ok(bundle['candidates.csv'].includes('Withheld'));
   assert.ok(bundle['score-bands.csv'].includes('Subject marks in the band'));
 });
@@ -99,7 +101,6 @@ test('the workbook has one sheet per table', () => {
     'Summary',
     'Subjects',
     'Candidates',
-    'Data quality',
     'Top candidates',
     'Score bands',
     'Printed summary'
@@ -111,8 +112,8 @@ test('every subject code of the gazette gets its own column', () => {
   const { model: exported, analytics } = model();
   assert.ok(analytics.subjectCodes.length >= 10, 'the gazette has many subject codes');
   assert.equal(exported.subjectHeaders.length, analytics.subjectCodes.length);
-  assert.equal(exported.candidateRows[0].length, 8 + analytics.subjectCodes.length + 1);
-  assert.equal(exported.topRows[0].length, 8 + analytics.subjectCodes.length);
+  assert.equal(exported.candidateRows[0].length, 6 + analytics.subjectCodes.length);
+  assert.equal(exported.topRows[0].length, 7 + analytics.subjectCodes.length);
 });
 
 test('a candidate who was not offered a subject gets a dash in that column', () => {
@@ -121,14 +122,14 @@ test('a candidate who was not offered a subject gets a dash in that column', () 
   const first = exported.candidateRows[0];
   const code002 = codes.indexOf('002');
   const code119 = codes.indexOf('119');
-  assert.equal(first[8 + code002], '88/A2', 'the subject the candidate took holds its mark');
-  assert.equal(first[8 + code119], '-', 'the subject the candidate did not take is a dash');
+  assert.equal(first[6 + code002], '88 A2', 'the mark is on the left and the grade on the right');
+  assert.equal(first[6 + code119], '-', 'the subject the candidate did not take is a dash');
 });
 
 test('the absent candidate has a dash in every subject column', () => {
   const { model: exported, analytics } = model();
-  const absent = exported.candidateRows.find(row => row[4] === 'ABSENT');
+  const absent = exported.candidateRows.find(row => row[2] === 'ABSENT');
   assert.ok(absent, 'the gazette has an absent candidate');
-  const cells = absent.slice(8, 8 + analytics.subjectCodes.length);
+  const cells = absent.slice(6, 6 + analytics.subjectCodes.length);
   assert.ok(cells.every(cell => cell === '-'));
 });

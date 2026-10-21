@@ -1,18 +1,20 @@
 /**
- * CBSE Class X (Secondary) subject metadata and result-status vocabulary.
+ * CBSE subject metadata, result status vocabulary and grade boundaries.
+ *
+ * The subject names and the published mark scales come from the CBSE subject
+ * code knowledge base in `src/data/cbse-subjects.json`, which is built from
+ * the official CBSE subject list and the board date sheets.
  *
  * IMPORTANT DATA-INTEGRITY RULE
  * ------------------------------
- * Only subject codes that can be identified with confidence are listed in
- * `VERIFIED_SUBJECTS`. Every other code is surfaced to the user as
- * "Subject <code>" and flagged as unmapped. The analyzer never invents a
- * subject name, a maximum mark, a pass mark or a result status.
- *
- * `max` is the published maximum *theory* mark of the subject. Gazette files
- * that print a combined (theory + internal assessment) scale are detected at
- * runtime and reported as "scale inferred" rather than being silently
- * accepted or silently rejected.
+ * A subject code that is not in the knowledge base is surfaced to the user as
+ * "Subject <code>" and flagged. It is never guessed.
  */
+
+import subjectData from '../../data/cbse-subjects.json' with { type: 'json' };
+
+/** The knowledge base, as shipped. */
+export const CBSE_SUBJECT_DATA = subjectData;
 
 /** Canonical result statuses used across the analyzer. */
 export const RESULT_STATUS = {
@@ -50,59 +52,11 @@ export const STATUS_TOKENS = [
   { token: 'ESSENTIAL REPEAT', status: RESULT_STATUS.ESSENTIAL_REPEAT },
   { token: 'REPEAT', status: RESULT_STATUS.ESSENTIAL_REPEAT },
   { token: 'ABST', status: RESULT_STATUS.ABSENT },
-  { token: 'ABSENT', status: RESULT_STATUS.ABSENT }
+  { token: 'ABSENT', status: RESULT_STATUS.ABSENT },
+  // A senior secondary compartment gazette prints XXXX when the result is not
+  // decided. It is a status of its own, so it is reported as "other".
+  { token: 'XXXX', status: RESULT_STATUS.OTHER }
 ];
-
-/**
- * Verified CBSE Class X subject codes.
- *
- * `group` is used for grouping in the UI only.
- *
- * `max` is the published TOTAL mark scale of the subject, which is the scale a
- * gazette prints: an academic subject is 80 theory marks plus 20 marks of
- * internal assessment, so the gazette prints it out of 100. A skill subject is
- * 50 marks, and schools print it either out of 50 or out of 100, so it lists
- * both scales in `scales`.
- *
- * Codes that are not listed here are treated as unknown.
- */
-export const VERIFIED_SUBJECTS = {
-  '001': { name: 'Hindi (Course A)', max: 100, group: 'language' },
-  '002': { name: 'Hindi (Course B)', max: 100, group: 'language' },
-  '003': { name: 'English (Course A)', max: 100, group: 'language' },
-  '004': { name: 'English (Course B)', max: 100, group: 'language' },
-  '005': { name: 'English Core', max: 100, group: 'language' },
-  '006': { name: 'Hindi (Course A) - old', max: 100, group: 'language' },
-  '041': { name: 'Mathematics (Standard)', max: 100, group: 'mathematics' },
-  '042': { name: 'Mathematics (Basic)', max: 100, group: 'mathematics' },
-  '083': { name: 'Mathematics (Basic)', max: 100, group: 'mathematics' },
-  '085': { name: 'Science', max: 100, group: 'science' },
-  '086': { name: 'Social Science', max: 100, group: 'social-science' },
-  '087': { name: 'Hindi (Course A)', max: 100, group: 'language' },
-  '088': { name: 'Hindi (Course B)', max: 100, group: 'language' },
-  '089': { name: 'Hindi (Course A)', max: 100, group: 'language' },
-  '090': { name: 'Hindi (Course B)', max: 100, group: 'language' },
-  '091': { name: 'English Core', max: 100, group: 'language' },
-  '092': { name: 'Hindi', max: 100, group: 'language' },
-  '097': { name: 'Foreign Language (Additional)', max: 100, group: 'language' },
-  '098': { name: 'Foreign Language (Additional)', max: 100, group: 'language' },
-  '122': { name: 'Skill Education', max: 50, scales: [50, 100], group: 'skill' },
-  '222': { name: 'Skill Education', max: 50, scales: [50, 100], group: 'skill' },
-  '301': { name: 'Skill Education', max: 50, scales: [50, 100], group: 'skill' },
-  '302': { name: 'Skill Education', max: 50, scales: [50, 100], group: 'skill' },
-  '303': { name: 'Skill Education', max: 50, scales: [50, 100], group: 'skill' },
-  '304': { name: 'Skill Education', max: 50, scales: [50, 100], group: 'skill' },
-  '313': { name: 'Skill Education', max: 50, scales: [50, 100], group: 'skill' },
-  '314': { name: 'Skill Education', max: 50, scales: [50, 100], group: 'skill' },
-  '315': { name: 'Skill Education', max: 50, scales: [50, 100], group: 'skill' },
-  '401': { name: 'Skill Education', max: 50, scales: [50, 100], group: 'skill' },
-  '413': { name: 'Skill Education', max: 50, scales: [50, 100], group: 'skill' },
-  '414': { name: 'Skill Education', max: 50, scales: [50, 100], group: 'skill' },
-  '415': { name: 'Skill Education', max: 50, scales: [50, 100], group: 'skill' },
-  '416': { name: 'Skill Education', max: 50, scales: [50, 100], group: 'skill' },
-  '417': { name: 'Skill Education', max: 50, scales: [50, 100], group: 'skill' },
-  '418': { name: 'Skill Education', max: 50, scales: [50, 100], group: 'skill' }
-};
 
 /** Marks scales that a gazette may print. Used to explain an inferred maximum. */
 export const KNOWN_SCALES = [50, 80, 100];
@@ -110,7 +64,7 @@ export const KNOWN_SCALES = [50, 80, 100];
 /**
  * CBSE Class X grade boundaries, keyed by the printed maximum.
  * Used ONLY to check whether a printed grade agrees with the printed mark.
- * Grades are never used to infer a pass or fail.
+ * Grades are never used to infer a pass or a fail.
  */
 export const GRADE_BOUNDARIES = {
   100: [
@@ -133,33 +87,113 @@ const PERCENT_BOUNDARIES = [
 ];
 
 /**
+ * Normalise a class name to a key of the knowledge base.
+ *
+ * @param {string|null|undefined} className
+ * @returns {'X'|'XII'|null}
+ */
+export function subjectClassKey(className) {
+  const value = String(className ?? '').trim().toUpperCase();
+  if (!value) return null;
+  if (value === 'XII' || value === '12' || value.includes('SENIOR')) return 'XII';
+  if (value === 'X' || value === '10' || value === 'IX' || value === 'IX-X' || value.includes('SECONDARY')) return 'X';
+  return null;
+}
+
+/**
+ * The subject table of a class.
+ *
+ * @param {string|null} className
+ * @returns {Record<string, Object>|null}
+ */
+export function subjectTableFor(className) {
+  const key = subjectClassKey(className);
+  if (key) return subjectData.classes[key] ?? null;
+  return null;
+}
+
+/**
+ * The total mark a gazette prints for a subject: theory plus internal
+ * assessment plus practical.
+ *
+ * @param {{ theory?: number, internal?: number, practical?: number }} subject
+ * @returns {number}
+ */
+export function totalMarks(subject) {
+  return (subject?.theory ?? 0) + (subject?.internal ?? 0) + (subject?.practical ?? 0);
+}
+
+/**
+ * Look a subject code up in the knowledge base.
+ *
+ * @param {string} code
+ * @param {string|null} className
+ * @returns {{ entry: Object|null, classKey: string|null }}
+ */
+export function lookupSubject(code, className) {
+  const key = String(code ?? '').trim();
+  const preferred = subjectTableFor(className);
+  if (preferred && preferred[key]) return { entry: preferred[key], classKey: subjectClassKey(className) };
+  for (const [classKey, table] of Object.entries(subjectData.classes)) {
+    if (table[key]) return { entry: table[key], classKey };
+  }
+  return { entry: null, classKey: null };
+}
+
+/**
+ * Every subject of the knowledge base, optionally for one class.
+ *
+ * @param {string|null} [className]
+ * @returns {Array<{ code: string, name: string, group: string, max: number, classKey: string }>}
+ */
+export function allSubjects(className = null) {
+  const keys = className ? [subjectClassKey(className)].filter(Boolean) : Object.keys(subjectData.classes);
+  const list = [];
+  for (const classKey of keys) {
+    const table = subjectData.classes[classKey] ?? {};
+    for (const [code, entry] of Object.entries(table)) {
+      list.push({
+        code,
+        name: entry.name,
+        group: entry.group,
+        max: totalMarks(entry),
+        theory: entry.theory ?? 0,
+        internal: entry.internal ?? 0,
+        practical: entry.practical ?? 0,
+        classKey
+      });
+    }
+  }
+  return list;
+}
+
+/**
  * Resolve a subject code to display metadata.
  *
  * @param {string} code raw subject code
- * @param {{ overrides?: Record<string, { name?: string, max?: number }> }} [options]
+ * @param {{ overrides?: Record<string, { name?: string, max?: number }>, className?: string|null }} [options]
  * @returns {{ code: string, name: string, nameSource: string, max: number|null, maxSource: string, publishedMax: number|null, publishedScales: number[], group: string, verified: boolean }}
  */
 export function resolveSubject(code, options = {}) {
   const key = String(code ?? '').trim();
   const override = options.overrides?.[key] ?? {};
-  const verified = Object.prototype.hasOwnProperty.call(VERIFIED_SUBJECTS, key);
-  const base = verified ? VERIFIED_SUBJECTS[key] : null;
-  const name = (override.name ?? base?.name ?? '').trim();
+  const { entry, classKey } = lookupSubject(key, options.className ?? null);
+  const name = (override.name ?? entry?.name ?? '').trim();
+  const publishedMax = entry ? totalMarks(entry) : null;
   const userMax = Number.isFinite(override.max) && override.max > 0 ? Math.round(override.max) : null;
-  const max = userMax ?? (base?.max ?? null);
-  const publishedScales = base
-    ? [...new Set([base.max, ...(base.scales ?? [])])].filter(value => Number.isFinite(value)).sort((a, b) => a - b)
-    : [];
+  const max = userMax ?? publishedMax;
+  const publishedScales = publishedMax ? [publishedMax] : [];
   return {
     code: key,
     name: name || (key ? `Subject ${key}` : 'Unknown subject'),
     nameSource: override.name ? 'user' : (name ? 'verified' : 'unknown'),
     max,
-    maxSource: userMax ? 'user' : (base?.max ? 'verified' : 'unknown'),
-    publishedMax: base?.max ?? null,
+    maxSource: userMax ? 'user' : (publishedMax ? 'verified' : 'unknown'),
+    publishedMax,
     publishedScales,
-    group: override.group ?? base?.group ?? 'other',
-    verified
+    classKey,
+    group: override.group ?? entry?.group ?? 'other',
+    verified: Boolean(entry)
   };
 }
 

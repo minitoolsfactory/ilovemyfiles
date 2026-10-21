@@ -118,6 +118,65 @@ export function findStatus(line) {
  * @param {string[]} lines
  * @returns {{ start: number, pitch: number, count: number, source: string }|null}
  */
+/**
+ * A senior secondary compartment gazette prints its subjects one per line
+ * instead of one per column. The header of that layout carries an
+ * "INT-SB-GRD" block, which the horizontal layout does not have.
+ *
+ * @param {string[]} lines
+ * @param {{ start: number, pitch: number, count: number }|null} grid
+ * @returns {boolean}
+ */
+export function detectVerticalLayout(lines, grid) {
+  for (const line of lines) {
+    if (/INT-SB-GRD/.test(line)) return true;
+  }
+  if (!grid) return false;
+  // Fall back on the data: a record that lists a single subject code and is
+  // followed by lines that carry their own code is a vertical layout.
+  let seen = 0;
+  for (let index = 0; index < lines.length && seen < 3; index += 1) {
+    const line = lines[index];
+    if (!ROLL_PATTERN.test(line)) continue;
+    seen += 1;
+    const codes = countSubjectCodes(line, grid);
+    if (codes > 2) return false;
+    const next = lines[index + 1] ?? '';
+    if (!next.trim() || ROLL_PATTERN.test(next)) continue;
+    if (!/^\s*\d{3}\s/.test(next.slice(grid.start))) continue;
+    return true;
+  }
+  return false;
+}
+
+/**
+ * How many subject codes a record line carries in its subject area.
+ *
+ * @param {string} line
+ * @param {{ start: number, pitch: number, count: number }} grid
+ * @returns {number}
+ */
+function countSubjectCodes(line, grid) {
+  let count = 0;
+  for (let slot = 0; slot < grid.count; slot += 1) {
+    const code = readField(line, grid.start + slot * grid.pitch, 4);
+    if (/^\d{3}$/.test(code)) count += 1;
+  }
+  return count;
+}
+
+/**
+ * Read a fixed width field.
+ *
+ * @param {string} line
+ * @param {number} start
+ * @param {number} width
+ * @returns {string}
+ */
+function readField(line, start, width) {
+  return String(line ?? '').slice(start, start + width).trim();
+}
+
 export function detectGridFromHeader(lines) {
   for (const line of lines) {
     for (const marker of ['MKS GR', 'MKS  GR', 'MKSGR']) {
@@ -239,15 +298,23 @@ function readMarkCell(cell) {
  */
 function splitNameAndFlags(raw) {
   const value = String(raw ?? '').trim();
-  if (!value) return { name: '', gender: '' };
+  if (!value) return { name: '', gender: '', flags: '' };
   const tokens = value.split(/\s+/);
+  const isGender = token => token === 'F' || token === 'M';
   let gender = '';
+  let flags = '';
   let rest = tokens;
-  if ((tokens[0] === 'F' || tokens[0] === 'M') && tokens.length > 1) {
+  if (isGender(tokens[0]) && tokens.length > 1) {
+    // "F NAME"
     gender = tokens[0];
     rest = tokens.slice(1);
+  } else if (tokens.length > 2 && isGender(tokens[1])) {
+    // "I F NAME": the first token is a printed flag, the second is the gender.
+    flags = tokens[0];
+    gender = tokens[1];
+    rest = tokens.slice(2);
   }
-  return { name: rest.join(' ').trim(), gender };
+  return { name: rest.join(' ').trim(), gender, flags };
 }
 
 /**
@@ -287,7 +354,7 @@ export function extractMeta(lines) {
       const dash = examRaw.indexOf(' - ');
       const board = dash > -1 ? examRaw.slice(0, dash) : '';
       let name = dash > -1 ? examRaw.slice(dash + 3) : examRaw;
-      const yearMatch = name.match(/[-–—]\s*(\d{4})\s*$/);
+      const yearMatch = name.match(/[-–-]\s*(\d{4})\s*$/);
       if (yearMatch) {
         meta.year = Number(yearMatch[1]);
         name = name.slice(0, yearMatch.index).trim();
@@ -297,7 +364,7 @@ export function extractMeta(lines) {
       if (region && !meta.region) meta.region = region.trim();
       const session = name.match(/\(([^)]+)\)/);
       if (session && !meta.session) meta.session = session[1].trim().toUpperCase();
-      if (/SENIOR\s+SECONDARY/i.test(name)) {
+      if (/SENIOR\s+(SCHOOL\s+CERTIFICATE|SECONDARY)/i.test(name)) {
         meta.class = 'XII';
         meta.classSource = 'exam-name';
       } else if (/SECONDARY/i.test(name)) {
@@ -327,6 +394,9 @@ export function extractMeta(lines) {
         essentialRepeat: pick(/TOTAL\s+ESSENTIAL\s+REPEAT\s*:?\s*-?\s*(\d+)/i),
         absent: pick(/TOTAL\s+ABSENT\s*:?\s*-?\s*(\d+)/i)
       };
+      // Only a gazette that prints an OTHER total carries one.
+      const other = pick(/\bOTHER\s*:?\s*-?\s*(\d+)/i);
+      if (other != null) printedSummary.other = other;
       continue;
     }
   }
@@ -353,11 +423,11 @@ export function scoreGrid(lines, grid) {
   let markHits = 0;
   for (const index of recordIndexes) {
     const line = lines[index];
-    if (/^\s*\d{3}(?=\s|$)/.test(line.slice(grid.start, grid.start + 3))) codeHits += 1;
+    if (/^\d{3}$/.test(readField(line, grid.start, 4))) codeHits += 1;
     const next = lines[index + 1] ?? '';
     if (next.trim() && !ROLL_PATTERN.test(next)) {
       markLines += 1;
-      if (/^\s*\d{1,3}\s+[A-Za-z]{1,3}\d?(?=\s|$)/.test(next.slice(grid.start, grid.start + 5))) markHits += 1;
+      if (/^\s*\d{1,3}\b/.test(next.slice(grid.start, grid.start + 8))) markHits += 1;
     }
   }
   return {
@@ -374,17 +444,23 @@ export function scoreGrid(lines, grid) {
  * @returns {{ grid: Object|null, reason: string }}
  */
 function chooseGrid(lines, grids) {
-  let best = null;
-  for (const grid of grids) {
-    if (!grid) continue;
+  const [header, data] = grids;
+  // The printed column header is authoritative: it says where the columns are.
+  // The grid that is derived from the records is only used when the header is
+  // missing or does not match the records.
+  const fits = grid => {
+    if (!grid) return false;
     const score = scoreGrid(lines, grid);
-    const value = score.codes + (score.marks ?? 0);
-    if (!best || value > best.value) best = { grid, score, value };
-  }
-  if (!best) return { grid: null, reason: 'no-grid' };
-  if (best.score.codes < 0.6) return { grid: null, reason: 'codes-do-not-match' };
-  if (best.score.marks !== null && best.score.marks < 0.5) return { grid: null, reason: 'marks-do-not-match' };
-  return { grid: best.grid, reason: 'matched' };
+    if (score.codes < 0.6) return false;
+    if (score.marks !== null && score.marks < 0.5) return false;
+    return true;
+  };
+  // A printed column header is authoritative. When the records do not fit it,
+  // the file is read by token analysis rather than by a grid that was guessed
+  // from the records themselves.
+  if (header) return fits(header) ? { grid: header, reason: 'header' } : { grid: null, reason: 'header-does-not-fit' };
+  if (data) return fits(data) ? { grid: data, reason: 'data' } : { grid: null, reason: 'no-grid' };
+  return { grid: null, reason: 'no-grid' };
 }
 
 /**
@@ -406,26 +482,34 @@ export function parseGazette(rawText, options = {}) {
 
   const headerGrid = detectGridFromHeader(lines);
   const dataGrid = detectGridFromData(lines);
+  const vertical = detectVerticalLayout(lines, headerGrid ?? dataGrid);
   let grid = null;
   let layout = options.layout && options.layout !== 'auto' ? options.layout : 'auto';
 
   if (layout === 'auto') {
-    const chosen = chooseGrid(lines, [headerGrid, dataGrid]);
-    grid = chosen.grid;
-    layout = grid ? 'grid' : 'loose';
-    if (headerGrid && dataGrid && headerGrid.start !== dataGrid.start) {
-      issues.push({
-        code: 'grid-mismatch',
-        severity: 'warning',
-        message: `The printed column header and the records disagree (header column ${headerGrid.start}, records column ${dataGrid.start}). The layout that matches the records was used.`
-      });
-    }
-    if (!grid) {
-      issues.push({
-        code: 'grid-unusable',
-        severity: 'warning',
-        message: 'The printed columns could not be matched to the records, so token-based parsing was used instead.'
-      });
+    if (vertical) {
+      // A vertical gazette prints one subject per line, so the number of
+      // codes on a record line says nothing about the layout.
+      grid = headerGrid ?? dataGrid;
+      layout = grid ? 'grid' : 'loose';
+    } else {
+      const chosen = chooseGrid(lines, [headerGrid, dataGrid]);
+      grid = chosen.grid;
+      layout = grid ? 'grid' : 'loose';
+      if (headerGrid && dataGrid && headerGrid.start !== dataGrid.start) {
+        issues.push({
+          code: 'grid-mismatch',
+          severity: 'warning',
+          message: `The printed column header and the records disagree (header column ${headerGrid.start}, records column ${dataGrid.start}). The layout that matches the records was used.`
+        });
+      }
+      if (!grid) {
+        issues.push({
+          code: 'grid-unusable',
+          severity: 'warning',
+          message: 'The printed columns could not be matched to the records, so token-based parsing was used instead.'
+        });
+      }
     }
   } else if (layout === 'grid') {
     grid = headerGrid ?? dataGrid;
@@ -440,7 +524,9 @@ export function parseGazette(rawText, options = {}) {
   }
 
   const candidates = layout === 'grid'
-    ? parseFixedWidth(lines, pageOf, grid, datasetId, issues)
+    ? (vertical
+        ? parseVertical(lines, pageOf, grid, datasetId, issues)
+        : parseFixedWidth(lines, pageOf, grid, datasetId, issues))
     : parseLoose(lines, pageOf, datasetId, issues);
 
   if (!candidates.length) {
@@ -458,7 +544,7 @@ export function parseGazette(rawText, options = {}) {
       ...meta,
       sourceFileName: options.sourceFileName ?? '',
       importedAt: options.importedAt ?? new Date().toISOString(),
-      layout,
+      layout: vertical ? 'vertical' : layout,
       grid: grid ? { start: grid.start, pitch: grid.pitch, count: grid.count, source: grid.source } : null
     },
     candidates,
@@ -577,6 +663,107 @@ function parseFixedWidth(lines, pageOf, grid, datasetId, issues) {
       warnings
     });
     sequence += 1;
+  }
+
+  return candidates;
+}
+
+/**
+ * Parse a gazette that prints its subjects one per line, as the senior
+ * secondary compartment gazette does.
+ *
+ * The record line carries the roll number, the printed flags, the gender, the
+ * name, the code of the first subject, the result and the compartment subject.
+ * Every following line carries the code of one more subject and its grade.
+ *
+ * @param {string[]} lines
+ * @param {number[]} pageOf
+ * @param {{ start: number, pitch: number, count: number }} grid
+ * @param {string} datasetId
+ * @param {Object[]} issues
+ * @returns {ParsedCandidate[]}
+ */
+function parseVertical(lines, pageOf, grid, datasetId, issues) {
+  const candidates = [];
+  let sequence = 0;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const rollMatch = ROLL_PATTERN.exec(line);
+    if (!rollMatch) continue;
+    const rollNo = rollMatch[1];
+    const prefix = line.slice(rollMatch[0].length, grid.start);
+    const regionEnd = grid.start + grid.pitch * grid.count;
+    const tail = line.slice(regionEnd);
+
+    const statusHit = findStatus(tail);
+    const statusRaw = statusHit
+      ? statusHit.raw.trim()
+      : (tail.trim().split(/\s+/).filter(Boolean).pop() ?? '');
+    const status = statusHit ? statusHit.status : RESULT_STATUS.OTHER;
+
+    const compartmentSubjects = [];
+    if (statusHit) {
+      const after = tail.slice(statusHit.end);
+      const compMatch = after.match(/\b(\d{3})\b/);
+      if (compMatch && status === RESULT_STATUS.COMPARTMENT) compartmentSubjects.push(compMatch[1]);
+    }
+
+    const subjects = [];
+    const firstCode = readField(line, grid.start, 4);
+    if (/^\d{3}$/.test(firstCode)) {
+      subjects.push({ code: firstCode, marks: null, grade: readField(line, grid.start + 4, 4) });
+    }
+
+    let cursor = index + 1;
+    while (cursor < lines.length) {
+      const next = lines[cursor];
+      if (!next.trim()) break;
+      if (ROLL_PATTERN.test(next)) break;
+      const code = readField(next, grid.start, 4);
+      if (!/^\d{3}$/.test(code)) break;
+      subjects.push({ code, marks: null, grade: readField(next, grid.start + 4, 4) });
+      cursor += 1;
+    }
+
+    const { name, gender, flags } = splitNameAndFlags(prefix);
+    const warnings = [];
+    if (!statusHit) warnings.push('result-status-unread');
+    if (!name) warnings.push('name-unread');
+    if (!subjects.length) warnings.push('marks-unread');
+
+    candidates.push({
+      recordId: `${datasetId}:cand-${String(sequence + 1).padStart(4, '0')}`,
+      sequence: sequence + 1,
+      rollNo,
+      rollNoRaw: rollNo,
+      name,
+      nameRaw: prefix.trim(),
+      gender,
+      flags,
+      status,
+      statusRaw,
+      statusPrinted: Boolean(statusHit),
+      statusSource: statusHit ? 'printed' : 'unreadable',
+      compartmentSubjects,
+      subjects: subjects.map((subject, slot) => buildSubject(
+        { code: subject.code },
+        { marks: '', grade: subject.grade },
+        slot
+      )),
+      page: pageOf[index] ?? 1,
+      line: index + 1,
+      confidence: scoreConfidence({
+        name,
+        statusHit,
+        subjects: subjects.map(subject => buildSubject({ code: subject.code }, { marks: '', grade: subject.grade }, 0)),
+        hasMarksLine: true,
+        status
+      }),
+      warnings
+    });
+    sequence += 1;
+    index = cursor - 1;
   }
 
   return candidates;

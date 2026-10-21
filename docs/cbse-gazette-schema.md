@@ -103,6 +103,22 @@ The schema lives in `src/lib/cbse/`:
 }
 ```
 
+### The two printed layouts
+
+A gazette prints its subjects either across the line (**column layout**) or one
+per line (**vertical layout**, used by the senior secondary compartment
+gazette).
+
+| | Column layout | Vertical layout |
+| --- | --- | --- |
+| subject codes | one per column, on the record line | one per line, starting on the record line |
+| marks and grades | the line below the record | not printed, only the grade |
+| the grid | read at the column offsets of the printed `MKS GR` header | the code comes from the `SUB` column and the grade from the `CD` column |
+| detection | the records carry a code in the column the header points at | the header carries an `INT-SB-GRD` block |
+
+A file whose records do not fit the printed header is read by token analysis
+instead, and that is reported in the issues.
+
 ### Result status vocabulary
 
 | Canonical status | Printed tokens | In the appeared count |
@@ -111,11 +127,17 @@ The schema lives in `src/lib/cbse/`:
 | `COMPARTMENT` | `COMP`, `COMPT`, `COMPTT`, `COMPARTMENT` | yes |
 | `ESSENTIAL_REPEAT` | `ERL`, `ESSENTIAL REPEAT`, `REPEAT` | yes |
 | `ABSENT` | `ABST`, `ABSENT` | no |
+| `OTHER` | `XXXX` (a result that is not decided), anything else | no |
 | `OTHER` | anything else, or no status at all | no |
 
 A token is only accepted on a word boundary, so `PASSEDX` and `COMPANY` are not
 read as a status. When no token matches, the record is counted as `OTHER`, the
 raw text is kept in `statusRaw` and the record is flagged.
+
+The senior secondary compartment gazette prints `XXXX` when the result is not
+decided. It is a status of its own and is reported as "other", so it is never
+counted as a pass or a fail, and the `OTHER` total of the printed summary is
+compared with the recalculated figure.
 
 ### Subject cell
 
@@ -155,6 +177,38 @@ step when it has a warning or when its confidence is below `0.85`.
 | `subject-code-unread` | a subject code could not be read |
 | `marks-not-numeric` | a mark could not be read as a number |
 
+## The subject knowledge base
+
+`src/data/cbse-subjects.json` holds every subject code CBSE publishes, for
+Class X and Class XII, with the official name, the group and the published
+mark scale. It is built from the official CBSE subject list and the board date
+sheets for 2025-26.
+
+```json
+{
+  "meta": { "session": "2025-26", "sources": ["..."], "notes": ["..."] },
+  "classes": {
+    "X":   { "002": { "name": "Hindi Course-A", "group": "language", "theory": 80, "internal": 20 } },
+    "XII": { "002": { "name": "Hindi Elective", "group": "language", "theory": 80, "internal": 20 } }
+  }
+}
+```
+
+The **total** a gazette prints is `theory + internal + practical`, which is
+100 for every subject: 80 theory marks plus 20 marks of internal assessment for
+the academic subjects, and 50 theory marks plus 50 marks of practical for the
+skill subjects.
+
+A code can mean a different subject in a different class, so the class of the
+gazette decides the table that is read: `002` is Hindi Course-A in Class X and
+Hindi Elective in Class XII, and `241` is Mathematics-Basic in Class X and
+Applied Mathematics in Class XII. When the class cannot be read, the other
+class is used as a fallback.
+
+A code that is in neither table is shown as `Subject <code>` and flagged. It
+is never guessed. The review step lists the whole library with a search box,
+so a code can be looked up without leaving the tool.
+
 ## Subject table
 
 Built by `buildSubjectTable(dataset, overrides)`. One entry per subject code.
@@ -163,7 +217,7 @@ Built by `buildSubjectTable(dataset, overrides)`. One entry per subject code.
 | --- | --- |
 | `code`, `name`, `nameSource` | the code and the official name, or `Subject <code>` when the code is not verified |
 | `publishedMax` | the published total scale of the subject, when the code is verified |
-| `publishedScales` | every scale the subject is published on (a skill subject is published on 50 and on 100) |
+| `publishedScales` | every scale the subject is published on |
 | `max`, `maxSource` | the maximum in force: `verified`, `user` or `inferred` |
 | `flags` | `unmapped-code`, `scale-inferred`, `exceeds-published-max`, `scale-unknown`, `max-unknown`. A subject that is printed on its published scale carries no flag. |
 | `occurrences` | the number of candidates the code appears for |
@@ -178,7 +232,8 @@ Built by `buildSubjectTable(dataset, overrides)`. One entry per subject code.
 A CBSE gazette does not print a maximum column. The **published total scale**
 of a subject is the scale a gazette prints: an academic subject is 80 theory
 marks plus 20 marks of internal assessment, so the gazette prints it out of
-**100**; a skill subject is 50 marks and is published on 50 or on 100.
+**100**; a skill subject is 50 theory marks plus 50 marks of practical, which
+is also 100.
 
 1. The published scale is used when every printed mark fits inside it. A
    subject printed out of 100 is therefore measured out of 100 and is **not**
@@ -249,7 +304,73 @@ subject code, with the subject name in the header when the code is verified
 and a dash for a subject the candidate did not take.
 
 The tables show the name and the roll number that the gazette prints, because
-they are the reader's own file and never leave the browser. The **exports**
+they are the reader's own file and never leave the browser.
+
+Each subject column heading carries the **code, the official name and the
+maximum in force**, and every heading sorts the table: click the roll number,
+the name, the status or a subject code, and the rows are ordered by it. The
+sort state is announced with `aria-sort` on the heading.
+
+The table also carries a visible **sort control** next to the search box: a
+"Sort by" list with every column, an **Ascending / Descending** button that
+reverses the order, and a "Clear sort" button that returns to the printed
+order. The heading click and the control drive the same state, so they never
+disagree.
+
+The columns have **fixed widths** (108px for the roll number, 190px for the
+name, 118px for the status and 92px for every subject) and the table is as
+wide as those columns, so a long name wraps inside its column instead of
+pushing the columns around. The table body scrolls inside a fixed height
+container with a sticky heading.
+
+The records are **paginated** rather than cut off: the page size is 25, 50,
+100 or 200 rows, the bar shows "Showing 1-50 of 137 record(s)" and "Page 1 of
+3", and the first, previous, next and last buttons move between the pages.
+
+The **report preview** shows the exact sections of the PDF before the file is
+built: the gazette details, the headline figures, the status distribution, the
+subject-wise performance, the grade distribution and the printed summary
+compared with the recalculated figures. The PDF and the preview are built from
+the same sections, so what is approved on screen is what lands in the file.
+
+The data quality checks and the definitions are **not** part of the report.
+They are kept in the code, and the section builders still accept
+`includeChecks` and `includeDefinitions` so they can be turned back on.
+
+In the interface the review step shows the main data first: the gazette details,
+the recalculated summary, the subject codes and the records that need a second
+look. The reference material (the data quality checks and the CBSE subject
+code library) sits at the end of the step in a folded "Reference" panel with a
+show and hide control, so it is there when it is wanted and out of the way when
+it is not.
+
+The data export carries the main tables only:
+
+| File / sheet | Columns |
+| --- | --- |
+| `summary.csv` / Summary | the gazette details and the headline figures |
+| `subjects.csv` / Subjects | code, name, maximum, records, valid marks, average, median, lowest, highest, standard deviation, average % |
+| `candidates.csv` / Candidates | roll number, name, result status, total marks, marks available, percentage and one column per subject code |
+| `top-candidates.csv` / Top candidates | the same, with the rank |
+| `score-bands.csv` / Score bands | the candidates and the subject marks per band |
+| `printed-summary.csv` / Printed summary | the totals the gazette printed |
+
+A subject cell holds the mark on the left and the printed grade on the right
+(`88 A2`), and a candidate who was not offered the subject gets a dash. The
+internal columns (the identifier, the gender, the printed status, the status
+source, the extraction confidence) are not exported.
+
+The report itself carries the facts of the gazette (board, examination, year,
+class, session, region, school, gazette date), the figures and the warnings.
+The name of the uploaded file and the moment of the import stay in the data
+exports (CSV, Excel), where they are needed to trace a figure back to its
+source, and they are left out of the printed report.
+
+The PDF lays the report out itself: the column widths are measured from the
+content instead of being split evenly, a long value wraps over several lines
+instead of being cut off, the numeric columns are right aligned, a table that
+continues on the next page repeats its heading, and a narrow table is only
+stretched a little so it keeps its shape. The **exports**
 leave the identities out by default (`Candidate 001`, `Withheld`) so that a
 downloaded file can be passed on; the switch "include the candidate names and
 roll numbers in the exports" turns them back on for an internal report.

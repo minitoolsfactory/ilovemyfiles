@@ -246,7 +246,8 @@ main.tool-mode > :not(#tool-view){display:none}
 .tool-view{max-width:1050px;margin:0 auto;padding:30px 28px 90px}
 .breadcrumb{display:flex;gap:8px;align-items:center;font-size:11px;color:#8b91a3;margin-bottom:22px;flex-wrap:wrap}
 .breadcrumb a:hover{color:var(--purple)}
-.tool-hero{display:flex;gap:20px;align-items:flex-start;padding-bottom:26px}
+.tool-hero{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;padding-bottom:26px}
+.tool-hero-copy{flex:1 1 340px;min-width:0}
 .tool-hero-copy h1{font-size:31px;letter-spacing:-1.2px;margin:10px 0}
 .tool-hero-copy p{font-size:13px;line-height:1.8;color:#747b91;max-width:620px;margin:0 0 16px}
 .tool-hero-copy .button{margin-right:16px}
@@ -737,7 +738,7 @@ main.tool-mode > :not(#tool-view){display:none}
 .session-banner-copy b{display:block;font-size:12px;color:#4338ca}
 .session-banner-copy p{margin:3px 0 0;font-size:11px;color:#5f6480;line-height:1.5}
 .session-banner-actions{display:flex;gap:8px;flex:none}
-.session-clear{border:0;background:none;color:#7d8399;font-size:10px;font-weight:700;padding:2px;text-decoration:underline;text-underline-offset:3px}
+.session-clear{border:0;background:none;color:#7d8399;font-size:10px;font-weight:700;padding:6px 4px;min-height:24px;min-width:24px;display:inline-flex;align-items:center;justify-content:center;text-decoration:underline;text-underline-offset:3px}
 .session-clear:hover{color:var(--purple)}
 .session-note{font-size:9px;line-height:1.5;color:#9aa0b3;text-align:center;margin:0}
 .pv-info{padding:6px 12px;background:#fbfbff;border-bottom:1px solid var(--line);font-size:10px;line-height:1.4;min-width:0}

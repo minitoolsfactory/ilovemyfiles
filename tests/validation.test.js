@@ -121,11 +121,11 @@ test('a subject with too few entries is never treated as established', () => {
   assert.equal(basis.reason, 'too-few-entries');
 });
 
-test('an unmapped subject code is reported so a name can be set for it', () => {
+test('every subject code of the gazette is in the CBSE knowledge base', () => {
   const { validation } = analyse('gazette-27572-2025.txt');
   const entry = check(validation, 'subject-names');
-  assert.equal(entry.status, 'warn');
-  assert.ok(entry.count >= 1);
+  assert.equal(entry.status, 'pass');
+  assert.equal(entry.count, 0);
 });
 
 test('an unusual subject order is reported but the records are not realigned', () => {

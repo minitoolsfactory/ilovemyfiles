@@ -1,28 +1,28 @@
 # iLoveMyFiles
 
-**iLoveMyFiles** is a free, privacy-first suite of 29 browser-based tools for PDFs, images, text, and data, plus one India-only analytics tool for CBSE result gazettes. Files are processed locally on your device — the tools do not upload your documents or text to an iLoveMyFiles server, and no account or sign-up is required.
+**iLoveMyFiles** is a free, privacy-first suite of 29 browser-based tools for PDFs, images, text, and data, plus one India-only analytics tool for CBSE result gazettes. Files are processed locally on your device - the tools do not upload your documents or text to an iLoveMyFiles server, and no account or sign-up is required.
 
 Pick a tool, add a file or paste text, adjust the options, run it, and download the result. Everything runs in the browser using JavaScript, WebAssembly, Canvas, and Web Crypto.
 
 ## Highlights
 
 - **29 tools** across PDF organization, PDF optimization, PDF conversion, PDF editing, images, and data/text.
-- **Local processing** — files, text, and generated results stay in your browser.
+- **Local processing** - files, text, and generated results stay in your browser.
 - **No account, no subscription, no usage limits.**
-- **Batch workflows** — multiple files, per-file settings, individual downloads, or ZIP bundles where supported.
-- **Live previews** — PDF page thumbnails, page selection, zoom, fit-to-page/fit-to-width, and full-screen preview.
-- **Session restore** — files and settings can be restored after a reload, with an explicit Restore or Discard choice.
-- **Recently used tools** — the last six tools you opened are remembered in your browser.
-- **Dark mode** — follows your system preference on first visit and remembers your choice.
-- **Keyboard and accessibility support** — semantic markup, visible focus styles, ARIA labels/live regions, dialog focus trapping, reduced-motion handling, and WCAG 2.2 AA-oriented colour contrast.
-- **CBSE result analytics** — the India-only CBSE Result Analyzer reads a result gazette (PDF or TXT) in the browser and turns it into subject-wise marks, a pass percentage with a stated denominator, grade distributions, compartment statistics and downloadable reports.
-- **No external font requests** — the interface uses a system font stack.
+- **Batch workflows** - multiple files, per-file settings, individual downloads, or ZIP bundles where supported.
+- **Live previews** - PDF page thumbnails, page selection, zoom, fit-to-page/fit-to-width, and full-screen preview.
+- **Session restore** - files and settings can be restored after a reload, with an explicit Restore or Discard choice.
+- **Recently used tools** - the last six tools you opened are remembered in your browser.
+- **Dark mode** - follows your system preference on first visit and remembers your choice.
+- **Keyboard and accessibility support** - semantic markup, visible focus styles, ARIA labels/live regions, dialog focus trapping, reduced-motion handling, and WCAG 2.2 AA-oriented colour contrast.
+- **CBSE result analytics** - the India-only CBSE Result Analyzer reads a result gazette (PDF or TXT) in the browser and turns it into subject-wise marks, a pass percentage with a stated denominator, grade distributions, compartment statistics and downloadable reports.
+- **No external font requests** - the interface uses a system font stack.
 
 ## How it works
 
 1. Open a tool from the home page, a category, the Popular tools strip, or your Recently used list.
 2. Add input by dragging files onto the drop zone, using the file picker, pasting an image, or typing text.
-3. Adjust the available options — page size, orientation, margins, quality, format, page ranges, fonts, positions, and more.
+3. Adjust the available options - page size, orientation, margins, quality, format, page ranges, fonts, positions, and more.
 4. Run the tool. Processing happens locally in your browser.
 5. Preview the result where supported, then download individual files or a ZIP bundle.
 
@@ -32,12 +32,12 @@ Large files can take longer depending on your device and available memory. Nothi
 
 The 29 tools are grouped into six categories:
 
-- [Organize PDF](#organize-pdf) — 6 tools
-- [Optimize PDF](#optimize-pdf) — 2 tools
-- [Convert PDF](#convert-pdf) — 2 tools
-- [Edit PDF](#edit-pdf) — 4 tools
-- [Image tools](#image-tools) — 6 tools
-- [Data & text](#data--text) — 9 tools
+- [Organize PDF](#organize-pdf) - 6 tools
+- [Optimize PDF](#optimize-pdf) - 2 tools
+- [Convert PDF](#convert-pdf) - 2 tools
+- [Edit PDF](#edit-pdf) - 4 tools
+- [Image tools](#image-tools) - 6 tools
+- [Data & text](#data--text) - 9 tools
 
 ### Organize PDF
 
@@ -96,7 +96,7 @@ All image tools support common browser-readable images and output to JPG, JPEG, 
 | **Word counter** (`word-counter`) | Count words, characters (with and without spaces), lines, sentences, and paragraphs, plus estimated reading time at roughly 200 words/minute. | Text statistics |
 | **JSON ↔ CSV** (`json-to-csv`) | Convert a JSON array of objects to CSV, or a CSV table with a header row to JSON. Handles quoted values, commas, and escaping. | Converted data |
 | **Unit converter** (`unit-converter`) | Convert data size (bytes, KB, MB, GB, TB; 1024-based), length (metres), mass (grams), and time (seconds) into every unit in the selected category. | Converted values |
-| **OCR — image & PDF** (`ocr`) | Extract text from an image or PDF with Tesseract.js. Languages: English, Spanish, French, German, Italian, Portuguese, Dutch, Russian, Arabic, Simplified Chinese, and Japanese. The engine/language data download once on first use and are cached. | Recognised text |
+| **OCR - image & PDF** (`ocr`) | Extract text from an image or PDF with Tesseract.js. Languages: English, Spanish, French, German, Italian, Portuguese, Dutch, Russian, Arabic, Simplified Chinese, and Japanese. The engine/language data download once on first use and are cached. | Recognised text |
 | **QR code generator** (`qr-code-generator`) | Turn text or a URL into a QR code. Choose error-correction level (L, M, Q, H) and pixel size. Download as PNG. | QR code PNG |
 | **Barcode generator** (`barcode-generator`) | Generate 1D barcodes as PNG. Supports Code 128, EAN-13, UPC-A, Code 39, and ITF-14 with adjustable bar width and height. | Barcode PNG |
 
@@ -115,12 +115,12 @@ All image tools support common browser-readable images and output to JPG, JPEG, 
 ### Home page and discovery
 
 - **Popular tools** strip for quick access to frequently used tools.
-- **Recently used tools** — the six most recently opened tools, stored locally in your browser and clearable from the home page.
+- **Recently used tools** - the six most recently opened tools, stored locally in your browser and clearable from the home page.
 - **Live search** across tool names, descriptions, and keywords.
 - **Category filters** with tool counts, `aria-pressed` state, keyboard Arrow/Home/End navigation, and an announced result count.
 - **No-results message** and accessible status updates when the filtered list changes.
-- **India-only entry points** — the CBSE Result Analyzer card and its navigation link are revealed only after the server has confirmed the visitor's country. The country comes from the hosting provider's trusted geo data (`CF-IPCountry` on Cloudflare), never from a header the browser can set, and the check fails closed when the country cannot be determined. The public landing page, its guide and its sample output stay open to everyone, including search crawlers, and no student data is ever published on it.
-- **Country gate and authorisation are separate** — being in India unlocks the tool, not anybody's private records. The student tables show the name and roll number printed in your own file, and the exports leave the identities out until you ask for them.
+- **India-only entry points** - the CBSE Result Analyzer card and its navigation link are revealed only after the server has confirmed the visitor's country. The country comes from the hosting provider's trusted geo data (`CF-IPCountry` on Cloudflare), never from a header the browser can set, and the check fails closed when the country cannot be determined. The public landing page, its guide and its sample output stay open to everyone, including search crawlers, and no student data is ever published on it.
+- **Country gate and authorisation are separate** - being in India unlocks the tool, not anybody's private records. The student tables show the name and roll number printed in your own file, and the exports leave the identities out until you ask for them.
 
 ### File input and processing
 
@@ -205,17 +205,17 @@ All image tools support common browser-readable images and output to JPG, JPEG, 
 
 ## Tech stack
 
-- **Astro 5** with the **Cloudflare adapter** — static page generation, routing, and deployment.
-- **pdf-lib** — PDF creation and manipulation: merge, split, delete, rotate, resize, organize, page numbers, watermarks, metadata removal, searchable text layers.
-- **pdfjs-dist** — PDF rendering, thumbnails, previews, and text extraction.
-- **Tesseract.js** — on-device OCR for images and PDFs.
-- **jszip** — ZIP archives for split PDFs and batch image downloads.
-- **jsbarcode** — 1D barcode generation.
-- **qrcode-generator** — QR code generation.
-- **gifenc** — GIF encoding for image conversion.
-- **Canvas, Web Crypto, IndexedDB, and localStorage** — image processing, hashing, session restore, and preferences.
-- **axe-core and Puppeteer** (dev dependencies) — accessibility and browser automation audits.
-- **Node.js built-in test runner** — the parsing, statistics, validation, export and country-policy tests run with `npm test`, with no test framework to install.
+- **Astro 5** with the **Cloudflare adapter** - static page generation, routing, and deployment.
+- **pdf-lib** - PDF creation and manipulation: merge, split, delete, rotate, resize, organize, page numbers, watermarks, metadata removal, searchable text layers.
+- **pdfjs-dist** - PDF rendering, thumbnails, previews, and text extraction.
+- **Tesseract.js** - on-device OCR for images and PDFs.
+- **jszip** - ZIP archives for split PDFs and batch image downloads.
+- **jsbarcode** - 1D barcode generation.
+- **qrcode-generator** - QR code generation.
+- **gifenc** - GIF encoding for image conversion.
+- **Canvas, Web Crypto, IndexedDB, and localStorage** - image processing, hashing, session restore, and preferences.
+- **axe-core and Puppeteer** (dev dependencies) - accessibility and browser automation audits.
+- **Node.js built-in test runner** - the parsing, statistics, validation, export and country-policy tests run with `npm test`, with no test framework to install.
 - **Node.js 22.22+** for development and builds.
 
 ## Getting started
@@ -277,6 +277,7 @@ src/
     tools.json           # tool registry: IDs, categories, card/SEO copy, icons
     tool-config.json     # per-tool descriptions, accepted files, and option markup
     cbse-tool.json       # the India-only tool entry, kept out of the public registry
+    cbse-subjects.json   # CBSE subject code knowledge base (Class X and Class XII)
   lib/
     geo.js               # country resolution and the India-only feature policy
     cbse/
@@ -306,4 +307,4 @@ To add or modify a tool:
 
 ## License
 
-Free to use. All processing happens locally in your browser — your files stay yours.
+Free to use. All processing happens locally in your browser - your files stay yours.

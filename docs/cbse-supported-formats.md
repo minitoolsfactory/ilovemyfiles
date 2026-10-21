@@ -39,6 +39,32 @@ SCHOOL : - 27572   SCHOOL NAME
 * The printed summary at the end of the file is read and compared with the
   recalculated figures.
 
+### The two printed layouts
+
+| Layout | What it looks like | How it is read |
+| --- | --- | --- |
+| **Column layout** (Class X and most gazettes) | the subject codes run across the line, the marks and the grades on the line below | the subject area is read at the column offsets of the printed `MKS GR` header, so a candidate who was not offered an optional subject keeps an **empty slot** |
+| **Vertical layout** (the senior secondary compartment gazette) | one subject per line: the code, then the grade | the subject code is read from the `SUB` column and the grade from the `CD` column of every line that follows the record |
+
+The vertical layout is recognised from the printed `INT-SB-GRD` block of the
+header, and the column layout is confirmed by checking that the records really
+carry a code in the column the header points at. A file whose records do not fit
+the printed header is read by token analysis instead, and that is reported.
+
+### What the two layouts print differently
+
+* The vertical layout prints a **flag** between the roll number and the gender
+  (`26720328 I F RIDDHIMA`). The flag is kept in its own field and never ends
+  up in the candidate name.
+* The vertical layout can print **`XXXX`** in the result column, which means
+  the result is not decided. It is a status of its own and is reported as
+  "other", so it is never counted as a pass or a fail.
+* The vertical layout prints the **grades without the marks**. The analyzer
+  says so, reports the grades as printed and leaves the averages, the totals
+  and the percentages empty, because there is nothing to average.
+* The senior secondary gazette prints an **`OTHER`** total in its summary, which
+  is compared with the recalculated figure like every other total.
+
 ### Layouts the analyzer copes with
 
 * A candidate who was not offered one of the optional subjects: the empty
@@ -62,14 +88,21 @@ official name and their published maximum. A code that is not in that list is
 shown as `Subject <code>`, is flagged, and the reviewer can give it a name and
 a maximum in the review step before the report is built.
 
-The verified list covers the language codes `001` to `006`, `087` to `092`,
-`097`, `098`, the mathematics codes `041`, `042`, `083`, the science code
-`085`, the social science code `086` and the skill education codes `122`,
-`222`, `301` to `304`, `313` to `317`, `401`, `413` to `418`.
+The knowledge base in `src/data/cbse-subjects.json` holds every subject code
+CBSE publishes for Class X (85 codes) and Class XII (116 codes), with the
+official name, the group and the published mark scale, taken from the official
+CBSE subject list and the board date sheets for 2025-26. The review step lists
+the whole library with a search box.
 
-The published maximum in the list is the **total** scale a gazette prints:
-`100` for an academic subject (80 theory marks plus 20 marks of internal
-assessment) and `50` or `100` for a skill subject.
+The published maximum is the **total** scale a gazette prints, which is 100 for
+every subject: 80 theory marks plus 20 marks of internal assessment for the
+academic subjects, and 50 theory marks plus 50 marks of practical for the skill
+subjects.
+
+A code means a different subject in a different class, so the class of the
+gazette decides the table that is read: `002` is Hindi Course-A in Class X and
+Hindi Elective in Class XII, and `241` is Mathematics-Basic in Class X and
+Applied Mathematics in Class XII.
 
 The codes `119`, `184`, `241` and the `2025` skill codes are **not** in the
 verified list, so they are shown as `Subject <code>`. They are deliberately not

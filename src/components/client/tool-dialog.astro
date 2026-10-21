@@ -1333,7 +1333,7 @@
     const orientation = settings.orientation === 'auto' ? 'match each page' : settings.orientation;
     const margin = Math.max(0, Number(settings.margin) || 0);
     ws.setModeLabel(`${label} · ${settings.orientation === 'auto' ? 'match' : settings.orientation}`);
-    ws.setNote(`Page ${page} of ${ws.pageCount} · ${label} ${orientation}${margin > 0 ? ` · ${margin}pt margin` : ''}. Changes apply to this page only — use Apply to all for every page.`);
+    ws.setNote(`Page ${page} of ${ws.pageCount} · ${label} ${orientation}${margin > 0 ? ` · ${margin}pt margin` : ''}. Changes apply to this page only - use Apply to all for every page.`);
     ws.reflow();
   }
   
@@ -3113,7 +3113,7 @@
     progressLabel.textContent = label || 'Processing files…';
     if (progressTrack) {
       progressTrack.setAttribute('aria-valuenow', String(Math.round(clamped)));
-      progressTrack.setAttribute('aria-valuetext', `${Math.round(clamped)}% — ${label || 'Processing files'}`);
+      progressTrack.setAttribute('aria-valuetext', `${Math.round(clamped)}% - ${label || 'Processing files'}`);
     }
   }
   

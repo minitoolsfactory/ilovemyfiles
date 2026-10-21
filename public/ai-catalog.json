@@ -1,7 +1,7 @@
 {
   "$schema": "https://ai-catalog.org/schema/v1/ai-catalog.json",
   "name": "iLoveMyFiles",
-  "description": "Free, private browser-based file tools for images and PDFs. All processing happens locally in your browser — no uploads, no sign-up required.",
+  "description": "Free, private browser-based file tools for images and PDFs. All processing happens locally in your browser - no uploads, no sign-up required.",
   "homepage": "https://ilovemyfiles.com/",
   "license": "MIT",
   "contact": "https://ilovemyfiles.com/",

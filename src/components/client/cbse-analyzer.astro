@@ -13,21 +13,24 @@
   let validateModule = null;
   let exporterModule = null;
   let correctionsModule = null;
+  let subjectsModule = null;
 
   async function loadCore() {
     if (!parserModule) {
-      const [parser, analytics, validate, exporters, corrections] = await Promise.all([
+      const [parser, analytics, validate, exporters, corrections, subjects] = await Promise.all([
         import('../../lib/cbse/parse-gazette.js'),
         import('../../lib/cbse/analytics.js'),
         import('../../lib/cbse/validate.js'),
         import('../../lib/cbse/exporters.js'),
-        import('../../lib/cbse/corrections.js')
+        import('../../lib/cbse/corrections.js'),
+        import('../../lib/cbse/subjects.js')
       ]);
       parserModule = parser;
       analyticsModule = analytics;
       validateModule = validate;
       exporterModule = exporters;
       correctionsModule = corrections;
+      subjectsModule = subjects;
     }
     return { parserModule, analyticsModule, validateModule, exporterModule, correctionsModule };
   }
@@ -41,6 +44,10 @@
     topCount: 10,
     filters: { year: null, className: null, school: null, region: null, subject: null, status: null, grade: null, scoreMin: null, scoreMax: null },
     includeIdentities: false,
+    sort: { key: null, direction: 'asc', toggles: 0 },
+    page: 1,
+    pageSize: 50,
+    studentQuery: '',
     sequence: 0
   };
 
@@ -275,8 +282,9 @@
 
     renderMetaEditor(dataset);
     renderSubjectEditor(dataset);
-    renderChecks(validation);
+    renderValidation(validation);
     renderFlagged(validation);
+    renderSubjectLibrary($('#cbse-kb-search')?.value ?? '', dataset.meta?.class ?? null);
     renderSummaryTable(dataset, analytics);
     const applied = correctionsModule.countCorrections(state.corrections);
     const note = $('#cbse-corrections-note');
@@ -373,18 +381,50 @@
     for (const row of rows) body.appendChild(row);
   }
 
-  function renderChecks(validation) {
-    const list = $('#cbse-checks');
-    list.innerHTML = '';
-    for (const check of validation.checks) {
-      const item = el('li', `cbse-check cbse-check-${check.status}`);
-      const badge = el('span', 'cbse-check-badge', check.status.toUpperCase());
-      const copy = el('div');
-      copy.appendChild(el('b', null, check.label));
-      copy.appendChild(el('span', 'cbse-check-detail', check.detail));
-      item.appendChild(badge);
-      item.appendChild(copy);
-      list.appendChild(item);
+  /**
+   * The CBSE subject code library: every code the board publishes, with the
+   * official name and the total mark a gazette prints for it.
+   */
+  function renderSubjectLibrary(query = '', className = null) {
+    const body = $('#cbse-kb-body');
+    const count = $('#cbse-kb-count');
+    if (!body) return;
+    body.innerHTML = '';
+    const needle = String(query ?? '').trim().toLowerCase();
+    const classKey = subjectsModule.subjectClassKey(className);
+    const subjects = subjectsModule.allSubjects(classKey);
+    const filtered = needle
+      ? subjects.filter(subject => subject.code.includes(needle) || subject.name.toLowerCase().includes(needle))
+      : subjects;
+    for (const subject of filtered.slice(0, 300)) {
+      const row = el('tr');
+      row.appendChild(el('td', 'cbse-mono', subject.code));
+      row.appendChild(el('td', null, subject.name));
+      row.appendChild(el('td', 'cbse-mono', subject.group));
+      row.appendChild(el('td', 'cbse-mono', String(subject.max)));
+      const action = el('td');
+      const input = document.querySelector(`#cbse-subject-body [data-subject-name="${subject.code}"]`);
+      if (input) {
+        const button = el('button', 'cbse-kb-use', 'Use this name');
+        button.type = 'button';
+        button.title = `Use "${subject.name}" for subject code ${subject.code} in this gazette`;
+        button.addEventListener('click', () => {
+          input.value = subject.name;
+          input.classList.add('cbse-applied');
+          setStatus(`Subject ${subject.code} is now called "${subject.name}". Build the report to apply it.`, 'info');
+          input.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        });
+        action.appendChild(button);
+      } else {
+        action.appendChild(el('span', 'field-help', 'not in this gazette'));
+      }
+      row.appendChild(action);
+      body.appendChild(row);
+    }
+    if (count) {
+      count.textContent = filtered.length === subjects.length
+        ? `${subjects.length} subject codes in the library.`
+        : `${filtered.length} of ${subjects.length} subject codes match "${query}".`;
     }
   }
 
@@ -481,7 +521,7 @@
     if (!dataset) return;
     const analytics = analyticsModule.computeAnalytics(dataset, { bands: state.bands ?? analyticsModule.DEFAULT_BANDS, topCount: state.topCount });
     renderSummaryTable(dataset, analytics);
-    renderChecks(validateModule.validateDataset(dataset, analytics));
+    renderValidation(validateModule.validateDataset(dataset, analytics));
   }
 
   function renderSummaryTable(dataset, analytics) {
@@ -890,6 +930,11 @@
     }
   }
 
+  /** Fixed column widths of the student table, in pixels. */
+  const COLUMNS = { roll: 108, name: 190, status: 118, subject: 92 };
+  /** Fixed column widths of the top candidate table, in pixels. */
+  const TOP_COLUMNS = { rank: 64, roll: 108, name: 190, result: 104, total: 84, available: 96, percent: 110 };
+
   /**
    * The subject columns of the student and top candidate tables: one column
    * for every subject code the gazette prints, in the order it prints them.
@@ -899,6 +944,133 @@
    */
   function subjectColumns(analytics) {
     return analytics?.subjectCodes ?? [];
+  }
+
+  /**
+   * The name and the published maximum of a subject, for the column heading.
+   *
+   * @param {Object} analytics
+   * @param {string} code
+   * @returns {{ name: string, max: number|null }}
+   */
+  function subjectMeta(analytics, code) {
+    const entry = (analytics?.subjects ?? []).find(subject => subject.code === code);
+    return { name: entry?.name ?? `Subject ${code}`, max: entry?.max ?? null };
+  }
+
+  /**
+   * Build the header cells for the subject columns. Each heading carries the
+   * code, the official name and the maximum in force, and it sorts the table.
+   *
+   * @param {Object} analytics
+   * @param {HTMLTableSectionElement} head
+   * @param {string[]} leading the header cells that come before the subjects
+   * @param {string[]} sortable the leading columns that can be sorted
+   */
+  function buildSubjectHead(analytics, head, leading, sortable = [], widths = null) {
+    if (!head) return;
+    const row = el('tr');
+    leading.forEach((label, index) => {
+      const key = sortable[index] ?? '';
+      const th = el('th', key ? 'cbse-sortable' : null);
+      th.scope = 'col';
+      th.dataset.sortKey = key;
+      if (widths?.[index]) th.style.width = `${widths[index]}px`;
+      if (key) {
+        const button = el('button', 'cbse-sort-button');
+        button.type = 'button';
+        button.appendChild(el('span', null, label));
+        button.appendChild(el('span', 'cbse-sort-arrow', ''));
+        button.addEventListener('click', () => toggleSort(key));
+        th.appendChild(button);
+      } else {
+        th.textContent = label;
+      }
+      row.appendChild(th);
+    });
+    for (const code of subjectColumns(analytics)) {
+      const meta = subjectMeta(analytics, code);
+      const th = el('th', 'cbse-subject-head cbse-sortable');
+      th.scope = 'col';
+      th.dataset.sortKey = `subject:${code}`;
+      th.style.width = `${widths?.subject ?? COLUMNS.subject}px`;
+      th.title = `${code} ${meta.name} - maximum in force ${meta.max ?? 'unknown'}. Click to sort by this subject.`;
+      const button = el('button', 'cbse-sort-button cbse-sort-button-block');
+      button.type = 'button';
+      button.appendChild(el('span', 'cbse-th-code', code));
+      button.appendChild(el('span', 'cbse-th-name', meta.name));
+      button.appendChild(el('span', 'cbse-th-max', `max ${meta.max ?? '?'}`));
+      button.appendChild(el('span', 'cbse-sort-arrow', ''));
+      button.addEventListener('click', () => toggleSort(`subject:${code}`));
+      th.appendChild(button);
+      row.appendChild(th);
+    }
+    head.innerHTML = '';
+    head.appendChild(row);
+    applySortState(head);
+    const table = head.closest('table');
+    if (table) {
+      const leadingWidth = leading.reduce((sum, _, index) => sum + (widths?.[index] ?? 110), 0);
+      const width = leadingWidth + (widths?.subject ?? COLUMNS.subject) * subjectColumns(analytics).length;
+      table.style.width = `${width}px`;
+    }
+  }
+
+  /**
+   * Sort the table by a column. Clicking the same column again flips the
+   * direction, a third click goes back to the printed order.
+   */
+  function toggleSort(key) {
+    if (state.sort.key === key) {
+      state.sort.direction = state.sort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+      state.sort = { key, direction: 'asc', toggles: 1 };
+    }
+    state.page = 1;
+    renderStudentList(state.analytics ?? {});
+    updateSortControls();
+  }
+
+  function applySortState(head) {
+    for (const th of head.querySelectorAll('th[data-sort-key]')) {
+      const key = th.dataset.sortKey;
+      if (!key) continue;
+      const active = state.sort.key === key;
+      th.setAttribute('aria-sort', active ? (state.sort.direction === 'asc' ? 'ascending' : 'descending') : 'none');
+      const arrow = th.querySelector('.cbse-sort-arrow');
+      if (arrow) arrow.textContent = active ? (state.sort.direction === 'asc' ? '▲' : '▼') : '';
+    }
+  }
+
+  /**
+   * Sort the candidate list for the table.
+   *
+   * @param {Object[]} candidates
+   * @returns {Object[]}
+   */
+  function sortCandidates(candidates) {
+    const { key, direction } = state.sort;
+    if (!key) return candidates;
+    const factor = direction === 'asc' ? 1 : -1;
+    const sorted = [...candidates].sort((a, b) => {
+      if (key.startsWith('subject:')) {
+        const code = key.slice(8);
+        const left = a.subjects.find(subject => subject.code === code)?.marks.value ?? null;
+        const right = b.subjects.find(subject => subject.code === code)?.marks.value ?? null;
+        // A candidate with no mark in the subject always sorts last, in both
+        // directions, so an absent candidate never tops the list.
+        if (left === null && right === null) return a.rollNo.localeCompare(b.rollNo);
+        if (left === null) return 1;
+        if (right === null) return -1;
+        if (left === right) return a.rollNo.localeCompare(b.rollNo);
+        return (left - right) * factor;
+      }
+      if (key === 'roll') return a.rollNo.localeCompare(b.rollNo) * factor;
+      if (key === 'name') return a.name.localeCompare(b.name) * factor;
+      if (key === 'status') return a.status.localeCompare(b.status) * factor;
+      return 0;
+    });
+    return sorted;
   }
 
   /**
@@ -915,11 +1087,18 @@
     if (!subject) {
       return { text: '-', title: `Subject ${code} was not offered to this candidate` };
     }
-    if (subject.marks.value === null) {
-      return { text: '-', title: `Subject ${code} has no printed mark` };
+    const mark = subject.marks.value;
+    const grade = subject.grade.value;
+    if (mark == null && !grade) {
+      return { text: '-', title: `Subject ${code} has no printed mark and no printed grade` };
     }
-    const grade = subject.grade.value ? `/${subject.grade.value}` : '';
-    return { text: `${subject.marks.value}${grade}`, title: `Subject ${code}: ${subject.marks.value}${grade}` };
+    if (mark == null) {
+      return { text: grade, title: `Subject ${code}: grade ${grade}, the gazette prints no mark` };
+    }
+    return {
+      text: grade ? `${mark} ${grade}` : String(mark),
+      title: `Subject ${code}: ${mark}${grade ? `, grade ${grade}` : ''}`
+    };
   }
 
   /**
@@ -929,25 +1108,6 @@
    * @param {HTMLTableSectionElement} head
    * @param {string[]} leading the header cells that come before the subjects
    */
-  function buildSubjectHead(analytics, head, leading) {
-    if (!head) return;
-    const row = el('tr');
-    for (const label of leading) {
-      const th = el('th', null, label);
-      th.scope = 'col';
-      row.appendChild(th);
-    }
-    const names = new Map((analytics.subjects ?? []).map(subject => [subject.code, subject.name]));
-    for (const code of subjectColumns(analytics)) {
-      const th = el('th', 'cbse-subject-head', code);
-      th.scope = 'col';
-      th.title = names.get(code) ?? `Subject ${code}`;
-      row.appendChild(th);
-    }
-    head.innerHTML = '';
-    head.appendChild(row);
-  }
-
   function renderTopPerformers(analytics) {
     const body = $('#cbse-top-body');
     const table = $('#cbse-top-table');
@@ -964,7 +1124,8 @@
     if (table) table.hidden = false;
     if (wrap) wrap.hidden = false;
     if (empty) empty.hidden = true;
-    buildSubjectHead(analytics, $('#cbse-top-head'), ['Rank', 'Roll number', 'Name', 'Result', 'Total', 'Available', 'Percentage']);
+    buildSubjectHead(analytics, $('#cbse-top-head'), ['Rank', 'Roll number', 'Name', 'Result', 'Total', 'Available', 'Percentage'], [],
+      [TOP_COLUMNS.rank, TOP_COLUMNS.roll, TOP_COLUMNS.name, TOP_COLUMNS.result, TOP_COLUMNS.total, TOP_COLUMNS.available, TOP_COLUMNS.percent]);
     for (const entry of rows) {
       const row = el('tr');
       row.appendChild(el('td', 'cbse-rank', entry.rank));
@@ -977,12 +1138,23 @@
       const byCode = new Map((entry.subjects ?? []).map(subject => [subject.code, subject]));
       for (const code of subjectColumns(analytics)) {
         const subject = byCode.get(code);
-        const cell = el('td', 'cbse-mono cbse-subject-cell', subject
-          ? (subject.marks == null ? '-' : `${subject.marks}${subject.grade ? `/${subject.grade}` : ''}`)
-          : '-');
-        cell.title = subject
-          ? (subject.marks == null ? `Subject ${code} has no printed mark` : `Subject ${code}: ${subject.marks}${subject.grade ? `/${subject.grade}` : ''}`)
-          : `Subject ${code} was not offered to this candidate`;
+        let text = '-';
+        let title = `Subject ${code} was not offered to this candidate`;
+        if (subject) {
+          const mark = subject.marks;
+          const grade = subject.grade;
+          if (mark == null && !grade) {
+            title = `Subject ${code} has no printed mark and no printed grade`;
+          } else if (mark == null) {
+            text = grade;
+            title = `Subject ${code}: grade ${grade}, the gazette prints no mark`;
+          } else {
+            text = grade ? `${mark} ${grade}` : String(mark);
+            title = `Subject ${code}: ${mark}${grade ? `, grade ${grade}` : ''}`;
+          }
+        }
+        const cell = el('td', 'cbse-mono cbse-subject-cell', text);
+        cell.title = title;
         row.appendChild(cell);
       }
       body.appendChild(row);
@@ -1027,34 +1199,72 @@
     }
   }
 
+  /**
+   * The data quality checks, kept for reference. They are folded away in the
+   * review step, so only the summary line is visible until they are opened.
+   *
+   * @param {Object} validation
+   */
   function renderValidation(validation) {
-    const container = $('#cbse-dashboard-checks');
-    container.innerHTML = '';
-    for (const check of validation.checks) {
-      const item = el('li', `cbse-check cbse-check-${check.status}`);
-      item.appendChild(el('span', 'cbse-check-badge', check.status.toUpperCase()));
-      const copy = el('div');
-      copy.appendChild(el('b', null, check.label));
-      copy.appendChild(el('span', 'cbse-check-detail', check.detail));
-      item.appendChild(copy);
-      container.appendChild(item);
+    const container = $('#cbse-checks');
+    if (container) {
+      container.innerHTML = '';
+      for (const check of validation.checks) {
+        const item = el('li', `cbse-check cbse-check-${check.status}`);
+        item.appendChild(el('span', 'cbse-check-badge', check.status.toUpperCase()));
+        const copy = el('div');
+        copy.appendChild(el('b', null, check.label));
+        copy.appendChild(el('span', 'cbse-check-detail', check.detail));
+        item.appendChild(copy);
+        container.appendChild(item);
+      }
     }
+    const summary = $('#cbse-checks-summary');
+    if (summary) {
+      const failed = validation.checks.filter(check => check.status === 'fail').length;
+      const warned = validation.checks.filter(check => check.status === 'warn').length;
+      const passed = validation.checks.filter(check => check.status === 'pass').length;
+      summary.textContent = failed
+        ? `${failed} to look at, ${warned} warning(s), ${passed} passed`
+        : warned
+          ? `${warned} warning(s), ${passed} passed`
+          : `${passed} checks passed`;
+    }
+  }
+
+  /**
+   * The candidates of the student table: the current selection, narrowed by the
+   * search box and ordered by the sort.
+   *
+   * @returns {Object[]}
+   */
+  function studentRows() {
+    const all = state.filteredCandidates ?? [];
+    const needle = String(state.studentQuery ?? '').trim().toUpperCase();
+    const matched = needle
+      ? all.filter(candidate => candidate.rollNo.toUpperCase().includes(needle) || candidate.name.toUpperCase().includes(needle))
+      : all;
+    return sortCandidates(matched);
   }
 
   function renderStudentList(analytics) {
     const body = $('#cbse-student-body');
     body.innerHTML = '';
-    const candidates = state.filteredCandidates ?? [];
-    buildSubjectHead(analytics, $('#cbse-student-head'), ['Roll number', 'Name', 'Status']);
-    const rows = candidates.slice(0, 200);
+    const candidates = studentRows();
+    const size = Math.max(1, state.pageSize);
+    const pages = Math.max(1, Math.ceil(candidates.length / size));
+    if (state.page > pages) state.page = pages;
+    if (state.page < 1) state.page = 1;
+    const start = (state.page - 1) * size;
+    const rows = candidates.slice(start, start + size);
+
+    buildSubjectHead(analytics, $('#cbse-student-head'), ['Roll number', 'Name', 'Status'], ['roll', 'name', 'status'],
+      [COLUMNS.roll, COLUMNS.name, COLUMNS.status]);
+    buildSortOptions(analytics);
+    applySortState($('#cbse-student-head'));
+
     for (const candidate of rows) {
       body.appendChild(studentRow(candidate, analytics));
-    }
-    const count = $('#cbse-student-count');
-    if (count) {
-      count.textContent = candidates.length === rows.length
-        ? `${candidates.length} record(s) in the current selection`
-        : `${rows.length} of ${candidates.length} record(s) shown`;
     }
     if (!rows.length) {
       const row = el('tr');
@@ -1063,6 +1273,52 @@
       row.appendChild(cell);
       body.appendChild(row);
     }
+
+    const count = $('#cbse-student-count');
+    if (count) {
+      count.textContent = candidates.length
+        ? `Showing ${start + 1}-${Math.min(start + size, candidates.length)} of ${candidates.length} record(s)`
+        : 'No record matches the current filters';
+    }
+    const label = $('#cbse-page-label');
+    if (label) label.textContent = `Page ${state.page} of ${pages}`;
+    for (const [id, disabled] of [['#cbse-page-first', state.page <= 1], ['#cbse-page-prev', state.page <= 1], ['#cbse-page-next', state.page >= pages], ['#cbse-page-last', state.page >= pages]]) {
+      const button = $(id);
+      if (button) button.disabled = disabled;
+    }
+  }
+
+  /**
+   * Fill the "sort by" control with the columns of the table.
+   *
+   * @param {Object} analytics
+   */
+  function buildSortOptions(analytics) {
+    const select = $('#cbse-sort-key');
+    if (!select) return;
+    const current = state.sort.key ?? '';
+    select.innerHTML = '';
+    select.appendChild(new Option('Printed order', ''));
+    select.appendChild(new Option('Roll number', 'roll'));
+    select.appendChild(new Option('Name', 'name'));
+    select.appendChild(new Option('Result status', 'status'));
+    for (const code of subjectColumns(analytics)) {
+      const meta = subjectMeta(analytics, code);
+      select.appendChild(new Option(`${code} ${meta.name}`, `subject:${code}`));
+    }
+    select.value = current;
+    updateSortControls();
+  }
+
+  function updateSortControls() {
+    const direction = $('#cbse-sort-direction');
+    if (!direction) return;
+    const active = Boolean(state.sort.key);
+    direction.textContent = state.sort.direction === 'asc' ? 'Ascending ▲' : 'Descending ▼';
+    direction.setAttribute('aria-pressed', active && state.sort.direction === 'desc' ? 'true' : 'false');
+    direction.title = active
+      ? `The table is sorted ${state.sort.direction === 'asc' ? 'ascending' : 'descending'}. Click to reverse the order.`
+      : 'Choose a column to sort by first.';
   }
 
   /**
@@ -1088,28 +1344,9 @@
   }
 
   function searchStudents(query) {
-    const needle = String(query ?? '').trim().toUpperCase();
-    const body = $('#cbse-student-body');
-    body.innerHTML = '';
-    const analytics = state.analytics ?? {};
-    buildSubjectHead(analytics, $('#cbse-student-head'), ['Roll number', 'Name', 'Status']);
-    if (!needle) {
-      renderStudentList(analytics);
-      return;
-    }
-    const matches = (state.filteredCandidates ?? []).filter(candidate =>
-      candidate.rollNo.toUpperCase().includes(needle) || candidate.name.toUpperCase().includes(needle)
-    );
-    for (const candidate of matches.slice(0, 50)) {
-      body.appendChild(studentRow(candidate, analytics));
-    }
-    if (!matches.length) {
-      const row = el('tr');
-      const cell = el('td', 'field-help', 'No candidate matches that search.');
-      cell.colSpan = 3 + subjectColumns(analytics).length;
-      row.appendChild(cell);
-      body.appendChild(row);
-    }
+    state.studentQuery = query ?? '';
+    state.page = 1;
+    renderStudentList(state.analytics ?? {});
   }
 
   /**
@@ -1124,7 +1361,7 @@
     const totals = analytics.totals;
     const lines = [];
     const title = [meta.schoolCode, meta.schoolName, meta.class, meta.year].filter(Boolean).join(' · ');
-    lines.push(title ? `CBSE result analysis — ${title}` : 'CBSE result analysis');
+    lines.push(title ? `CBSE result analysis - ${title}` : 'CBSE result analysis');
     if (meta.sourceFileName) lines.push(`Source: ${meta.sourceFileName}`);
     lines.push(`Total candidates: ${totals.candidates}`);
     lines.push(`Passed: ${totals.passed}${totals.passPercentage == null ? '' : ` (${totals.passPercentage}% of ${totals.appeared} appeared)`}`);
@@ -1213,13 +1450,102 @@
 
   async function exportPdf() {
     try {
-      setStatus('Building the PDF report…');
-      const { model, analytics, dataset } = buildExportContext();
-      const blob = await exporterModule.buildPdfReport(model, analytics, dataset);
-      downloadBlob(blob, 'cbse-result-analysis.pdf');
-      setStatus('The PDF summary report was downloaded.', 'success');
+      const { model, analytics, dataset, validation } = buildExportContext();
+      const sections = exporterModule.buildReportSections(analytics, dataset, validation.checks);
+      renderReportPreview(sections, model);
+      const dialog = $('#cbse-report-dialog');
+      if (dialog?.showModal) dialog.showModal();
+      else setStatus('The preview could not be opened, so the PDF was not built.', 'error');
     } catch (error) {
-      setStatus(error?.message ?? 'The export failed.', 'error');
+      setStatus(error?.message ?? 'The preview could not be built.', 'error');
+    }
+  }
+
+  /**
+   * Render the report preview. It shows the same sections the PDF contains.
+   *
+   * @param {Object[]} sections
+   * @param {Object} model
+   */
+  function renderReportPreview(sections, model) {
+    const host = $('#cbse-report-preview');
+    if (!host) return;
+    host.innerHTML = '';
+    const meta = document.createElement('div');
+    meta.className = 'cbse-report-meta';
+    meta.appendChild(el('h4', null, 'CBSE Result Analysis Report'));
+    meta.appendChild(el('p', null, `${model.meta.examName || 'CBSE examination'}${model.meta.year ? ` - ${model.meta.year}` : ''}`));
+    meta.appendChild(el('p', null, `${model.meta.schoolName || 'School not printed'}${model.meta.schoolCode ? ` (code ${model.meta.schoolCode})` : ''}`));
+    meta.appendChild(el('p', 'cbse-report-source', `Region ${model.meta.region || 'not printed'} | Gazette date ${model.meta.gazetteDate || 'not printed'}`));
+    host.appendChild(meta);
+
+    for (const section of sections) {
+      const block = el('section', 'cbse-report-section');
+      block.appendChild(el('h4', null, section.title));
+      if (section.type === 'meta') {
+        const table = el('table', 'cbse-table cbse-table-compact');
+        const body = el('tbody');
+        for (const [label, value] of section.rows) {
+          const row = el('tr');
+          row.appendChild(el('th', null, label));
+          row.appendChild(el('td', 'cbse-mono', String(value)));
+          body.appendChild(row);
+        }
+        table.appendChild(body);
+        block.appendChild(table);
+      } else if (section.type === 'headline') {
+        const grid = el('div', 'cbse-report-tiles');
+        for (const item of section.items) {
+          const tile = el('div', 'cbse-report-tile');
+          tile.appendChild(el('b', null, item.value));
+          tile.appendChild(el('span', null, item.label));
+          grid.appendChild(tile);
+        }
+        block.appendChild(grid);
+      } else if (section.type === 'table') {
+        const numeric = section.columns.map((_, index) => section.rows.length > 0 && section.rows.every(row => {
+          const value = String(row[index] ?? '').trim();
+          return value === '' || value === '-' || /^[\d.,%+-]+$/.test(value);
+        }));
+        const table = el('table', 'cbse-table');
+        const head = el('thead');
+        const headRow = el('tr');
+        section.columns.forEach((column, index) => {
+          const th = el('th', numeric[index] ? 'cbse-report-num' : null, column);
+          th.scope = 'col';
+          headRow.appendChild(th);
+        });
+        head.appendChild(headRow);
+        table.appendChild(head);
+        const body = el('tbody');
+        for (const row of section.rows) {
+          const tr = el('tr');
+          row.forEach((cell, index) => tr.appendChild(el('td', numeric[index] ? 'cbse-report-num' : null, String(cell))));
+          body.appendChild(tr);
+        }
+        table.appendChild(body);
+        block.appendChild(table);
+      } else if (section.type === 'checks') {
+        const list = el('ul', 'cbse-checks');
+        for (const item of section.items) {
+          const li = el('li', `cbse-check cbse-check-${item.status}`);
+          li.appendChild(el('span', 'cbse-check-badge', item.status.toUpperCase()));
+          const copy = el('div');
+          copy.appendChild(el('b', null, item.label));
+          copy.appendChild(el('span', 'cbse-check-detail', item.detail));
+          li.appendChild(copy);
+          list.appendChild(li);
+        }
+        block.appendChild(list);
+      } else if (section.type === 'definitions') {
+        const list = el('dl', 'cbse-report-definitions');
+        for (const item of section.items) {
+          list.appendChild(el('dt', null, item.label));
+          list.appendChild(el('dd', null, item.value));
+        }
+        block.appendChild(list);
+      }
+      host.appendChild(block);
     }
   }
 
@@ -1323,10 +1649,65 @@
         : 'The exports leave the candidate names and roll numbers out.', 'info');
     });
     $('#cbse-student-search')?.addEventListener('input', event => searchStudents(event.target.value));
+    $('#cbse-sort-key')?.addEventListener('change', event => {
+      if (!event.target.value) {
+        state.sort = { key: null, direction: 'asc', toggles: 0 };
+      } else {
+        const same = state.sort.key === event.target.value;
+        state.sort = { key: event.target.value, direction: same ? (state.sort.direction === 'asc' ? 'desc' : 'asc') : 'asc', toggles: 1 };
+      }
+      state.page = 1;
+      renderStudentList(state.analytics ?? {});
+    });
+    $('#cbse-sort-direction')?.addEventListener('click', () => {
+      if (!state.sort.key) {
+        setStatus('Choose a column to sort by first.', 'info');
+        return;
+      }
+      state.sort.direction = state.sort.direction === 'asc' ? 'desc' : 'asc';
+      state.page = 1;
+      renderStudentList(state.analytics ?? {});
+    });
+    $('#cbse-sort-clear')?.addEventListener('click', () => {
+      state.sort = { key: null, direction: 'asc', toggles: 0 };
+      state.page = 1;
+      renderStudentList(state.analytics ?? {});
+    });
+    $('#cbse-page-size')?.addEventListener('change', event => {
+      state.pageSize = Number(event.target.value) || 50;
+      state.page = 1;
+      renderStudentList(state.analytics ?? {});
+    });
+    for (const [id, delta] of [['#cbse-page-first', -Infinity], ['#cbse-page-prev', -1], ['#cbse-page-next', 1], ['#cbse-page-last', Infinity]]) {
+      $(id)?.addEventListener('click', () => {
+        const candidates = studentRows();
+        const size = Math.max(1, state.pageSize);
+        const pages = Math.max(1, Math.ceil(candidates.length / size));
+        if (delta === -Infinity) state.page = 1;
+        else if (delta === Infinity) state.page = pages;
+        else state.page = Math.min(pages, Math.max(1, state.page + delta));
+        renderStudentList(state.analytics ?? {});
+        $('#cbse-student-title')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      });
+    }
 
     $('#cbse-export-csv')?.addEventListener('click', exportCsv);
     $('#cbse-export-xlsx')?.addEventListener('click', exportXlsx);
     $('#cbse-export-pdf')?.addEventListener('click', exportPdf);
+    $('#cbse-report-close')?.addEventListener('click', () => $('#cbse-report-dialog')?.close());
+    $('#cbse-report-cancel')?.addEventListener('click', () => $('#cbse-report-dialog')?.close());
+    $('#cbse-report-download')?.addEventListener('click', async () => {
+      try {
+        const { model, analytics, dataset, validation } = buildExportContext();
+        const blob = await exporterModule.buildPdfReport(model, analytics, dataset, validation.checks);
+        downloadBlob(blob, 'cbse-result-analysis.pdf');
+        setStatus('The PDF summary report was downloaded.', 'success');
+        $('#cbse-report-dialog')?.close();
+      } catch (error) {
+        setStatus(error?.message ?? 'The export failed.', 'error');
+      }
+    });
+    $('#cbse-kb-search')?.addEventListener('input', event => renderSubjectLibrary(event.target.value, activeDataset()?.meta?.class ?? null));
     $('#cbse-export-charts')?.addEventListener('click', exportCharts);
     $('#cbse-copy-summary')?.addEventListener('click', copyHeadline);
     $('#cbse-delete-all')?.addEventListener('click', resetAll);

@@ -151,11 +151,30 @@ test('a subject printed on its published scale is not flagged', () => {
   assert.deepEqual(flagged.map(subject => subject.code), [], 'no subject needed an inferred scale');
 });
 
-test('only the subject codes that are not in the verified list are flagged', () => {
+test('every subject code of the gazette is named from the CBSE knowledge base', () => {
+  const { dataset } = analyse();
+  const names = Object.fromEntries(dataset.subjectTable.map(subject => [subject.code, subject.name]));
+  assert.deepEqual(names, {
+    '002': 'Hindi Course-A',
+    '004': 'Punjabi',
+    '041': 'Mathematics (Standard)',
+    '086': 'Science',
+    '087': 'Social Science',
+    '119': 'Sanskrit (Communicative)',
+    '122': 'Sanskrit',
+    '184': 'English (Language and Literature)',
+    '241': 'Mathematics (Basic)',
+    '303': 'Urdu Course-B',
+    '414': 'Apparel',
+    '418': 'Physical Activity Trainer'
+  });
+});
+
+test('no subject of the gazette needs a guessed name or an inferred scale', () => {
   const { dataset } = analyse();
   const flagged = dataset.subjectTable.filter(subject => subject.flags.length);
-  assert.deepEqual(flagged.map(subject => subject.code).sort(), ['119', '184', '241']);
-  assert.ok(flagged.every(subject => subject.flags.includes('unmapped-code')));
+  assert.deepEqual(flagged.map(subject => subject.code), []);
+  assert.ok(dataset.subjectTable.every(subject => subject.max === 100));
 });
 
 test('the same gazette read without the column alignment gives the same totals', () => {
