@@ -12,6 +12,8 @@ import {
   STATUS_META,
   GRADE_ORDER,
   KNOWN_SCALES,
+  GENDER_LABELS,
+  genderKey,
   gradeForMarks,
   resolveSubject
 } from './subjects.js';
@@ -327,6 +329,33 @@ export function computeAnalytics(dataset, options = {}) {
   const essentialRepeat = statusCounts[RESULT_STATUS.ESSENTIAL_REPEAT] ?? 0;
   const other = statusCounts[RESULT_STATUS.OTHER] ?? 0;
 
+  // The split of the class by the gender printed in the gazette.
+  const genderBreakdown = [...new Set(candidates.map(candidate => genderKey(candidate.gender)))].sort().map(key => {
+    const group = candidates.filter(candidate => genderKey(candidate.gender) === key);
+    const groupPassed = group.filter(candidate => candidate.status === RESULT_STATUS.PASS).length;
+    const groupCompartment = group.filter(candidate => candidate.status === RESULT_STATUS.COMPARTMENT).length;
+    const groupAbsent = group.filter(candidate => candidate.status === RESULT_STATUS.ABSENT).length;
+    const groupOther = group.filter(candidate => candidate.status === RESULT_STATUS.OTHER).length;
+    const groupAppeared = group.length - groupAbsent;
+    const groupScores = group
+      .map(candidate => aggregateScore(candidate, subjectTable))
+      .filter(score => score.percent != null);
+    return {
+      key,
+      label: GENDER_LABELS[key] ?? 'Not printed',
+      candidates: group.length,
+      passed: groupPassed,
+      compartment: groupCompartment,
+      absent: groupAbsent,
+      other: groupOther,
+      appeared: groupAppeared,
+      passPercentage: groupAppeared ? round((groupPassed / groupAppeared) * 100) : null,
+      average: groupScores.length
+        ? round(groupScores.reduce((sum, score) => sum + score.percent, 0) / groupScores.length)
+        : null
+    };
+  });
+
   const statusDistribution = Object.values(RESULT_STATUS)
     .map(key => ({
       key,
@@ -343,13 +372,17 @@ export function computeAnalytics(dataset, options = {}) {
     let missing = 0;
     let invalid = 0;
     let absent = 0;
+    let notAppeared = 0;
     for (const candidate of candidates) {
       const subject = candidate.subjects.find(item => item.code === entry.code);
       if (!subject) continue;
       if (candidate.status === RESULT_STATUS.ABSENT) { absent += 1; continue; }
       if (subject.marks.value === null) {
-        if (subject.marks.raw) invalid += 1;
+        if (subject.absent) notAppeared += 1;
+        else if (subject.marks.raw) invalid += 1;
         else missing += 1;
+        // A gazette that prints the grades without the marks still has grades.
+        if (subject.grade.value) grades.set(subject.grade.value, (grades.get(subject.grade.value) ?? 0) + 1);
         continue;
       }
       marks.push(subject.marks.value);
@@ -364,6 +397,7 @@ export function computeAnalytics(dataset, options = {}) {
       missing,
       invalid,
       absent,
+      notAppeared,
       average: round(avg),
       averagePercent: avg != null && entry.max ? round((avg / entry.max) * 100) : null,
       median: round(median(marks)),
@@ -399,6 +433,7 @@ export function computeAnalytics(dataset, options = {}) {
       recordId: candidate.recordId,
       rollNo: candidate.rollNo,
       name: candidate.name,
+      gender: candidate.gender,
       status: candidate.status,
       graded,
       ...score
@@ -444,7 +479,9 @@ export function computeAnalytics(dataset, options = {}) {
           code: subject.code,
           name: nameByCode.get(subject.code) ?? `Subject ${subject.code}`,
           marks: subject.marks.value,
-          grade: subject.grade.value
+          marksRaw: subject.marks.raw,
+          grade: subject.grade.value,
+          absent: subject.absent === true
         }))
     };
   });
@@ -504,6 +541,7 @@ export function computeAnalytics(dataset, options = {}) {
     },
     statusDistribution,
     gradeDistribution,
+    genderBreakdown,
     subjects: perSubject,
     subjectCodes: subjectCodeOrder(dataset),
     scoreDistribution,

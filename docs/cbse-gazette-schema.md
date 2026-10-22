@@ -119,6 +119,19 @@ gazette).
 A file whose records do not fit the printed header is read by token analysis
 instead, and that is reported in the issues.
 
+### The printed values of a subject cell
+
+| printed | read as |
+| --- | --- |
+| `088 A2` | the mark 88 and the grade A2 |
+| `059` | the mark 59, no grade |
+| `AB E` | no mark, the candidate was absent for the subject, the grade E |
+| nothing | the subject was not taken, or the gazette prints nothing for it |
+
+`marks.raw` always keeps what was printed and `marks.value` is the number, or
+`null`. `absent` is true when the cell printed a value such as `AB` instead of
+a number.
+
 ### Result status vocabulary
 
 | Canonical status | Printed tokens | In the appeared count |
@@ -249,6 +262,19 @@ is also 100.
    flagged.
 5. A maximum that the reviewer sets always wins (`maxSource: 'user'`).
 
+## Moving between the steps
+
+The three steps are a row of buttons above the work area, and a **Back** button
+sits on the right.
+
+* A step that has been reached can be clicked again at any time, so the reader
+  can go back to the review and check or correct something, then build the
+  report again. The corrections are kept.
+* A step that has not been reached yet is disabled, so the flow cannot jump
+  over the review.
+* The Back button names the step it returns to: "Back to the upload" on the
+  review step and "Back to the review" on the report step.
+
 ## Analytics
 
 `computeAnalytics(dataset, { filters, bands })` returns:
@@ -303,8 +329,14 @@ The candidate and top candidate exports use the same layout: one column per
 subject code, with the subject name in the header when the code is verified
 and a dash for a subject the candidate did not take.
 
-The tables show the name and the roll number that the gazette prints, because
-they are the reader's own file and never leave the browser.
+The tables and the exports show the name and the roll number that the gazette
+prints, because the file is the reader's own and never leaves the browser. A
+downloaded export is personal data and should be treated as confidential.
+
+Every subject has **two columns**: the mark on the left and the printed grade
+on the right. A candidate who was not offered the subject gets a dash in both,
+and a gazette that prints the grades without the marks leaves the mark column
+empty and fills the grade column.
 
 Each subject column heading carries the **code, the official name and the
 maximum in force**, and every heading sorts the table: click the roll number,
@@ -362,6 +394,14 @@ source, the extraction confidence) are not exported.
 
 The report itself carries the facts of the gazette (board, examination, year,
 class, session, region, school, gazette date), the figures and the warnings.
+
+The report also carries the **candidate records**: the roll number, the name,
+the gender, the result, the total, the percentage and the mark or the grade of
+every subject, one column per subject code. A dash means the candidate was not
+offered that subject, or the gazette printed no mark for it, and the table
+carries that note underneath. When the gazette prints the grades without the marks, the total and the
+percentage columns are left out and the subject table shows the grade
+distribution per subject instead of an empty average.
 The name of the uploaded file and the moment of the import stay in the data
 exports (CSV, Excel), where they are needed to trace a figure back to its
 source, and they are left out of the printed report.
@@ -371,9 +411,32 @@ content instead of being split evenly, a long value wraps over several lines
 instead of being cut off, the numeric columns are right aligned, a table that
 continues on the next page repeats its heading, and a narrow table is only
 stretched a little so it keeps its shape. The **exports**
-leave the identities out by default (`Candidate 001`, `Withheld`) so that a
-downloaded file can be passed on; the switch "include the candidate names and
-roll numbers in the exports" turns them back on for an internal report.
+always carry the candidate names and roll numbers, because the gazette is the
+reader's own file and the export never leaves the browser.
+
+### The split by gender
+
+The gazette prints the gender in the flag column next to the roll number: `F`
+for female and `M` for male. It is kept in `candidate.gender` and never
+guessed.
+
+`analytics.genderBreakdown` holds one entry per gender that appears in the
+current selection:
+
+| field | meaning |
+| --- | --- |
+| `key` | `F`, `M` or `?` when the gazette prints no gender |
+| `label` | "Girls", "Boys" or "Not printed" |
+| `candidates` | the candidates of that gender |
+| `passed`, `compartment`, `absent`, `other` | the result status split |
+| `appeared` | the candidates minus the absent ones |
+| `passPercentage` | passed divided by appeared, times 100 |
+| `average` | the mean aggregate score of that gender, when the gazette prints marks |
+
+The gender is a column of the student table and of the top candidate table, a
+row of the "Boys and girls" table, a chart of the result status per gender, a
+column of the CSV and the Excel export, and a check that reports a gazette which
+prints no gender at all.
 
 ### Aggregate score of a candidate
 

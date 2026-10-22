@@ -131,6 +131,11 @@ export function detectVerticalLayout(lines, grid) {
   for (const line of lines) {
     if (/INT-SB-GRD/.test(line)) return true;
   }
+  // A gazette that prints its subjects one per line has no "MKS GR" header. A
+  // gazette that has one prints its subjects in columns, even when a candidate
+  // only appears for two subjects, as in a compartment gazette.
+  const hasColumnHeader = lines.some(line => /MKS\s+GR/.test(line));
+  if (hasColumnHeader) return false;
   if (!grid) return false;
   // Fall back on the data: a record that lists a single subject code and is
   // followed by lines that carry their own code is a vertical layout.
@@ -275,19 +280,28 @@ function readCodeCell(cell) {
 }
 
 /**
- * Read the printed marks and grade out of a fixed-width cell.
+ * Read the printed marks and grade out of a fixed-width cell of the column
+ * layout.
+ *
+ * The cell holds the mark in its first field and the printed grade after it.
+ * A gazette may print a value such as AB instead of a mark, which means the
+ * candidate was absent for that subject, and some gazettes print the mark
+ * without any grade at all.
  *
  * @param {string} cell
- * @returns {{ marks: string, grade: string }}
+ * @returns {{ marks: number|null, markRaw: string, gradeRaw: string, absent: boolean }}
  */
 function readMarkCell(cell) {
-  const trimmed = cell.trim();
-  if (!trimmed) return { marks: '', grade: '' };
-  const withMarks = trimmed.match(/^(\d{1,3})\s*([A-Za-z]{1,3}\d?)?$/);
-  if (withMarks) return { marks: withMarks[1], grade: (withMarks[2] ?? '').toUpperCase() };
-  const gradeOnly = trimmed.match(/^([A-Za-z]{1,3}\d?)$/);
-  if (gradeOnly) return { marks: '', grade: gradeOnly[1].toUpperCase() };
-  return { marks: '', grade: '' };
+  const tokens = String(cell ?? '').trim().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return { marks: null, markRaw: '', gradeRaw: '', absent: false };
+  if (/^\d{1,3}$/.test(tokens[0])) {
+    const grade = tokens[1] && /^[A-Za-z]{1,3}\d?$/.test(tokens[1]) ? tokens[1].toUpperCase() : '';
+    return { marks: Number(tokens[0]), markRaw: tokens[0], gradeRaw: grade, absent: false };
+  }
+  // No number: the cell prints a value such as AB, which means the candidate
+  // was absent for that subject, and the grade follows it.
+  const grade = tokens[1] && /^[A-Za-z]{1,3}\d?$/.test(tokens[1]) ? tokens[1].toUpperCase() : '';
+  return { marks: null, markRaw: tokens[0], gradeRaw: grade, absent: true };
 }
 
 /**
@@ -363,7 +377,15 @@ export function extractMeta(lines) {
       if (name && !meta.examName) meta.examName = name.trim();
       if (region && !meta.region) meta.region = region.trim();
       const session = name.match(/\(([^)]+)\)/);
-      if (session && !meta.session) meta.session = session[1].trim().toUpperCase();
+      if (session && !meta.session) {
+        meta.session = session[1].trim().toUpperCase();
+        meta.sessionSource = 'printed';
+      } else if (!meta.session && /SECONDARY SCHOOL EXAMINATION/i.test(name)) {
+        // A gazette without a qualifier is the main examination; the
+        // compartment gazette always prints (COMPTT).
+        meta.session = 'MAIN';
+        meta.sessionSource = 'implied';
+      }
       if (/SENIOR\s+(SCHOOL\s+CERTIFICATE|SECONDARY)/i.test(name)) {
         meta.class = 'XII';
         meta.classSource = 'exam-name';
@@ -748,7 +770,7 @@ function parseVertical(lines, pageOf, grid, datasetId, issues) {
       compartmentSubjects,
       subjects: subjects.map((subject, slot) => buildSubject(
         { code: subject.code },
-        { marks: '', grade: subject.grade },
+        { marks: null, markRaw: '', gradeRaw: subject.grade, absent: false },
         slot
       )),
       page: pageOf[index] ?? 1,
@@ -756,7 +778,7 @@ function parseVertical(lines, pageOf, grid, datasetId, issues) {
       confidence: scoreConfidence({
         name,
         statusHit,
-        subjects: subjects.map(subject => buildSubject({ code: subject.code }, { marks: '', grade: subject.grade }, 0)),
+        subjects: subjects.map(subject => buildSubject({ code: subject.code }, { marks: null, markRaw: '', gradeRaw: subject.grade, absent: false }, 0)),
         hasMarksLine: true,
         status
       }),
@@ -865,7 +887,7 @@ function parseLoose(lines, pageOf, datasetId, issues) {
       const pair = pairs[slot];
       subjects.push(buildSubject(
         { code },
-        { marks: pair ? pair.marks : '', grade: pair ? pair.grade : '' },
+        readMarkCell(`${pair?.marks ?? ''} ${pair?.grade ?? ''}`.trim()),
         slot
       ));
     }
@@ -958,10 +980,12 @@ function readMarkPairs(lines, index) {
 function buildSubject(codeCell, markCell, slot) {
   const warnings = [];
   const code = (codeCell.code ?? '').trim();
-  const marksRaw = (markCell.marks ?? '').trim();
-  const gradeRaw = (markCell.grade ?? '').trim().toUpperCase();
-  const marksValue = /^\d{1,3}$/.test(marksRaw) ? Number(marksRaw) : null;
-  if (marksRaw && marksValue === null) warnings.push('marks-not-numeric');
+  const marksRaw = (markCell.markRaw ?? '').trim();
+  const gradeRaw = (markCell.gradeRaw ?? '').trim().toUpperCase();
+  const marksValue = Number.isFinite(markCell.marks) ? markCell.marks : null;
+  // A printed value such as AB means the candidate was absent for the subject.
+  const absent = markCell.absent === true;
+  if (marksRaw && marksValue === null && !absent) warnings.push('marks-not-numeric');
   if (code && !/^\d{3}$/.test(code)) warnings.push('subject-code-unread');
   return {
     slot,
@@ -969,6 +993,7 @@ function buildSubject(codeCell, markCell, slot) {
     codeRaw: codeCell.code ?? '',
     marks: { raw: marksRaw, value: marksValue },
     grade: { raw: gradeRaw, value: gradeRaw || null },
+    absent,
     warnings
   };
 }

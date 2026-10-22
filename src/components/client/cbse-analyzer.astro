@@ -43,10 +43,11 @@
     bands: null,
     topCount: 10,
     filters: { year: null, className: null, school: null, region: null, subject: null, status: null, grade: null, scoreMin: null, scoreMax: null },
-    includeIdentities: false,
     sort: { key: null, direction: 'asc', toggles: 0 },
     page: 1,
     pageSize: 50,
+    step: 'upload',
+    maxStep: 'upload',
     studentQuery: '',
     sequence: 0
   };
@@ -99,7 +100,10 @@
     if (text) text.textContent = label ?? '';
   }
 
+  const STEP_ORDER = ['upload', 'review', 'dashboard'];
+
   function show(step) {
+    state.step = step;
     for (const name of ['review', 'dashboard']) {
       const node = $(`#cbse-${name}`);
       if (node) node.hidden = name !== step;
@@ -108,9 +112,32 @@
     if (upload) upload.hidden = step !== 'upload';
     const tabs = $$('.cbse-step');
     for (const tab of tabs) {
+      const reached = STEP_ORDER.indexOf(tab.dataset.step) <= STEP_ORDER.indexOf(state.maxStep);
       tab.classList.toggle('is-current', tab.dataset.step === step);
       tab.setAttribute('aria-current', tab.dataset.step === step ? 'step' : 'false');
+      tab.disabled = !reached;
+      tab.title = reached ? `Go to the ${tab.textContent.replace(/^\d\s*/, '').trim()} step` : 'Reach this step first';
     }
+    const back = $('#cbse-back');
+    if (back) {
+      const index = STEP_ORDER.indexOf(step);
+      back.hidden = index <= 0;
+      back.textContent = index === 1 ? '← Back to the upload' : '← Back to the review';
+    }
+  }
+
+  /**
+   * Move to a step the reader can reach, keeping the corrections they made.
+   *
+   * @param {string} step
+   */
+  function goToStep(step) {
+    if (STEP_ORDER.indexOf(step) > STEP_ORDER.indexOf(state.maxStep)) return;
+    show(step);
+    if (step === 'review') renderReview();
+    if (step === 'dashboard') renderDashboard();
+    const top = $('#cbse-app');
+    if (top) top.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
 
   /**
@@ -243,6 +270,7 @@
       setTimeout(() => setProgress(null), 400);
       clearFilters();
       renderReview();
+      state.maxStep = 'review';
       show('review');
       const total = state.datasets.reduce((sum, item) => sum + item.candidates.length, 0);
       setStatus(`Read ${total} candidate record(s) from ${state.datasets.length} file(s). Check the figures below, then build the report.`, 'success');
@@ -598,6 +626,7 @@
     state.overrides[state.activeId] = overrides;
     refreshDataset();
     renderDashboard();
+    state.maxStep = 'dashboard';
     show('dashboard');
     setStatus('The report has been rebuilt with your corrections.', 'success');
     $('#cbse-dashboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -694,8 +723,7 @@
     renderCharts(analytics, dataset);
     renderTopPerformers(analytics);
     renderSubjectTable(analytics);
-    renderGradeTable(analytics);
-    renderBandTable(analytics);
+    renderGenderTable(analytics);
     renderValidation(validation);
     renderStudentList(analytics);
   }
@@ -703,17 +731,7 @@
   function renderKpis(analytics) {
     const container = $('#cbse-kpis');
     container.innerHTML = '';
-    const totals = analytics.totals;
-    const tiles = [
-      { label: 'Total candidates', value: totals.candidates, note: 'Records read from the gazette' },
-      { label: 'Passed', value: totals.passed, note: 'Printed PASS status' },
-      { label: 'Compartment', value: totals.compartment, note: 'Printed COMP status' },
-      { label: 'Essential repeat', value: totals.essentialRepeat, note: 'Printed essential repeat status' },
-      { label: 'Absent', value: totals.absent, note: 'Printed ABST status' },
-      { label: 'Other / unknown', value: totals.other, note: 'Status that could not be mapped' },
-      { label: 'Appeared candidates', value: totals.appeared, note: 'Total candidates minus absent' },
-      { label: 'Pass percentage', value: totals.passPercentage == null ? 'Not available' : `${totals.passPercentage}%`, note: 'Passed divided by appeared' }
-    ];
+    const tiles = exporterModule.buildHeadlineTiles(analytics);
     for (const tile of tiles) {
       const card = el('div', 'cbse-kpi');
       card.appendChild(el('span', 'cbse-kpi-label', tile.label));
@@ -880,6 +898,31 @@
       valueFormat: value => `${value}`
     });
 
+    const genderContainer = $('#cbse-chart-gender');
+    if (genderContainer) {
+      const genders = analytics.genderBreakdown ?? [];
+      const statuses = [
+        { name: 'Passed', key: 'passed' },
+        { name: 'Compartment', key: 'compartment' },
+        { name: 'Absent', key: 'absent' },
+        { name: 'Other', key: 'other' }
+      ];
+      renderChart(genderContainer, {
+        type: 'bar',
+        title: 'Boys and girls',
+        description: 'The result status of the candidates, split by the gender printed in the gazette.',
+        categories: genders.map(entry => entry.label),
+        series: statuses.map((status, index) => ({
+          name: status.name,
+          color: colors[index % colors.length],
+          values: genders.map(entry => entry[status.key] ?? 0)
+        })),
+        xLabel: 'Gender',
+        yLabel: 'Candidates',
+        valueFormat: value => `${value}`
+      });
+    }
+
     const confidenceContainer = $('#cbse-chart-confidence');
     renderChart(confidenceContainer, {
       type: 'bar',
@@ -896,7 +939,12 @@
   function renderSubjectTable(analytics) {
     const body = $('#cbse-subject-results-body');
     body.innerHTML = '';
-    const header = ['Code', 'Subject', 'Max', 'Valid', 'Missing', 'Average', 'Median', 'Lowest', 'Highest', 'Std dev', 'Average %'];
+    // A gazette that prints the grades without the marks has no statistics to
+    // show, so the grade distribution takes their place.
+    const hasMarks = analytics.subjects.some(subject => subject.valid > 0);
+    const header = hasMarks
+      ? ['Code', 'Subject', 'Max', 'Students', 'Average', 'Median', 'Lowest', 'Highest', 'Std dev', 'Average %', 'Grades']
+      : ['Code', 'Subject', 'Max', 'Candidates', 'Grades printed'];
     const table = $('#cbse-subject-results');
     const head = table.querySelector('thead');
     head.innerHTML = '';
@@ -909,19 +957,24 @@
     head.appendChild(headRow);
     for (const subject of analytics.subjects) {
       const row = el('tr');
-      const cells = [
-        subject.code,
-        subject.name,
-        subject.max ?? 'Unknown',
-        subject.valid,
-        subject.missing + subject.invalid,
-        subject.average ?? '-',
-        subject.median ?? '-',
-        subject.minimum ?? '-',
-        subject.maximum ?? '-',
-        subject.stdDev ?? '-',
-        subject.averagePercent == null ? '-' : `${subject.averagePercent}%`
-      ];
+      const gradeText = Object.entries(subject.gradeCounts ?? {})
+        .map(([grade, count]) => `${grade}: ${count}`)
+        .join(', ') || '-';
+      const cells = hasMarks
+        ? [
+            subject.code,
+            subject.name,
+            subject.max ?? 'Unknown',
+            subject.valid,
+            subject.average ?? '-',
+            subject.median ?? '-',
+            subject.minimum ?? '-',
+            subject.maximum ?? '-',
+            subject.stdDev ?? '-',
+            subject.averagePercent == null ? '-' : `${subject.averagePercent}%`,
+            gradeText
+          ]
+        : [subject.code, subject.name, subject.max ?? 'Unknown', subject.occurrences, gradeText];
       cells.forEach((value, index) => {
         const cell = el('td', index === 0 ? 'cbse-mono' : null, value);
         row.appendChild(cell);
@@ -931,9 +984,22 @@
   }
 
   /** Fixed column widths of the student table, in pixels. */
-  const COLUMNS = { roll: 108, name: 190, status: 118, subject: 92 };
+  const COLUMNS = { roll: 108, name: 190, gender: 72, status: 112, subject: 92 };
   /** Fixed column widths of the top candidate table, in pixels. */
-  const TOP_COLUMNS = { rank: 64, roll: 108, name: 190, result: 104, total: 84, available: 96, percent: 110 };
+  const TOP_COLUMNS = { rank: 64, roll: 108, name: 190, gender: 72, result: 104, total: 84, available: 96, percent: 110 };
+
+  /**
+   * The gender printed in the gazette, as a short label.
+   *
+   * @param {string} gender
+   * @returns {string}
+   */
+  function genderLabel(gender) {
+    const value = String(gender ?? '').trim().toUpperCase();
+    if (value === 'F') return 'F';
+    if (value === 'M') return 'M';
+    return '-';
+  }
 
   /**
    * The subject columns of the student and top candidate tables: one column
@@ -992,8 +1058,8 @@
       const meta = subjectMeta(analytics, code);
       const th = el('th', 'cbse-subject-head cbse-sortable');
       th.scope = 'col';
+      th.colSpan = 2;
       th.dataset.sortKey = `subject:${code}`;
-      th.style.width = `${widths?.subject ?? COLUMNS.subject}px`;
       th.title = `${code} ${meta.name} - maximum in force ${meta.max ?? 'unknown'}. Click to sort by this subject.`;
       const button = el('button', 'cbse-sort-button cbse-sort-button-block');
       button.type = 'button';
@@ -1085,19 +1151,24 @@
   function subjectCell(candidate, code) {
     const subject = (candidate.subjects ?? []).find(item => item.code === code);
     if (!subject) {
-      return { text: '-', title: `Subject ${code} was not offered to this candidate` };
+      return { mark: '-', grade: '-', title: `Subject ${code} was not offered to this candidate` };
     }
     const mark = subject.marks.value;
     const grade = subject.grade.value;
+    const printed = subject.marks.raw || '';
+    if (mark == null && printed) {
+      return { mark: printed, grade: grade ?? '-', title: `Subject ${code}: the gazette prints ${printed}, the candidate was absent for it` };
+    }
     if (mark == null && !grade) {
-      return { text: '-', title: `Subject ${code} has no printed mark and no printed grade` };
+      return { mark: '-', grade: '-', title: `Subject ${code} has no printed mark and no printed grade` };
     }
     if (mark == null) {
-      return { text: grade, title: `Subject ${code}: grade ${grade}, the gazette prints no mark` };
+      return { mark: '-', grade: grade ?? '-', title: `Subject ${code}: grade ${grade}, the gazette prints no mark` };
     }
     return {
-      text: grade ? `${mark} ${grade}` : String(mark),
-      title: `Subject ${code}: ${mark}${grade ? `, grade ${grade}` : ''}`
+      mark: String(mark),
+      grade: grade ?? '-',
+      title: `Subject ${code}: mark ${mark}${grade ? `, grade ${grade}` : ''}`
     };
   }
 
@@ -1109,6 +1180,13 @@
    * @param {string[]} leading the header cells that come before the subjects
    */
   function renderTopPerformers(analytics) {
+    const note = $('#cbse-top-note');
+    if (note) {
+      const hasMarks = (analytics.subjects ?? []).some(subject => subject.valid > 0);
+      note.textContent = hasMarks
+        ? 'The candidates with the highest total, ranked by the marks they scored as a percentage of the marks available to them. Candidates with the same percentage share a rank, and the result status is shown as printed.'
+        : 'This gazette prints the subject grades without the marks, so there is no total to rank by. The candidates are listed in the printed order with the grade of every subject.';
+    }
     const body = $('#cbse-top-body');
     const table = $('#cbse-top-table');
     const wrap = table?.closest('.cbse-table-scroll');
@@ -1124,13 +1202,14 @@
     if (table) table.hidden = false;
     if (wrap) wrap.hidden = false;
     if (empty) empty.hidden = true;
-    buildSubjectHead(analytics, $('#cbse-top-head'), ['Rank', 'Roll number', 'Name', 'Result', 'Total', 'Available', 'Percentage'], [],
-      [TOP_COLUMNS.rank, TOP_COLUMNS.roll, TOP_COLUMNS.name, TOP_COLUMNS.result, TOP_COLUMNS.total, TOP_COLUMNS.available, TOP_COLUMNS.percent]);
+    buildSubjectHead(analytics, $('#cbse-top-head'), ['Rank', 'Roll number', 'Name', 'Gender', 'Result', 'Total', 'Available', 'Percentage'], [],
+      [TOP_COLUMNS.rank, TOP_COLUMNS.roll, TOP_COLUMNS.name, TOP_COLUMNS.gender, TOP_COLUMNS.result, TOP_COLUMNS.total, TOP_COLUMNS.available, TOP_COLUMNS.percent]);
     for (const entry of rows) {
       const row = el('tr');
       row.appendChild(el('td', 'cbse-rank', entry.rank));
       row.appendChild(el('td', 'cbse-mono', entry.rollNo));
       row.appendChild(el('td', 'cbse-name-cell', entry.name));
+      row.appendChild(el('td', 'cbse-gender-cell', genderLabel(entry.gender)));
       row.appendChild(el('td', 'cbse-status-cell', entry.status));
       row.appendChild(el('td', 'cbse-mono cbse-number', entry.total ?? '-'));
       row.appendChild(el('td', 'cbse-mono cbse-number', entry.available ?? '-'));
@@ -1140,62 +1219,55 @@
         const subject = byCode.get(code);
         let text = '-';
         let title = `Subject ${code} was not offered to this candidate`;
+        let gradeText = '-';
         if (subject) {
           const mark = subject.marks;
           const grade = subject.grade;
-          if (mark == null && !grade) {
+          const printed = subject.marksRaw || '';
+          if (mark == null && printed) {
+            text = printed;
+            title = `Subject ${code}: the gazette prints ${printed}, the candidate was absent for it`;
+          } else if (mark == null && !grade) {
             title = `Subject ${code} has no printed mark and no printed grade`;
           } else if (mark == null) {
-            text = grade;
+            gradeText = grade ?? '-';
             title = `Subject ${code}: grade ${grade}, the gazette prints no mark`;
           } else {
-            text = grade ? `${mark} ${grade}` : String(mark);
-            title = `Subject ${code}: ${mark}${grade ? `, grade ${grade}` : ''}`;
+            text = String(mark);
+            gradeText = grade ?? '-';
+            title = `Subject ${code}: mark ${mark}${grade ? `, grade ${grade}` : ''}`;
           }
         }
         const cell = el('td', 'cbse-mono cbse-subject-cell', text);
         cell.title = title;
         row.appendChild(cell);
+        const gradeCell = el('td', 'cbse-mono cbse-grade-cell', gradeText);
+        gradeCell.title = title;
+        row.appendChild(gradeCell);
       }
       body.appendChild(row);
     }
   }
 
-  function renderGradeTable(analytics) {
-    const body = $('#cbse-grade-body');
+  function renderGenderTable(analytics) {
+    const body = $('#cbse-gender-body');
+    if (!body) return;
     body.innerHTML = '';
-    for (const entry of analytics.gradeDistribution) {
+    for (const entry of analytics.genderBreakdown ?? []) {
       const row = el('tr');
-      row.appendChild(el('th', null, entry.grade));
-      row.appendChild(el('td', 'cbse-mono', entry.count));
+      row.appendChild(el('th', null, entry.label));
+      row.appendChild(el('td', 'cbse-mono', entry.candidates));
+      row.appendChild(el('td', 'cbse-mono', entry.passed));
+      row.appendChild(el('td', 'cbse-mono', entry.appeared));
+      row.appendChild(el('td', 'cbse-mono', entry.passPercentage == null ? '-' : `${entry.passPercentage}%`));
       body.appendChild(row);
     }
-    if (!analytics.gradeDistribution.length) {
+    if (!(analytics.genderBreakdown ?? []).length) {
       const row = el('tr');
-      const cell = el('td', 'field-help', 'No grades were printed in this gazette.');
-      cell.colSpan = 2;
+      const cell = el('td', 'field-help', 'This gazette prints no gender.');
+      cell.colSpan = 5;
       row.appendChild(cell);
       body.appendChild(row);
-    }
-  }
-
-  function renderBandTable(analytics) {
-    const body = $('#cbse-band-body');
-    body.innerHTML = '';
-    for (const band of analytics.scoreDistribution) {
-      const row = el('tr');
-      row.appendChild(el('th', null, band.label));
-      row.appendChild(el('td', 'cbse-mono', band.count));
-      body.appendChild(row);
-    }
-    const markBody = $('#cbse-mark-band-body');
-    if (!markBody) return;
-    markBody.innerHTML = '';
-    for (const band of analytics.markBandDistribution ?? []) {
-      const row = el('tr');
-      row.appendChild(el('th', null, band.label));
-      row.appendChild(el('td', 'cbse-mono', band.count));
-      markBody.appendChild(row);
     }
   }
 
@@ -1258,8 +1330,8 @@
     const start = (state.page - 1) * size;
     const rows = candidates.slice(start, start + size);
 
-    buildSubjectHead(analytics, $('#cbse-student-head'), ['Roll number', 'Name', 'Status'], ['roll', 'name', 'status'],
-      [COLUMNS.roll, COLUMNS.name, COLUMNS.status]);
+    buildSubjectHead(analytics, $('#cbse-student-head'), ['Roll number', 'Name', 'Gender', 'Status'], ['roll', 'name', 'gender', 'status'],
+      [COLUMNS.roll, COLUMNS.name, COLUMNS.gender, COLUMNS.status]);
     buildSortOptions(analytics);
     applySortState($('#cbse-student-head'));
 
@@ -1333,12 +1405,16 @@
     const row = el('tr');
     row.appendChild(el('td', 'cbse-mono', candidate.rollNo));
     row.appendChild(el('td', null, candidate.name));
+    row.appendChild(el('td', 'cbse-gender-cell', genderLabel(candidate.gender)));
     row.appendChild(el('td', null, candidate.status));
     for (const code of subjectColumns(analytics)) {
       const value = subjectCell(candidate, code);
-      const cell = el('td', 'cbse-mono cbse-subject-cell', value.text);
-      cell.title = value.title;
-      row.appendChild(cell);
+      const markCell = el('td', 'cbse-mono cbse-subject-cell', value.mark);
+      markCell.title = value.title;
+      row.appendChild(markCell);
+      const gradeCell = el('td', 'cbse-mono cbse-grade-cell', value.grade);
+      gradeCell.title = value.title;
+      row.appendChild(gradeCell);
     }
     return row;
   }
@@ -1410,7 +1486,6 @@
     const analytics = state.analytics ?? analyticsModule.computeAnalytics(dataset, { filters: state.filters, bands: state.bands ?? analyticsModule.DEFAULT_BANDS, topCount: state.topCount });
     const validation = state.validation ?? validateModule.validateDataset(dataset, analytics);
     const model = exporterModule.buildExportModel(analytics, dataset, validation.checks, {
-      includeIdentities: state.includeIdentities,
       corrections: correctionsModule.countCorrections(state.corrections),
       candidates: state.filteredCandidates ?? dataset.candidates
     });
@@ -1448,10 +1523,32 @@
     }
   }
 
+  async function exportResultSheet() {
+    try {
+      const { model, analytics, dataset, validation } = buildExportContext();
+      const blob = await exporterModule.buildResultSheetPdf(model, analytics, dataset, validation.checks, {
+        candidates: state.filteredCandidates ?? dataset.candidates,
+        subjectCodes: analytics.subjectCodes ?? [],
+        subjectTable: analytics.subjects ?? [],
+        hasMarks: (analytics.subjects ?? []).some(subject => subject.valid > 0)
+      });
+      downloadBlob(blob, 'cbse-result-sheet.pdf');
+      setStatus('The result sheet was downloaded. It holds the candidate results only, one line per candidate.', 'success');
+    } catch (error) {
+      setStatus(error?.message ?? 'The export failed.', 'error');
+    }
+  }
+
   async function exportPdf() {
     try {
       const { model, analytics, dataset, validation } = buildExportContext();
-      const sections = exporterModule.buildReportSections(analytics, dataset, validation.checks);
+      const sections = exporterModule.buildReportSections(analytics, dataset, validation.checks, {
+        candidates: state.filteredCandidates ?? dataset.candidates,
+        subjectCodes: analytics.subjectCodes ?? [],
+        subjectNames: new Map((analytics.subjects ?? []).map(subject => [subject.code, subject.name])),
+        subjectTable: analytics.subjects ?? [],
+        hasMarks: (analytics.subjects ?? []).some(subject => subject.valid > 0)
+      });
       renderReportPreview(sections, model);
       const dialog = $('#cbse-report-dialog');
       if (dialog?.showModal) dialog.showModal();
@@ -1459,6 +1556,33 @@
     } catch (error) {
       setStatus(error?.message ?? 'The preview could not be built.', 'error');
     }
+  }
+
+  /**
+   * Build the key that names the subject codes of a table. It is written in
+   * the same type as the marks of the table below it.
+   *
+   * @param {Array<{ code: string, name: string }>} entries
+   * @returns {HTMLTableElement}
+   */
+  function buildLegend(entries) {
+    const pairs = 2;
+    const perColumn = Math.ceil(entries.length / pairs);
+    const table = el('table', 'cbse-report-legend');
+    const body = el('tbody');
+    for (let row = 0; row < perColumn; row += 1) {
+      const tr = el('tr');
+      for (let column = 0; column < pairs; column += 1) {
+        const entry = entries[row + column * perColumn];
+        const code = el('td', 'cbse-report-legend-code', entry?.code ?? '');
+        const name = el('td', null, entry?.name ?? '');
+        tr.appendChild(code);
+        tr.appendChild(name);
+      }
+      body.appendChild(tr);
+    }
+    table.appendChild(body);
+    return table;
   }
 
   /**
@@ -1474,9 +1598,9 @@
     const meta = document.createElement('div');
     meta.className = 'cbse-report-meta';
     meta.appendChild(el('h4', null, 'CBSE Result Analysis Report'));
-    meta.appendChild(el('p', null, `${model.meta.examName || 'CBSE examination'}${model.meta.year ? ` - ${model.meta.year}` : ''}`));
-    meta.appendChild(el('p', null, `${model.meta.schoolName || 'School not printed'}${model.meta.schoolCode ? ` (code ${model.meta.schoolCode})` : ''}`));
-    meta.appendChild(el('p', 'cbse-report-source', `Region ${model.meta.region || 'not printed'} | Gazette date ${model.meta.gazetteDate || 'not printed'}`));
+    meta.appendChild(el('p', null, `${exporterModule.titleCaseName(model.meta.examName) || 'CBSE examination'}${model.meta.year ? ` - ${model.meta.year}` : ''}`));
+    meta.appendChild(el('p', null, `${exporterModule.titleCaseName(model.meta.schoolName) || 'School not printed'}${model.meta.schoolCode ? ` (code ${model.meta.schoolCode})` : ''}`));
+    meta.appendChild(el('p', 'cbse-report-source', `Region ${exporterModule.titleCaseName(model.meta.region) || 'not printed'} | Gazette date ${model.meta.gazetteDate || 'not printed'}`));
     host.appendChild(meta);
 
     for (const section of sections) {
@@ -1507,6 +1631,7 @@
           const value = String(row[index] ?? '').trim();
           return value === '' || value === '-' || /^[\d.,%+-]+$/.test(value);
         }));
+        if (section.legend?.length) block.appendChild(buildLegend(section.legend));
         const table = el('table', 'cbse-table');
         const head = el('thead');
         const headRow = el('tr');
@@ -1571,7 +1696,6 @@
     state.overrides = {};
     state.corrections = {};
     state.filters = { year: null, className: null, school: null, region: null, subject: null, status: null, grade: null, scoreMin: null, scoreMax: null };
-    state.includeIdentities = false;
     $('#cbse-review').hidden = true;
     $('#cbse-dashboard').hidden = true;
     $('#cbse-upload-step').hidden = false;
@@ -1605,6 +1729,13 @@
     });
 
     $('#cbse-apply')?.addEventListener('click', applyReview);
+    for (const tab of $$('.cbse-step')) {
+      tab.addEventListener('click', () => goToStep(tab.dataset.step));
+    }
+    $('#cbse-back')?.addEventListener('click', () => {
+      const index = STEP_ORDER.indexOf(state.step);
+      if (index > 0) goToStep(STEP_ORDER[index - 1]);
+    });
     $('#cbse-reparse')?.addEventListener('click', () => {
       const dataset = activeDataset();
       if (!dataset) return;
@@ -1642,12 +1773,6 @@
       renderDashboard();
     });
 
-    $('#cbse-include-identities')?.addEventListener('change', event => {
-      state.includeIdentities = event.target.checked;
-      setStatus(event.target.checked
-        ? 'The exports now include the candidate names and roll numbers.'
-        : 'The exports leave the candidate names and roll numbers out.', 'info');
-    });
     $('#cbse-student-search')?.addEventListener('input', event => searchStudents(event.target.value));
     $('#cbse-sort-key')?.addEventListener('change', event => {
       if (!event.target.value) {
@@ -1694,12 +1819,19 @@
     $('#cbse-export-csv')?.addEventListener('click', exportCsv);
     $('#cbse-export-xlsx')?.addEventListener('click', exportXlsx);
     $('#cbse-export-pdf')?.addEventListener('click', exportPdf);
+    $('#cbse-export-sheet')?.addEventListener('click', exportResultSheet);
     $('#cbse-report-close')?.addEventListener('click', () => $('#cbse-report-dialog')?.close());
     $('#cbse-report-cancel')?.addEventListener('click', () => $('#cbse-report-dialog')?.close());
     $('#cbse-report-download')?.addEventListener('click', async () => {
       try {
         const { model, analytics, dataset, validation } = buildExportContext();
-        const blob = await exporterModule.buildPdfReport(model, analytics, dataset, validation.checks);
+        const blob = await exporterModule.buildPdfReport(model, analytics, dataset, validation.checks, {
+          candidates: state.filteredCandidates ?? dataset.candidates,
+          subjectCodes: analytics.subjectCodes ?? [],
+          subjectNames: new Map((analytics.subjects ?? []).map(subject => [subject.code, subject.name])),
+          subjectTable: analytics.subjects ?? [],
+          hasMarks: (analytics.subjects ?? []).some(subject => subject.valid > 0)
+        });
         downloadBlob(blob, 'cbse-result-analysis.pdf');
         setStatus('The PDF summary report was downloaded.', 'success');
         $('#cbse-report-dialog')?.close();
@@ -1731,6 +1863,8 @@
       state.bands = presets[value] ?? DEFAULT_BANDS;
       renderDashboard();
     });
+
+    show(state.step);
 
     window.addEventListener('resize', () => {
       clearTimeout(window.__cbseResizeTimer);

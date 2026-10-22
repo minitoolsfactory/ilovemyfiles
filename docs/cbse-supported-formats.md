@@ -39,6 +39,25 @@ SCHOOL : - 27572   SCHOOL NAME
 * The printed summary at the end of the file is read and compared with the
   recalculated figures.
 
+### The gazette formats that are supported
+
+| Examination | Class | Layout | What it prints |
+| --- | --- | --- | --- |
+| `ALL INDIA SECONDARY SCHOOL EXAMINATION (MAIN)` | X | columns | the subject codes across the line, the marks and the grades below |
+| `ALL INDIA SECONDARY SCHOOL EXAMINATION` | X | columns | the same, without the grades |
+| `ALL INDIA SECONDARY SCHOOL EXAMINATION (COMPTT)` | X | columns | only the subjects the candidate sat the compartment exam in, and a result of `XXXX` when it is not decided |
+| `SENIOR SCHOOL CERTIFICATE EXAMINATION (COMPTT)` | XII | vertical | one subject per line with its grade, and a result of `XXXX` when it is not decided |
+
+All four are read by the same analyzer. A gazette that prints a subject as
+`AB` means the candidate was absent for that subject: the value is kept, the
+subject is left out of the averages and the report says how many there were.
+
+A gazette that prints the grades without the marks has no average, total or
+percentage to show. The analyzer does not leave the reader with a table of
+dashes: the subject table shows the **grade distribution per subject** and the
+candidate table shows the grade of every subject, and the report says that the
+marks are not printed.
+
 ### The two printed layouts
 
 | Layout | What it looks like | How it is read |
@@ -62,6 +81,11 @@ the printed header is read by token analysis instead, and that is reported.
 * The vertical layout prints the **grades without the marks**. The analyzer
   says so, reports the grades as printed and leaves the averages, the totals
   and the percentages empty, because there is nothing to average.
+* A gazette may print the **marks without the grades**. The marks are read and
+  the grade stays empty.
+* A cell may print **`AB`** instead of a mark, which means the candidate was
+  absent for that subject. The printed value is kept and shown, and the
+  subject is left out of the averages.
 * The senior secondary gazette prints an **`OTHER`** total in its summary, which
   is compared with the recalculated figure like every other total.
 
@@ -208,13 +232,10 @@ not a fault of the extraction. The tool never turns that into a pass or a fail.
   candidate record is sent to a server.
 * Nothing is written to a log, a cookie, local storage or a database.
 * Aggregate analytics never contain a name or a roll number.
-* The student tables show the name and the roll number that your own file
-  prints, because the file is already on your device and the tables never
-  leave the browser.
-* The **exports** leave the names and roll numbers out by default, so a file
-  that is passed around carries no personal data. One switch, "include the
-  candidate names and roll numbers in the exports", puts them back for an
-  internal report.
+* The student tables and the exports show the name and the roll number that
+  your own file prints, because the file is already on your device and nothing
+  leaves the browser. **A downloaded export is personal data: treat it as
+  confidential.**
 * Nothing is ever published: no candidate data reaches a page, a URL, a log,
   a search engine or a training set.
 * "Delete all data" clears the analysis, and closing the tab removes it.

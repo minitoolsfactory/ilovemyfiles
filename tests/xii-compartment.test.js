@@ -18,9 +18,9 @@ import { validateDataset } from '../src/lib/cbse/validate.js';
 import { readFixture } from './helpers/gazette-fixtures.js';
 
 function analyse() {
-  const dataset = parseGazette(readFixture('gazette-xii-compartment-2026.txt'), {
+  const dataset = parseGazette(readFixture('gazette-xii-2026-compartment.txt'), {
     datasetId: 'xii',
-    sourceFileName: 'gazette-xii-compartment-2026.txt'
+    sourceFileName: 'gazette-xii-2026-compartment.txt'
   });
   dataset.subjectTable = buildSubjectTable(dataset);
   const analytics = computeAnalytics(dataset);
@@ -28,7 +28,7 @@ function analyse() {
 }
 
 test('the vertical layout is detected', () => {
-  const lines = readFixture('gazette-xii-compartment-2026.txt').split(/\r?\n/);
+  const lines = readFixture('gazette-xii-2026-compartment.txt').split(/\r?\n/);
   const grid = detectGridFromHeader(lines);
   assert.equal(detectVerticalLayout(lines, grid), true);
 });

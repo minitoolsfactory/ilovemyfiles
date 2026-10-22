@@ -15,8 +15,12 @@
 .cbse-upload-button{cursor:pointer;white-space:nowrap}
 .cbse-workspace-body{padding:22px 26px 26px;display:grid;gap:18px}
 
+.cbse-steps-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .cbse-steps{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
-.cbse-step{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid var(--color-border);border-radius:999px;font-size:11px;font-weight:700;color:var(--color-text-muted);background:var(--color-surface)}
+.cbse-step{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid var(--color-border);border-radius:999px;font-size:11px;font-weight:700;color:var(--color-text-muted);background:var(--color-surface);cursor:pointer;font-family:inherit}
+.cbse-step:hover:not(:disabled){border-color:var(--color-accent);color:var(--color-accent-strong)}
+.cbse-step:disabled{cursor:default;opacity:.65}
+.cbse-back{margin-left:auto}
 .cbse-step span{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:var(--color-surface-soft);color:var(--color-text-secondary);font-size:10px}
 .cbse-step.is-current{border-color:var(--color-accent);color:var(--color-accent-strong);background:var(--color-surface-tint)}
 .cbse-step.is-current span{background:var(--color-accent);color:var(--color-on-accent)}
@@ -73,7 +77,8 @@
 .cbse-table-scroll .cbse-table{border:0}
 .cbse-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px}
 .cbse-wrap{word-break:break-word}
-.cbse-subject-head{text-align:center;min-width:58px}
+.cbse-subject-head{text-align:center;min-width:96px}
+.cbse-grade-cell{text-align:center;white-space:nowrap;color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
 .cbse-subject-cell{text-align:center;white-space:nowrap;color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
 
 /* Sortable table headings. */
@@ -84,7 +89,7 @@
 .cbse-sort-button:focus-visible{outline:3px solid var(--color-focus);outline-offset:1px}
 .cbse-sort-arrow{font-size:9px;color:var(--color-accent);min-height:11px}
 .cbse-th-code{font-size:11px;font-weight:800;color:var(--color-text-primary);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-.cbse-th-name{font-size:9px;font-weight:600;color:var(--color-text-secondary);line-height:1.25;white-space:normal;overflow-wrap:anywhere}
+.cbse-th-name{font-size:9px;font-weight:600;color:var(--color-text-secondary);line-height:1.25;white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .cbse-th-max{font-size:8px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--color-text-muted);white-space:nowrap}
 
 /* Student table: fixed column widths, a fixed height and pagination. */
@@ -133,6 +138,9 @@
 .cbse-report-tile{display:grid;gap:2px;padding:12px;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:var(--color-surface-soft)}
 .cbse-report-tile b{font-size:19px;color:var(--color-text-primary);font-variant-numeric:tabular-nums}
 .cbse-report-tile span{font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--color-text-muted)}
+.cbse-report-legend{width:100%;border-collapse:collapse;margin:0 0 10px;font-size:12px}
+.cbse-report-legend tbody td{padding:3px 10px 3px 0;color:var(--color-text-primary);vertical-align:top}
+.cbse-report-legend tbody td.cbse-report-legend-code{width:34px;white-space:nowrap}
 .cbse-report-definitions{display:grid;grid-template-columns:minmax(120px,auto) 1fr;gap:6px 14px;margin:0;font-size:11px;line-height:1.6}
 .cbse-report-definitions dt{font-weight:700;color:var(--color-text-secondary)}
 .cbse-report-definitions dd{margin:0;color:var(--color-text-secondary)}
@@ -140,6 +148,7 @@
 .cbse-number{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cbse-percent{font-weight:700;color:var(--color-text-primary)}
 .cbse-status-cell{white-space:nowrap;font-size:11px;color:var(--color-text-secondary)}
+.cbse-gender-cell{text-align:center;white-space:nowrap;font-weight:700;font-size:11px;color:var(--color-text-primary)}
 .cbse-name-cell{white-space:nowrap}
 .cbse-summary-printed{margin:0;padding:10px 12px;border-radius:var(--radius-sm);background:var(--color-surface-tint);display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
 .cbse-summary-printed-label{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--color-text-secondary)}
@@ -178,8 +187,7 @@
 .cbse-filter-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
 .cbse-search-grid{grid-template-columns:minmax(0,2fr) minmax(0,1fr);align-items:end}
 .cbse-search-action{display:flex;align-items:flex-end}
-.cbse-identity-field{display:flex;align-items:flex-start;gap:8px;font-size:11px;color:var(--color-text-secondary);line-height:1.6;max-width:96ch}
-.cbse-identity-field input{accent-color:var(--color-accent);margin-top:2px}
+.cbse-identity-note{margin:0;padding:9px 12px;border-radius:var(--radius-sm);background:var(--color-surface-soft);font-size:11px;line-height:1.6;max-width:96ch}
 
 .cbse-chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
 .cbse-chart-card{margin:0;padding:14px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface);display:grid;gap:10px;align-content:start}

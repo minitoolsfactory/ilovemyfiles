@@ -137,6 +137,39 @@ export function validateDataset(dataset, analytics) {
         ? `${missingMarks} subject cell(s) are blank and ${invalidMarks} could not be read as a number. Averages exclude them.`
         : 'Every printed subject cell holds a readable mark.'
   });
+  // The gender is printed next to the roll number. A gazette that leaves it
+  // blank is reported, because the split of the class cannot be made.
+  const genderCounts = new Map();
+  for (const candidate of candidates) {
+    const key = String(candidate.gender ?? '').trim().toUpperCase() || '?';
+    genderCounts.set(key, (genderCounts.get(key) ?? 0) + 1);
+  }
+  const withoutGender = genderCounts.get('?') ?? 0;
+  checks.push({
+    id: 'gender-printed',
+    label: 'Gender printed for every candidate',
+    status: withoutGender ? 'warn' : 'pass',
+    count: withoutGender,
+    detail: withoutGender
+      ? `${withoutGender} candidate(s) have no gender printed, so the split of the class cannot be made for them.`
+      : `Every candidate has a gender: ${[...genderCounts.entries()].map(([key, count]) => `${key} ${count}`).join(', ')}.`
+  });
+
+  // A gazette prints AB when the candidate was absent for a subject. That is
+  // a fact about the candidate, not a defect in the file, so it is counted
+  // and reported rather than warned about.
+  const notAppeared = dataset.candidates.reduce((sum, candidate) => sum
+    + candidate.subjects.filter(subject => subject.absent).length, 0);
+  checks.push({
+    id: 'subjects-not-appeared',
+    label: 'Subjects the candidate was absent for',
+    status: 'info',
+    count: notAppeared,
+    detail: notAppeared
+      ? `${notAppeared} subject cell(s) are printed as AB, which means the candidate was absent for that subject. They are left out of the averages.`
+      : 'No subject cell is printed as an absence.'
+  });
+
   checks.push({
     id: 'absent-with-marks',
     label: 'Absent candidates with marks',

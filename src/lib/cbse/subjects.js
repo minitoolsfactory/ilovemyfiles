@@ -34,6 +34,35 @@ export const STATUS_META = {
   [RESULT_STATUS.OTHER]: { key: RESULT_STATUS.OTHER, label: 'Other / unknown', short: 'Other', order: 5, tone: 'other' }
 };
 
+/**
+ * The gender printed in the gazette.
+ *
+ * CBSE prints F for female and M for male in the flag column next to the roll
+ * number. A gazette may leave it blank, which is reported as "not printed"
+ * rather than guessed.
+ */
+export const GENDER_LABELS = {
+  F: 'Girls',
+  M: 'Boys',
+  '?': 'Not printed'
+};
+
+/** The key used when the gazette prints no gender. */
+export const GENDER_UNKNOWN = '?';
+
+/**
+ * The gender of a candidate, as the key used in the analytics.
+ *
+ * @param {string} gender
+ * @returns {'F'|'M'|'?'}
+ */
+export function genderKey(gender) {
+  const value = String(gender ?? '').trim().toUpperCase();
+  if (value === 'F') return 'F';
+  if (value === 'M') return 'M';
+  return GENDER_UNKNOWN;
+}
+
 /** Statuses that mean "the candidate sat the examination". */
 export const APPEARED_STATUSES = [RESULT_STATUS.PASS, RESULT_STATUS.COMPARTMENT, RESULT_STATUS.ESSENTIAL_REPEAT];
 

@@ -120,7 +120,7 @@ All image tools support common browser-readable images and output to JPG, JPEG, 
 - **Category filters** with tool counts, `aria-pressed` state, keyboard Arrow/Home/End navigation, and an announced result count.
 - **No-results message** and accessible status updates when the filtered list changes.
 - **India-only entry points** - the CBSE Result Analyzer card and its navigation link are revealed only after the server has confirmed the visitor's country. The country comes from the hosting provider's trusted geo data (`CF-IPCountry` on Cloudflare), never from a header the browser can set, and the check fails closed when the country cannot be determined. The public landing page, its guide and its sample output stay open to everyone, including search crawlers, and no student data is ever published on it.
-- **Country gate and authorisation are separate** - being in India unlocks the tool, not anybody's private records. The student tables show the name and roll number printed in your own file, and the exports leave the identities out until you ask for them.
+- **Country gate and authorisation are separate** - being in India unlocks the tool, not anybody's private records. The student tables and the exports show the name and roll number printed in your own file, and nothing ever leaves the browser.
 
 ### File input and processing
 

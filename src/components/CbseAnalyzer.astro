@@ -18,11 +18,14 @@
     </div>
 
     <div class="cbse-workspace-body">
-  <ol class="cbse-steps" aria-label="Analyzer steps">
-    <li class="cbse-step is-current" data-step="upload" aria-current="step"><span>1</span> Upload the gazette</li>
-    <li class="cbse-step" data-step="review"><span>2</span> Review the extraction</li>
-    <li class="cbse-step" data-step="dashboard"><span>3</span> Read the report</li>
-  </ol>
+  <div class="cbse-steps-row">
+    <ol class="cbse-steps" aria-label="Analyzer steps">
+      <li><button type="button" class="cbse-step is-current" data-step="upload" aria-current="step"><span>1</span> Upload the gazette</button></li>
+      <li><button type="button" class="cbse-step" data-step="review"><span>2</span> Review the extraction</button></li>
+      <li><button type="button" class="cbse-step" data-step="dashboard"><span>3</span> Read the report</button></li>
+    </ol>
+    <button type="button" class="button button-ghost button-small cbse-back" id="cbse-back" hidden>← Back</button>
+  </div>
 
   <div class="cbse-panel" id="cbse-upload-step">
     <div class="cbse-drop" id="cbse-drop">
@@ -133,6 +136,7 @@
         <h3 id="cbse-export-title">Download the report</h3>
         <div class="cbse-actions">
           <button type="button" class="button button-primary button-small" id="cbse-export-pdf">PDF summary report</button>
+          <button type="button" class="button button-ghost button-small" id="cbse-export-sheet">Result sheet (PDF)</button>
           <button type="button" class="button button-ghost button-small" id="cbse-export-csv">CSV tables (ZIP)</button>
           <button type="button" class="button button-ghost button-small" id="cbse-export-xlsx">Excel workbook</button>
           <button type="button" class="button button-ghost button-small" id="cbse-export-charts">Chart images (PNG)</button>
@@ -141,10 +145,7 @@
         </div>
       </div>
       <p class="field-help">Every export follows the filters below and repeats the definitions, the source file name, the import date and the data quality warnings.</p>
-      <label class="check-field cbse-identity-field" for="cbse-include-identities">
-        <input type="checkbox" id="cbse-include-identities">
-        <span>Include the candidate names and roll numbers in the CSV and Excel exports. Off by default, so a downloaded file can be shared. The tables on this page always show them, because they are printed in your own file.</span>
-      </label>
+      <p class="field-help cbse-identity-note">The exports carry the candidate names and roll numbers, because the gazette is your file and the export never leaves this browser. Treat a downloaded file as confidential.</p>
     </section>
 
     <div class="cbse-kpis" id="cbse-kpis"></div>
@@ -186,6 +187,7 @@
         <figure class="cbse-chart-card"><figcaption>Candidate score distribution</figcaption><div class="cbse-chart-host" id="cbse-chart-scores"></div></figure>
         <figure class="cbse-chart-card"><figcaption>Subject comparison across gazettes</figcaption><div class="cbse-chart-host" id="cbse-chart-comparison"></div></figure>
         <figure class="cbse-chart-card"><figcaption>Data quality checks</figcaption><div class="cbse-chart-host" id="cbse-chart-quality"></div></figure>
+        <figure class="cbse-chart-card"><figcaption>Boys and girls</figcaption><div class="cbse-chart-host" id="cbse-chart-gender"></div></figure>
         <figure class="cbse-chart-card"><figcaption>Extraction confidence</figcaption><div class="cbse-chart-host" id="cbse-chart-confidence"></div></figure>
       </div>
     </section>
@@ -204,7 +206,7 @@
             </select>
           </div>
         </div>
-        <p class="field-help">The candidates with the highest total, ranked by the marks they scored as a percentage of the marks available to them. Candidates with the same percentage share a rank, and the result status is shown as printed.</p>
+        <p class="field-help" id="cbse-top-note">The candidates with the highest total, ranked by the marks they scored as a percentage of the marks available to them. Candidates with the same percentage share a rank, and the result status is shown as printed.</p>
         <div class="cbse-table-scroll" role="region" tabindex="0" aria-label="Top candidates table">
           <table class="cbse-table cbse-table-wide" id="cbse-top-table">
             <caption class="sr-only">Top candidates by aggregate score</caption>
@@ -226,30 +228,16 @@
         </div>
       </section>
 
-      <section class="cbse-card" aria-labelledby="cbse-grade-title">
-        <h3 id="cbse-grade-title">Grade distribution</h3>
-        <p class="field-help">The grades printed in the gazette, counted over every subject entry.</p>
+      <section class="cbse-card" aria-labelledby="cbse-gender-title">
+        <h3 id="cbse-gender-title">Boys and girls</h3>
+        <p class="field-help">The split of the gazette by the gender printed next to the roll number.</p>
         <table class="cbse-table cbse-table-compact">
-          <caption class="sr-only">Grade distribution across the printed subject entries</caption>
-          <thead><tr><th scope="col">Grade</th><th scope="col">Entries</th></tr></thead>
-          <tbody id="cbse-grade-body"></tbody>
+          <caption class="sr-only">Candidates, results and pass rate by gender</caption>
+          <thead><tr><th scope="col">Gender</th><th scope="col">Candidates</th><th scope="col">Passed</th><th scope="col">Appeared</th><th scope="col">Pass %</th></tr></thead>
+          <tbody id="cbse-gender-body"></tbody>
         </table>
       </section>
 
-      <section class="cbse-card" aria-labelledby="cbse-band-title">
-        <h3 id="cbse-band-title">Score band distribution</h3>
-        <p class="field-help">Candidates by their total score, and every printed subject mark by its own percentage.</p>
-        <table class="cbse-table cbse-table-compact">
-          <caption class="sr-only">Candidate score band distribution</caption>
-          <thead><tr><th scope="col">Band</th><th scope="col">Candidates</th></tr></thead>
-          <tbody id="cbse-band-body"></tbody>
-        </table>
-        <table class="cbse-table cbse-table-compact">
-          <caption class="sr-only">Subject mark score band distribution</caption>
-          <thead><tr><th scope="col">Band</th><th scope="col">Marks</th></tr></thead>
-          <tbody id="cbse-mark-band-body"></tbody>
-        </table>
-      </section>
     </div>
 
     <section class="cbse-card" aria-labelledby="cbse-student-title">
