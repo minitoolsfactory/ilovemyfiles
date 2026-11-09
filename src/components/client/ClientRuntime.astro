@@ -6,6 +6,8 @@ import FontRegistry from './font-registry.astro';
 import ImageTools from './image-tools.astro';
 import PdfTools from './pdf-tools.astro';
 import MetadataTools from './metadata-tools.astro';
+import PdfSecurity from './pdf-security.astro';
+import PdfConvert from './pdf-convert.astro';
 import GeneratorTools from './generator-tools.astro';
 import Ocr from './ocr.astro';
 import PdfTextlayer from './pdf-textlayer.astro';
@@ -17,14 +19,17 @@ import FontPicker from './font-picker.astro';
 import SessionStore from './session-store.astro';
 import ToolDialog from './tool-dialog.astro';
 import DialogFocusTrap from './dialog-focus-trap.astro';
+import aiPricing from '../../data/ai-pricing.json';
 ---
 <FileUtils />
-<DataTools />
+<DataTools aiPricing={aiPricing} />
 <PdfRender />
 <FontRegistry />
 <ImageTools />
 <PdfTools />
 <MetadataTools />
+<PdfSecurity />
+<PdfConvert />
 <GeneratorTools />
 <Ocr />
 <PdfTextlayer />

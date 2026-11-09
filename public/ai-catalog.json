@@ -141,6 +141,28 @@
       "privacy": "local-processing"
     },
     {
+      "id": "kb-resizer-image-converter-in-kb",
+      "name": "Image Resizer in KB",
+      "description": "Resize an image to a target file size in kilobytes.",
+      "url": "https://ilovemyfiles.com/kb-resizer-image-converter-in-kb/",
+      "type": "tool",
+      "capabilities": ["image-resize-kb"],
+      "input": ["image/*"],
+      "output": ["image/webp", "image/jpeg", "image/png"],
+      "privacy": "local-processing"
+    },
+    {
+      "id": "dsssb-photo-resizer",
+      "name": "DSSSB Photo Resizer",
+      "description": "Resize a photograph to the exact dimensions and file size required for DSSSB application forms.",
+      "url": "https://ilovemyfiles.com/dsssb-photo-resizer/",
+      "type": "tool",
+      "capabilities": ["dsssb-photo-resizer"],
+      "input": ["image/*"],
+      "output": ["image/jpeg", "image/png", "image/webp"],
+      "privacy": "local-processing"
+    },
+    {
       "id": "crop-image",
       "name": "Crop Image",
       "description": "Drag to select the exact area of an image to keep.",

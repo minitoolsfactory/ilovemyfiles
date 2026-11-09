@@ -5,6 +5,7 @@ const { tool } = Astro.props;
 const { CATEGORIES, TOOLS } = toolData;
 const category = CATEGORIES.find(item => item.id === tool.category)?.label ?? 'Tool';
 const related = tool.seo.related.map(id => TOOLS.find(item => item.id === id)).filter(Boolean);
+const toolPath = item => item.section === 'tools' ? `/tools/${item.slug}/` : `/${item.slug}/`;
 const icon = (item, large = false) => `<span class="tool-icon icon-${item.icon}${large ? ' tool-icon-lg' : ''}" aria-hidden="true"><svg viewBox="0 0 24 24">${item.svg}</svg></span>`;
 ---
 
@@ -38,7 +39,7 @@ const icon = (item, large = false) => `<span class="tool-icon icon-${item.icon}$
     <h3>Related tools</h3>
     <div class="related-list">
       {related.map(item => (
-        <a class="related-link" href={`/${item.slug}/`} data-tool-id={item.id}><span set:html={icon(item)} /><b>{item.cardTitle}</b></a>
+      <a class="related-link" href={toolPath(item)} data-tool-id={item.id}><span set:html={icon(item)} /><b>{item.cardTitle}</b></a>
       ))}
     </div>
   </aside>

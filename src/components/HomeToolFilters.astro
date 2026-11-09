@@ -6,41 +6,67 @@
   const search = document.querySelector('#tool-search');
   const noResults = document.querySelector('#no-results');
   const filterStatus = document.querySelector('#filter-status');
+  const clearSearchButton = document.querySelector('#clear-tool-search');
 
   let activeCategory = 'all';
   let term = '';
   let gateAllowed = document.documentElement.dataset.countryGate === 'india';
-  const allCountNode = tabs?.querySelector('[data-filter="all"] span');
-  const baseCount = Number(allCountNode?.textContent ?? 0);
+  const allCountNode = tabs?.querySelector('[data-filter="all"] .category-count');
+  const baseCount = Number.parseInt(allCountNode?.textContent ?? '', 10) || 0;
 
   if (grid && tabs && !tabs.dataset.initialized) {
   tabs.dataset.initialized = 'true';
 
   function filterTools(announce = false) {
     let visible = 0;
+    const counts = new Map();
     for (const card of grid?.querySelectorAll('.tool-card') ?? []) {
       if (card.dataset.countryGated) {
-        // India-only entry point: it is revealed by the country policy and it
-        // is listed under "All tools" only, so the category counts stay right.
-        const matches = gateAllowed && activeCategory === 'all';
-        card.hidden = !matches;
-        if (matches) visible++;
+        // It is listed under All tools only, but its count remains category-agnostic.
+        const matches = gateAllowed && activeCategory === 'all'
+          && (card.dataset.search ?? '').includes(term);
+        card.hidden = !(gateAllowed && activeCategory === 'all');
+        if (matches) {
+          visible++;
+          const category = card.dataset.category ?? '';
+          counts.set(category, (counts.get(category) ?? 0) + 1);
+        }
         continue;
       }
-      const matches = (activeCategory === 'all' || card.dataset.category === activeCategory)
-        && (card.dataset.search ?? '').includes(term);
-      card.hidden = !matches;
-      if (matches) visible++;
+      const category = card.dataset.category ?? '';
+      const matchesCategory = activeCategory === 'all'
+        || (activeCategory === 'pdf-tools' && (category === 'to-pdf' || category.endsWith('-pdf')))
+        || (activeCategory === 'other-work' && category !== 'to-pdf' && !category.endsWith('-pdf'))
+        || category === activeCategory;
+      const matchesSearch = (card.dataset.search ?? '').includes(term);
+      card.hidden = !(matchesCategory && matchesSearch);
+      // Counts describe matches in the search, independent of selected tab.
+      // Otherwise selecting one category incorrectly zeros every other tab.
+      if (matchesSearch) counts.set(category, (counts.get(category) ?? 0) + 1);
     }
-    if (noResults) noResults.hidden = visible > 0;
+    const pdfCount = [...counts].reduce((sum, [category, amount]) =>
+      category === 'to-pdf' || category.endsWith('-pdf') ? sum + amount : sum, 0);
+    const otherCount = [...counts].reduce((sum, [category, amount]) =>
+      category !== 'to-pdf' && !category.endsWith('-pdf') ? sum + amount : sum, 0);
+    for (const tab of tabs?.querySelectorAll('button[data-filter]') ?? []) {
+      const filter = tab.dataset.filter;
+      const count = filter === 'all' ? visible
+        : filter === 'pdf-tools' ? pdfCount
+        : filter === 'other-work' ? otherCount
+        : counts.get(filter) ?? 0;
+      const countNode = tab.querySelector('.category-count');
+      if (countNode) countNode.textContent = String(count);
+    }
+    const activeVisible = [...(grid?.querySelectorAll('.tool-card') ?? [])]
+      .filter(card => !card.hidden).length;
+    if (noResults) noResults.hidden = activeVisible > 0;
     if (announce && filterStatus) {
-      filterStatus.textContent = visible === 1 ? '1 tool shown' : `${visible} tools shown`;
+      filterStatus.textContent = activeVisible === 1 ? '1 tool shown' : `${activeVisible} tools shown`;
     }
   }
 
   document.addEventListener('cbse:gate', () => {
     gateAllowed = document.documentElement.dataset.countryGate === 'india';
-    if (allCountNode) allCountNode.textContent = String(baseCount + (gateAllowed ? 1 : 0));
     filterTools(false);
   });
 
@@ -75,6 +101,29 @@
   search?.addEventListener('input', () => {
     term = search.value.trim().toLowerCase();
     filterTools(true);
+  });
+  clearSearchButton?.addEventListener('click', () => {
+    if (search) search.value = '';
+    term = '';
+    activeCategory = 'all';
+    tabs?.querySelectorAll('button[data-filter]').forEach(tab => {
+      const active = tab.dataset.filter === 'all';
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-pressed', String(active));
+    });
+    filterTools(true);
+    search?.focus();
+  });
+
+  // A single-key shortcut gets keyboard users to catalogue search without
+  // stealing input from editable controls or browser/app shortcuts.
+  document.addEventListener('keydown', event => {
+    if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return;
+    const target = event.target;
+    if (target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+    event.preventDefault();
+    search?.focus();
+    document.querySelector('#tools')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   });
   filterTools();
   }

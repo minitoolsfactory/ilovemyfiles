@@ -12,7 +12,7 @@
       </div>
       <div class="cbse-workspace-tools">
         <input type="file" id="cbse-file-more" class="cbse-file-input" accept="application/pdf,.pdf,text/plain,.txt,.csv" multiple>
-        <label for="cbse-file-more" class="button button-ghost button-small cbse-upload-button">↑ Upload another gazette</label>
+        <label for="cbse-file-more" class="button button-ghost button-small cbse-upload-button" hidden>↑ Upload another gazette</label>
         <a class="tool-back-link" href="/#tools">← All tools</a>
       </div>
     </div>
@@ -150,6 +150,16 @@
 
     <div class="cbse-kpis" id="cbse-kpis"></div>
 
+    <section class="cbse-card" aria-labelledby="cbse-gender-title">
+      <h3 id="cbse-gender-title">Boys and girls</h3>
+      <p class="field-help">The split of the gazette by the gender printed next to the roll number.</p>
+      <table class="cbse-table cbse-table-compact">
+        <caption class="sr-only">Candidates, results and pass rate by gender</caption>
+        <thead><tr><th scope="col">Gender</th><th scope="col">Candidates</th><th scope="col">Passed</th><th scope="col">Appeared</th><th scope="col">Pass %</th></tr></thead>
+        <tbody id="cbse-gender-body"></tbody>
+      </table>
+    </section>
+
     <section class="cbse-card" aria-labelledby="cbse-filters-title">
       <h3 id="cbse-filters-title">Filters</h3>
       <p class="field-help">Every figure, chart and export below follows these filters.</p>
@@ -226,16 +236,6 @@
             <tbody id="cbse-subject-results-body"></tbody>
           </table>
         </div>
-      </section>
-
-      <section class="cbse-card" aria-labelledby="cbse-gender-title">
-        <h3 id="cbse-gender-title">Boys and girls</h3>
-        <p class="field-help">The split of the gazette by the gender printed next to the roll number.</p>
-        <table class="cbse-table cbse-table-compact">
-          <caption class="sr-only">Candidates, results and pass rate by gender</caption>
-          <thead><tr><th scope="col">Gender</th><th scope="col">Candidates</th><th scope="col">Passed</th><th scope="col">Appeared</th><th scope="col">Pass %</th></tr></thead>
-          <tbody id="cbse-gender-body"></tbody>
-        </table>
       </section>
 
     </div>

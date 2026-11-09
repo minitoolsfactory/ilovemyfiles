@@ -1,0 +1,483 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+    const { safeBaseName, parsePageSelection } = window.iLoveMyFilesModules['file-utils'];
+
+    async function getPdfLib() { return import('pdf-lib'); }
+    async function getSecurePdfLib() { return import('@cantoo/pdf-lib'); }
+
+    function hexToRgb(rgb, hex) {
+      const match = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+      const value = match ? parseInt(match[1], 16) : 0x23293f;
+      return rgb(((value >> 16) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255);
+    }
+
+    function passwordError(error, hasPassword) {
+      const message = String(error?.message || '');
+      const name = error?.constructor?.name || '';
+      if (name === 'EncryptedPDFError' || /password|encrypted|decrypt/i.test(message) || message === 'NEEDS PASSWORD') {
+        return hasPassword
+          ? 'That password did not open this PDF. Check it and try again.'
+          : 'This PDF is password-protected. Enter its password in the panel and try again.';
+      }
+      return error?.message || 'Could not open this PDF.';
+    }
+
+    async function loadSecuredPdf(file, password) {
+      const { PDFDocument } = await getSecurePdfLib();
+      const hasPassword = typeof password === 'string' && password.length > 0;
+      try {
+        return await PDFDocument.load(await file.arrayBuffer(), { password: password ?? '' });
+      } catch (error) {
+        throw new Error(passwordError(error, hasPassword));
+      }
+    }
+
+    async function unlockPdf(file, options, progress) {
+      const { PDFDocument } = await getSecurePdfLib();
+      progress?.({ percent: 15, label: 'Opening the protected PDF…' });
+      const source = await loadSecuredPdf(file, options.password ?? '');
+      const pageCount = source.getPageCount();
+      if (!pageCount) throw new Error('This PDF has no pages to unlock.');
+      progress?.({ percent: 55, label: 'Rebuilding without password protection…' });
+      const output = await PDFDocument.create();
+      const pages = await output.copyPages(source, source.getPageIndices());
+      pages.forEach(page => output.addPage(page));
+      try {
+        if (source.getTitle()) output.setTitle(source.getTitle());
+        if (source.getAuthor()) output.setAuthor(source.getAuthor());
+        if (source.getSubject()) output.setSubject(source.getSubject());
+        if (source.getKeywords()) output.setKeywords(source.getKeywords());
+      } catch { /* metadata is optional */ }
+      progress?.({ percent: 85, label: 'Saving the unlocked PDF…' });
+      const bytes = await output.save();
+      return {
+        blob: new Blob([bytes], { type: 'application/pdf' }),
+        name: `${safeBaseName(file.name)}-unlocked.pdf`,
+        details: `${pageCount} page(s) · password protection removed`
+      };
+    }
+
+    async function protectPdf(file, options, progress) {
+      const { PDFDocument } = await getSecurePdfLib();
+      const userPassword = String(options.userPassword || '');
+      const ownerPassword = String(options.ownerPassword || userPassword);
+      if (!userPassword && !ownerPassword) throw new Error('Enter a password to protect this PDF.');
+      progress?.({ percent: 25, label: 'Opening the PDF…' });
+      let pdf;
+      try {
+        pdf = await PDFDocument.load(await file.arrayBuffer());
+      } catch (error) {
+        throw new Error(/encrypt/i.test(String(error?.message || ''))
+          ? 'This PDF is already encrypted. Unlock it first, then protect it with a new password.'
+          : error?.message || 'Could not open this PDF.');
+      }
+      const permissions = {
+        printing: options.allowPrinting ? 'highResolution' : false,
+        modifying: !!options.allowModifying,
+        copying: !!options.allowCopying,
+        annotating: !!options.allowAnnotating,
+        fillingForms: !!options.allowAnnotating,
+        contentAccessibility: !!options.allowCopying,
+        documentAssembly: !!options.allowModifying
+      };
+      progress?.({ percent: 65, label: 'Encrypting with AES-256…' });
+      pdf.encrypt({ userPassword, ownerPassword, algorithm: 'AES-256', permissions });
+      const bytes = await pdf.save({ rewrite: true, useObjectStreams: false });
+      return {
+        blob: new Blob([bytes], { type: 'application/pdf' }),
+        name: `${safeBaseName(file.name)}-protected.pdf`,
+        details: `${pdf.getPageCount()} page(s) · AES-256 encryption`
+      };
+    }
+
+    function signatureFont(StandardFonts, choice) {
+      if (choice === 'serif') return StandardFonts.TimesRoman;
+      if (choice === 'sans') return StandardFonts.Helvetica;
+      if (choice === 'mono') return StandardFonts.Courier;
+      return StandardFonts.TimesRomanItalic;
+    }
+
+    async function signPdf(file, options, progress) {
+      const { PDFDocument, StandardFonts, rgb, degrees } = await getPdfLib();
+      const text = String(options.text || '').trim();
+      if (!text) throw new Error('Type the signature text before signing.');
+      const pdf = await PDFDocument.load(await file.arrayBuffer());
+      const pageCount = pdf.getPageCount();
+      if (!pageCount) throw new Error('This PDF has no pages to sign.');
+      const size = Math.max(8, Math.min(96, Number(options.size) || 26));
+      const font = await pdf.embedFont(signatureFont(StandardFonts, options.font));
+      const color = hexToRgb(rgb, options.color);
+      const date = options.showDate ? new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+      const dateSize = Math.max(7, size * 0.4);
+      const lineHeight = size * 1.18;
+      const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+      const maxWidth = Math.max(...lines.map(line => font.widthOfTextAtSize(line, size)));
+      const blockHeight = lines.length * lineHeight + (date ? dateSize * 2 : 0);
+      const pad = Math.max(24, Math.min(72, Number(options.margin) || 40));
+      const position = options.position || 'bottom-right';
+      const indexes = options.allPages
+        ? pdf.getPageIndices()
+        : [Math.max(0, Math.min(pageCount - 1, (Number(options.page) || pageCount) - 1))];
+      progress?.({ percent: 55, label: 'Placing the signature…' });
+      for (const index of indexes) {
+        const page = pdf.getPage(index);
+        const { width, height } = page.getSize();
+        let x = (width - maxWidth) / 2;
+        if (position.endsWith('left')) x = pad;
+        if (position.endsWith('right')) x = width - maxWidth - pad;
+        x = Math.max(0, Math.min(x, Math.max(0, width - maxWidth)));
+        let top;
+        if (position.startsWith('top')) top = height - pad;
+        else if (position.startsWith('center')) top = (height + blockHeight) / 2;
+        else top = pad + blockHeight;
+        if (top > height) top = height;
+        lines.forEach((line, lineIndex) => {
+          const y = top - size - lineIndex * lineHeight;
+          if (y < 0) return;
+          page.drawText(line, { x, y, size, font, color, rotate: degrees(0) });
+        });
+        if (date) {
+          const y = top - size - lines.length * lineHeight - dateSize * 0.2;
+          if (y >= 0) {
+            page.drawText(`Signed ${date}`, { x, y, size: dateSize, font, color: rgb(0.35, 0.38, 0.48) });
+          }
+        }
+      }
+      progress?.({ percent: 90, label: 'Saving the signed PDF…' });
+      const bytes = await pdf.save();
+      return {
+        blob: new Blob([bytes], { type: 'application/pdf' }),
+        name: `${safeBaseName(file.name)}-signed.pdf`,
+        details: `${indexes.length} page(s) signed · visual signature (not a certificate)`
+      };
+    }
+
+    async function loadTextPages(file, progress) {
+      const { loadPdfDocument } = await Promise.resolve(window.iLoveMyFilesModules['pdf-render']);
+      const doc = await loadPdfDocument(file);
+      const pages = [];
+      try {
+        for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber++) {
+          progress?.({ percent: Math.round((pageNumber - 1) / doc.numPages * 55), label: `Reading page ${pageNumber} of ${doc.numPages}…` });
+          const page = await doc.getPage(pageNumber);
+          const viewport = page.getViewport({ scale: 1 });
+          const content = await page.getTextContent();
+          const items = content.items
+            .filter(item => typeof item.str === 'string' && item.str.length)
+            .map(item => {
+              const [, , , d, e, f] = item.transform;
+              return {
+                text: item.str,
+                x: e,
+                y: f,
+                width: item.width || 0,
+                height: item.height || Math.abs(d) || 10
+              };
+            });
+          pages.push({ pageNumber, width: viewport.width, height: viewport.height, items, lines: groupItems(items) });
+          page.cleanup?.();
+        }
+      } finally {
+        await doc.destroy?.();
+      }
+      return pages;
+    }
+
+    function groupItems(items) {
+      const sorted = [...items].sort((a, b) => b.y - a.y || a.x - b.x);
+      const lines = [];
+      for (const item of sorted) {
+        const last = lines[lines.length - 1];
+        if (!last || Math.abs(last.y - item.y) > Math.max(2.5, item.height * 0.55)) {
+          lines.push({ y: item.y, items: [item] });
+        } else {
+          last.items.push(item);
+        }
+      }
+      lines.forEach(line => line.items.sort((a, b) => a.x - b.x));
+      lines.forEach(line => {
+        let text = '';
+        let lastEnd = null;
+        for (const item of line.items) {
+          if (text && lastEnd !== null && item.x - lastEnd > 1.2) text += ' ';
+          text += item.text;
+          lastEnd = item.x + item.width;
+        }
+        line.text = text.trim();
+      });
+      return lines.filter(line => line.text);
+    }
+
+    function lineMatches(items, terms, matchCase) {
+      const matches = [];
+      for (const line of groupItems(items)) {
+        const haystack = matchCase ? line.text : line.text.toLowerCase();
+        for (const term of terms) {
+          const needle = matchCase ? term : term.toLowerCase();
+          if (!needle) continue;
+          let from = 0;
+          while (from <= haystack.length - needle.length) {
+            const at = haystack.indexOf(needle, from);
+            if (at < 0) break;
+            const source = line.items;
+            const boxes = [];
+            let cursor = 0;
+            for (const item of source) {
+              const start = line.text.indexOf(item.text, cursor);
+              const end = start + item.text.length;
+              if (start >= 0) cursor = end;
+              if (start < 0) continue;
+              if (end > at && start < at + needle.length) boxes.push(item);
+            }
+            if (!boxes.length) boxes.push(...source);
+            const x1 = Math.min(...boxes.map(box => box.x));
+            const x2 = Math.max(...boxes.map(box => box.x + box.width));
+            const y1 = Math.min(...boxes.map(box => box.y));
+            const y2 = Math.max(...boxes.map(box => box.y + box.height));
+            matches.push({ x: x1, y: y1, width: Math.max(1, x2 - x1), height: Math.max(1, y2 - y1), term });
+            from = at + Math.max(1, needle.length);
+          }
+        }
+      }
+      return matches;
+    }
+
+    async function redactPdf(file, options, progress) {
+      const { PDFDocument } = await getPdfLib();
+      const { loadPdfDocument, renderPageToCanvas } = await Promise.resolve(window.iLoveMyFilesModules['pdf-render']);
+      const terms = String(options.terms || '').split(/\r?\n|,/).map(term => term.trim()).filter(Boolean);
+      if (!terms.length) throw new Error('Enter at least one word or phrase to redact.');
+      const pages = await loadTextPages(file, progress);
+      const selected = options.pages?.trim() ? new Set(parsePageSelection(options.pages, pages.length)) : null;
+      const targets = new Map();
+      let totalMatches = 0;
+      for (const page of pages) {
+        if (selected && !selected.has(page.pageNumber - 1)) continue;
+        const matches = lineMatches(page.items, terms, !!options.matchCase);
+        if (matches.length) {
+          targets.set(page.pageNumber, matches);
+          totalMatches += matches.length;
+        }
+      }
+      if (!totalMatches) throw new Error('No matching text was found. Check the spelling, matching options, or page range.');
+
+      const source = await PDFDocument.load(await file.arrayBuffer());
+      const doc = await loadPdfDocument(file);
+      const output = await PDFDocument.create();
+      const scale = Math.max(72, Math.min(300, Number(options.dpi) || 150)) / 72;
+      try {
+        for (let index = 0; index < source.getPageCount(); index++) {
+          const pageNumber = index + 1;
+          const matches = targets.get(pageNumber);
+          if (!matches) {
+            const [copied] = await output.copyPages(source, [index]);
+            output.addPage(copied);
+            continue;
+          }
+          progress?.({ percent: Math.round(55 + (index / source.getPageCount()) * 35), label: `Redacting page ${pageNumber}…` });
+          const page = await doc.getPage(pageNumber);
+          const viewport = page.getViewport({ scale });
+          const pageSize = page.getViewport({ scale: 1 });
+          const canvas = await renderPageToCanvas(page, scale, true);
+          const context = canvas.getContext('2d');
+          context.fillStyle = '#000000';
+          for (const match of matches) {
+            const padding = 1.5;
+            context.fillRect(
+              Math.max(0, (match.x - padding) * scale),
+              Math.max(0, (viewport.height - (match.y + match.height) * scale) - padding * scale),
+              Math.min(canvas.width, (match.width + padding * 2) * scale),
+              Math.min(canvas.height, (match.height + padding * 2) * scale)
+            );
+          }
+          const blob = await new Promise((resolve, reject) => canvas.toBlob(result => result ? resolve(result) : reject(new Error('Could not encode the redacted page.')), 'image/jpeg', 0.94));
+          const image = await output.embedJpg(await blob.arrayBuffer());
+          const outPage = output.addPage([pageSize.width, pageSize.height]);
+          outPage.drawImage(image, { x: 0, y: 0, width: pageSize.width, height: pageSize.height });
+          canvas.width = 1;
+          canvas.height = 1;
+          page.cleanup?.();
+        }
+      } finally {
+        await doc.destroy?.();
+      }
+      progress?.({ percent: 92, label: 'Saving the redacted PDF…' });
+      const bytes = await output.save();
+      return {
+        blob: new Blob([bytes], { type: 'application/pdf' }),
+        name: `${safeBaseName(file.name)}-redacted.pdf`,
+        details: `${totalMatches} match(es) on ${targets.size} page(s) · redacted pages are flattened`
+      };
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+    }
+
+    function pageText(page) {
+      return (page?.lines || []).map(line => line.text).join('\n');
+    }
+
+    async function comparePdfs(files, options, progress) {
+      if (files.length !== 2) throw new Error('Choose exactly two PDF files to compare.');
+      const [diffModule, pagesA, pagesB] = await Promise.all([
+        import('diff'),
+        loadTextPages(files[0], progress),
+        loadTextPages(files[1], progress)
+      ]);
+      const diffLines = diffModule.diffLines;
+      const ignoreCase = !!options.ignoreCase;
+      const ignoreWhitespace = !!options.ignoreWhitespace;
+      const normalize = value => {
+        let text = String(value || '').replace(/\r\n?/g, '\n');
+        if (ignoreWhitespace) text = text.replace(/[ \t]+/g, ' ').replace(/^ | $/gm, '');
+        if (ignoreCase) text = text.toLowerCase();
+        return text;
+      };
+      const maxPages = Math.max(pagesA.length, pagesB.length);
+      let added = 0;
+      let removed = 0;
+      let identicalLines = 0;
+      let changedPages = 0;
+      let unchangedPages = 0;
+      let onlyInFirstPages = 0;
+      let onlyInSecondPages = 0;
+      const reportPages = [];
+      for (let index = 0; index < maxPages; index++) {
+        progress?.({ percent: Math.round(45 + (index / maxPages) * 40), label: `Comparing page ${index + 1} of ${maxPages}…` });
+        const a = pagesA[index];
+        const b = pagesB[index];
+        const oldText = normalize(pageText(a));
+        const newText = normalize(pageText(b));
+        const parts = diffLines(oldText, newText);
+        let pageAdded = 0;
+        let pageRemoved = 0;
+        let pageIdentical = 0;
+        for (const part of parts) {
+          const lineCount = part.value.split('\n').filter(Boolean).length;
+          if (part.added) pageAdded += lineCount;
+          else if (part.removed) pageRemoved += lineCount;
+          else pageIdentical += lineCount;
+        }
+        added += pageAdded;
+        removed += pageRemoved;
+        identicalLines += pageIdentical;
+        const changed = pageAdded > 0 || pageRemoved > 0 || (!a && b) || (a && !b);
+        if (changed) changedPages++;
+        else unchangedPages++;
+        if (!a && b) onlyInSecondPages++;
+        if (a && !b) onlyInFirstPages++;
+        reportPages.push({ index: index + 1, parts, changed, pageAdded, pageRemoved, pageIdentical, missingA: !a, missingB: !b });
+      }
+      const identical = added === 0 && removed === 0 && pagesA.length === pagesB.length;
+      const summary = identical
+        ? `No differences under selected settings · ${unchangedPages} matching page(s) · ${identicalLines} matching line(s)`
+        : `${added} added · ${removed} removed · ${changedPages} changed page(s) · ${unchangedPages} matching page(s)`;
+      const textReport = [
+        'PDF COMPARISON SUMMARY',
+        `First PDF: ${files[0].name} (${pagesA.length} page(s))`,
+        `Second PDF: ${files[1].name} (${pagesB.length} page(s))`,
+        `Result: ${identical ? 'No differences under the selected comparison options.' : 'Text differences found.'}`,
+        `Matching pages: ${unchangedPages}`,
+        `Changed pages: ${changedPages}`,
+        `Pages only in first PDF: ${onlyInFirstPages}`,
+        `Pages only in second PDF: ${onlyInSecondPages}`,
+        `Identical lines: ${identicalLines}`,
+        `Added lines: ${added}`,
+        `Removed lines: ${removed}`,
+        `Comparison options: ${ignoreCase ? 'ignore case' : 'case-sensitive'}; ${ignoreWhitespace ? 'ignore extra whitespace' : 'preserve whitespace'}`,
+        '',
+        'PAGE-BY-PAGE DETAILS'
+      ];
+      for (const page of reportPages) {
+        const state = page.changed
+          ? 'CHANGED'
+          : (page.missingA ? 'ONLY IN SECOND PDF' : page.missingB ? 'ONLY IN FIRST PDF' : 'NO DIFFERENCES');
+        textReport.push(
+          `Page ${page.index}: ${state} · ${page.pageIdentical} matching line(s) · ${page.pageAdded} added · ${page.pageRemoved} removed`
+        );
+        if (page.changed || options.showUnchanged) {
+          for (const part of page.parts) {
+            const prefix = part.added ? '+ ' : part.removed ? '- ' : '  ';
+            for (const line of part.value.split('\n')) {
+              if (line) textReport.push(prefix + line);
+            }
+          }
+        } else {
+          textReport.push('  Matching text omitted. Turn on “Include pages with no changes” to list these lines.');
+        }
+        textReport.push('');
+      }
+      progress?.({ percent: 94, label: 'Building the comparison report…' });
+
+      const rows = reportPages.map(page => {
+        const parts = (page.changed || options.showUnchanged ? page.parts : []).map(part => {
+          const kind = part.added ? 'add' : part.removed ? 'del' : 'ctx';
+          return part.value.split('\n').filter((line, i, all) => line || i < all.length - 1).map(line =>
+            `<div class="line ${kind}"><span class="mark">${part.added ? '+' : part.removed ? '-' : ' '}</span>${escapeHtml(line)}</div>`
+          ).join('');
+        }).join('');
+        const unchangedNote = page.pageIdentical
+          ? `${page.pageIdentical} matching line(s) under the selected options. ${options.showUnchanged ? '' : 'Enable “Include pages with no changes” to list them.'}`
+          : 'No extracted text on this page.';
+        return `<section class="page"><h2>Page ${page.index}${page.missingA ? ' <span class="tag">not in first PDF</span>' : ''}${page.missingB ? ' <span class="tag">not in second PDF</span>' : ''}${page.changed ? ` <span class="tag">${page.pageAdded} added · ${page.pageRemoved} removed</span>` : ` <span class="tag ok">${page.pageIdentical} matching line(s) · no differences</span>`}</h2><pre>${parts || `<div class="line ctx"><span class="mark"> </span>${escapeHtml(unchangedNote)}</div>`}</pre></section>`;
+      }).join('');
+
+      const html = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF comparison report</title>
+<style>
+body{margin:0;padding:28px;background:#f5f6fb;color:#23293f;font:14px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
+header{max-width:1100px;margin:0 auto 18px;background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 8px 30px rgba(20,25,50,.08)}
+h1{margin:0 0 6px;font-size:22px} .sub{color:#666b80;margin:0}
+.summary{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.pill{background:#eef0fa;border-radius:999px;padding:7px 12px;font-weight:600;font-size:12px}
+.pill.add{background:#e7f7ed;color:#116b36}.pill.del{background:#fdeaea;color:#9b1c1c}
+.result{max-width:1100px;margin:0 auto 14px;padding:12px 16px;background:#eef8f1;border:1px solid #cdebd6;border-radius:10px;color:#176b39;font-weight:700}
+.page{max-width:1100px;margin:0 auto 16px;background:#fff;border-radius:16px;box-shadow:0 8px 30px rgba(20,25,50,.08);overflow:hidden}
+h2{margin:0;padding:14px 20px;font-size:14px;background:#f0f2f9;border-bottom:1px solid #e3e6f0}
+.tag{font-size:11px;font-weight:600;color:#5c6178;background:#fff;border:1px solid #dfe2ee;border-radius:999px;padding:3px 8px;margin-left:6px}
+.tag.ok{color:#116b36;border-color:#b9e3c7;background:#f2fbf5}
+pre{margin:0;padding:14px 18px;overflow:auto;font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap}
+.line{display:flex;gap:10px;border-radius:4px;padding:1px 4px}.line .mark{width:12px;flex:none;color:#9aa0b4}
+.line.add{background:#eaf9ef;color:#10602f}.line.del{background:#fdeeee;color:#9b1c1c}
+.line.ctx{color:#4b5064}
+.note{max-width:1100px;margin:18px auto 0;color:#6a6f82;font-size:12px}
+</style></head>
+<body>
+<header>
+<h1>PDF comparison report</h1>
+<p class="sub">${escapeHtml(files[0].name)} &nbsp;vs&nbsp; ${escapeHtml(files[1].name)}</p>
+<p class="result">${escapeHtml(identical ? `No differences under the selected comparison options across ${unchangedPages} page(s).` : `Text differences found on ${changedPages} page(s). ${unchangedPages} page(s) have no differences under the selected options.`)}</p>
+<div class="summary">
+<span class="pill">${pagesA.length} page(s) in first</span>
+<span class="pill">${pagesB.length} page(s) in second</span>
+<span class="pill">${identicalLines} matching line(s)</span>
+<span class="pill add">${added} added line(s)</span>
+<span class="pill del">${removed} removed line(s)</span>
+<span class="pill">${changedPages} changed page(s)</span>
+<span class="pill">${onlyInFirstPages} page(s) only in first</span>
+<span class="pill">${onlyInSecondPages} page(s) only in second</span>
+</div>
+</header>
+${rows}
+<p class="note">Comparison uses the selectable text layer. Scanned pages without OCR cannot be compared. Line wrapping, font changes and layout-only edits may be reported as differences.</p>
+</body></html>`;
+
+      return {
+        blob: new Blob([html], { type: 'text/html' }),
+        name: `${safeBaseName(files[0].name)}-comparison.html`,
+        details: summary,
+        text: textReport.join('\n'),
+        textLabel: 'Detailed comparison report',
+        textOpen: true
+      };
+    }
+
+    window.iLoveMyFilesModules['pdf-security'] = {
+      unlockPdf, protectPdf, signPdf, redactPdf, comparePdfs, loadTextPages
+    };
+  });
+</script>

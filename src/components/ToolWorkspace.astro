@@ -34,17 +34,33 @@ const clientConfig = { [tool.id]: Object.fromEntries(Object.entries(toolConfig[t
     <div class="wb-body">
       <section class="wb-stage" id="tool-stage" aria-label="File workspace">
         <div class="wb-stage-inner">
-          <div class="drop-zone" id="drop-zone" tabindex="0" role="button">
-            <input id="file-input" type="file" multiple hidden>
-            <div class="upload-icon" aria-hidden="true">↥</div>
-            <b id="drop-zone-title">Drop files here, or <span>browse</span></b>
-            <p id="file-hint">Choose files from your device</p>
-            <p class="drop-paste" id="drop-paste" hidden>Tip: paste an image with ⌘/Ctrl + V</p>
+          <div class="drop-zone-shell">
+            <div class="drop-zone" id="drop-zone" tabindex="0" role="button">
+              <input id="file-input" type="file" multiple hidden>
+              <div class="upload-icon" aria-hidden="true">↥</div>
+              <img id="drop-zone-thumb" class="drop-zone-thumb" alt="Selected file preview" hidden>
+              <div id="drop-zone-text">
+                <b id="drop-zone-title">Drop files here, or <span>browse</span></b>
+                <p id="file-hint">Choose files from your device</p>
+              </div>
+              <p class="drop-paste" id="drop-paste" hidden>Tip: paste an image with ⌘/Ctrl + V</p>
+            </div>
+            <button type="button" class="drop-zone-add" id="drop-zone-add" hidden aria-label="Add more files">+ Add more</button>
           </div>
+          <div id="compare-pdf-previews" class="compare-pdf-previews" hidden aria-label="PDFs being compared"></div>
+          <section id="svg-workbench" class="specialized-workbench svg-workbench" hidden aria-labelledby="svg-preview-heading">
+            <div class="specialized-toolbar"><div><h2 id="svg-preview-heading">SVG preview</h2><p id="svg-preview-note">Sanitized preview; scripts and external references are not loaded.</p></div><span id="svg-size-comparison"></span></div>
+            <iframe id="svg-preview" title="Sanitized SVG preview" sandbox="" referrerpolicy="no-referrer"></iframe>
+          </section>
+          <section id="thumbnail-workbench" class="specialized-workbench thumbnail-workbench" hidden aria-labelledby="thumbnail-preview-heading">
+            <div class="specialized-toolbar"><div><h2 id="thumbnail-preview-heading">Thumbnail preview</h2><p>Cover-fit crop · 1280 × 720 px</p></div><span id="thumbnail-comparison"></span></div>
+            <div class="thumbnail-previews"><figure><figcaption>Original</figcaption><img id="thumbnail-original" alt="Original uploaded image"></figure><figure><figcaption>JPEG thumbnail</figcaption><img id="thumbnail-result" alt="Generated YouTube thumbnail"></figure></div>
+          </section>
           <CropEditor /><MergeWorkspace />
-          <div class="text-workspace" id="text-workspace" hidden>
-            <textarea id="utility-input" class="utility-textarea" spellcheck="false" placeholder="Paste or type your text or data here…" aria-label="Input"></textarea>
-          </div>
+          <section class="data-viewer" id="data-viewer" aria-label="Structured data preview" hidden>
+            <div class="viewer-toolbar"><b id="viewer-title">Preview</b><span id="viewer-meta"></span><button type="button" class="button button-small" id="viewer-copy-json">Copy JSON</button></div>
+            <div id="viewer-content" class="viewer-content"></div>
+          </section>
           <PreviewWorkspace />
           <div class="utility-results" id="utility-results" hidden>
             <textarea id="utility-output" class="utility-textarea" readonly spellcheck="false" aria-label="Result"></textarea>
@@ -58,6 +74,37 @@ const clientConfig = { [tool.id]: Object.fromEntries(Object.entries(toolConfig[t
       </section>
       <aside class="wb-side">
         <div class="wb-side-scroll">
+          <div class="text-workspace" id="text-workspace" hidden>
+            <label class="field-label" for="utility-input" hidden>Tool input</label>
+            <textarea id="utility-input" class="utility-textarea" spellcheck="false" placeholder="Paste or type your text or data here…" aria-label="Input"></textarea>
+            <textarea id="svg-source" class="utility-textarea svg-source" spellcheck="false" placeholder="Or paste SVG markup here…" aria-label="SVG markup" hidden></textarea>
+            <label class="field-label" for="jwt-input" hidden>Compact JWT</label>
+            <textarea id="jwt-input" class="utility-textarea" spellcheck="false" placeholder="Paste a three-part JWT…" aria-label="Compact JWT" hidden></textarea>
+            <label class="field-label diff-reference-label" for="diff-reference" hidden>Original text</label>
+            <textarea id="diff-reference" class="utility-textarea diff-reference" spellcheck="false" placeholder="Paste the original text to compare against…" aria-label="Original text" hidden></textarea>
+          </div>
+          <section id="schema-workbench" class="specialized-workbench" hidden aria-labelledby="schema-result-heading">
+            <div class="specialized-toolbar"><div><h2 id="schema-result-heading">Generated schemas</h2><p>Review the generated output, then copy or download it.</p></div></div>
+            <div class="schema-output-grid"><label>TypeScript<textarea id="typescript-output" class="utility-textarea" readonly aria-label="Generated TypeScript"></textarea></label><label>Zod schema<textarea id="zod-output" class="utility-textarea" readonly aria-label="Generated Zod schema"></textarea></label></div>
+            <button type="button" class="button button-small" id="schema-copy">Copy both outputs</button>
+          </section>
+          <section id="jwt-workbench" class="specialized-workbench" hidden aria-labelledby="jwt-result-heading">
+            <div class="specialized-toolbar"><div><h2 id="jwt-result-heading">Decoded token</h2><p>Header and payload only; signature is not verified.</p></div></div>
+            <pre id="jwt-preview" class="safe-code-preview" tabindex="0" aria-label="Decoded JWT details"></pre>
+          </section>
+          <section id="seo-meta-workbench" class="specialized-workbench" hidden aria-labelledby="meta-preview-heading">
+            <div class="specialized-toolbar"><div><h2 id="meta-preview-heading">Search result preview</h2><p>Illustrative preview only. Search engines may rewrite snippets.</p></div></div>
+            <article class="serp-preview"><div id="serp-url">example.com</div><h3 id="serp-title"></h3><p id="serp-description"></p></article>
+            <article class="social-preview"><img id="serp-social-image" alt="Social preview image" hidden><div><b id="social-title"></b><p id="social-description"></p><small id="social-domain"></small></div></article>
+            <button type="button" class="button button-small" id="meta-copy">Copy generated HTML</button>
+          </section>
+          <section id="validator-workbench" class="specialized-workbench" hidden aria-labelledby="validator-preview-heading">
+            <div class="specialized-toolbar"><div><h2 id="validator-preview-heading">Validation report</h2><p>Offline syntax validation; no remote site checks are performed.</p></div></div>
+          </section>
+          <section id="thumbnail-workbench" class="specialized-workbench thumbnail-workbench" hidden aria-labelledby="thumbnail-preview-heading">
+            <div class="specialized-toolbar"><div><h2 id="thumbnail-preview-heading">Thumbnail preview</h2><p>Cover-fit crop · 1280 × 720 px · JPEG</p></div><span id="thumbnail-comparison"></span></div>
+            <div class="thumbnail-previews"><figure><figcaption>Original</figcaption><img id="thumbnail-original" alt="Original uploaded image"></figure><figure><figcaption>Thumbnail output</figcaption><img id="thumbnail-result" alt="Generated thumbnail preview"></figure></div>
+          </section>
           <ToolOptions config={config} />
           <div id="selected-files" class="selected-files" aria-live="polite"></div>
           <div class="progress-wrap" id="progress-wrap" hidden>
@@ -88,6 +135,47 @@ const clientConfig = { [tool.id]: Object.fromEntries(Object.entries(toolConfig[t
   <p class="confirm-note" id="confirm-note">This edits document properties only; page content, links, annotations and forms are preserved where the PDF engine supports it. Some metadata structures (for example extended XMP written by other editors) may not be fully removed. Your original file is not changed - a separate cleaned PDF is created.</p>
   <div class="confirm-foot"><button type="button" class="button button-ghost" id="confirm-cancel">Cancel</button><button type="button" class="button button-primary" id="confirm-ok">Confirm removal</button></div>
 </dialog>
+<style is:global>
+  .data-viewer{width:100%;min-height:240px;max-height:64vh;overflow:auto;border:1px solid var(--color-border);border-radius:12px;background:var(--color-surface);color:var(--color-text-primary)}
+  .viewer-toolbar{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid var(--color-border);background:var(--color-surface-soft)}
+  .viewer-toolbar span{color:var(--color-text-muted);font-size:11px;margin-right:auto}
+  .viewer-content{padding:12px}
+  .viewer-tree,.viewer-tree ul{list-style:none;margin:0;padding-left:18px}
+  .viewer-tree{padding-left:0;font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .viewer-tree li{margin:2px 0}
+  .viewer-node{border:0;background:transparent;color:var(--color-text-primary);font:inherit;padding:0;cursor:pointer}
+  .viewer-node:hover{color:var(--color-accent)}
+  .viewer-key{color:#7655d9}.viewer-string{color:#137b55}.viewer-number{color:#b45d16}.viewer-boolean{color:#2563a6}.viewer-null{color:#7d8497}
+  .viewer-table{border-collapse:collapse;width:100%;font-size:12px}.viewer-table th,.viewer-table td{border:1px solid var(--color-border);padding:7px 9px;text-align:left;vertical-align:top;white-space:pre-wrap;word-break:break-word}.viewer-table th{position:sticky;top:45px;background:var(--color-surface-soft)}
+  .viewer-markdown{line-height:1.65}.viewer-markdown img{max-width:100%}.viewer-markdown pre{overflow:auto;padding:12px;background:var(--color-surface-soft);border-radius:8px}
+  .viewer-xml-tag{color:#7655d9}.viewer-xml-attr{color:#2563a6}.viewer-xml-text{color:#137b55}
+  .specialized-workbench{display:grid;gap:14px;width:100%;padding:4px 0}
+  .specialized-workbench[hidden]{display:none}
+  .specialized-toolbar{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+  .specialized-toolbar h2{margin:0 0 4px;font-size:16px;color:var(--color-text-primary)}
+  .specialized-toolbar p{margin:0;color:var(--color-text-secondary);font-size:12px;line-height:1.5}
+  .specialized-toolbar>span{font-size:12px;color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+  .svg-workbench iframe{width:100%;height:min(52vh,440px);border:1px solid var(--canvas-border);border-radius:14px;background:#f3f4f8}
+  .thumbnail-previews{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .thumbnail-previews figure{margin:0;display:grid;gap:8px;min-width:0}
+  .thumbnail-previews figcaption{font-size:12px;font-weight:700;color:var(--color-text-secondary)}
+  .thumbnail-previews img{display:block;width:100%;aspect-ratio:16/9;object-fit:contain;border:1px solid var(--canvas-border);border-radius:12px;background:var(--canvas-surface)}
+  .schema-output-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .schema-output-grid label{display:grid;gap:8px;font-size:12px;font-weight:700}
+  .schema-output-grid textarea{min-height:260px;font-size:12px}
+  .safe-code-preview{max-height:56vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--color-surface-soft);border:1px solid var(--canvas-border);border-radius:12px;padding:14px;font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .serp-preview{max-width:620px;padding:16px;border:1px solid var(--canvas-border);border-radius:12px;background:var(--canvas-surface);font-family:Arial,sans-serif}
+  .serp-preview div{font-size:12px;color:#3c4043}
+  .serp-preview h3{margin:5px 0;font-size:20px;line-height:1.3;color:#1a0dab;font-weight:400}
+  .serp-preview p{margin:0;font-size:14px;line-height:1.45;color:#4d5156}
+  .social-preview{display:grid;grid-template-columns:minmax(0,1fr) 180px;min-height:104px;overflow:hidden;border:1px solid var(--canvas-border);border-radius:12px;background:var(--color-surface-soft)}
+  .social-preview img{width:100%;height:100%;max-height:180px;object-fit:cover;background:#e9eaf1}
+  .social-preview>div{padding:14px;align-self:center;min-width:0}
+  .social-preview b,.social-preview p,.social-preview small{display:block;overflow-wrap:anywhere}
+  .social-preview p{margin:4px 0;color:var(--color-text-secondary);font-size:12px}
+  .social-preview small{color:var(--color-text-muted);font-size:10px;text-transform:uppercase}
+  @media(max-width:640px){.thumbnail-previews,.schema-output-grid{grid-template-columns:1fr}.social-preview{grid-template-columns:1fr 120px}.schema-output-grid textarea{min-height:180px}}
+</style>
 <script>
   const page = document.getElementById('tool-dialog');
   if (page && !page.dataset.initialized) {

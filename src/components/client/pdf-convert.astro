@@ -1,0 +1,299 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+    const { safeBaseName, formatBytes } = window.iLoveMyFilesModules['file-utils'];
+
+    async function getOffice() { return import('officeparser/browser-native-pdf'); }
+    async function getPdfLib() { return import('pdf-lib'); }
+    async function getSecurePdfLib() { return import('@cantoo/pdf-lib'); }
+
+    function fileTypeFor(file) {
+      const name = String(file?.name || '').toLowerCase();
+      const extension = name.split('.').pop();
+      if (['docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'html', 'htm'].includes(extension)) {
+        return extension === 'doc' ? 'docx' : extension === 'ppt' ? 'pptx' : extension === 'xls' ? 'xlsx' : extension === 'htm' ? 'html' : extension;
+      }
+      return undefined;
+    }
+
+    function toBytes(value) {
+      if (!value) return null;
+      if (value instanceof Uint8Array) return value;
+      if (value instanceof ArrayBuffer) return new Uint8Array(value);
+      if (value?.arrayBuffer) return value.arrayBuffer().then(buffer => new Uint8Array(buffer));
+      return null;
+    }
+
+    async function officeToPdf(file, options, progress, kind = 'document') {
+      const { parseOffice } = await getOffice();
+      progress?.({ percent: 15, label: `Reading the ${kind}…` });
+      let ast;
+      try {
+        ast = await parseOffice(file, {
+          extractAttachments: true,
+          fileType: fileTypeFor(file),
+          password: options.password || undefined
+        });
+      } catch (error) {
+        const message = String(error?.message || '');
+        if (/password/i.test(message)) throw new Error('This document is password-protected. Enter its password and try again.');
+        throw new Error(message || `Could not read this ${kind}.`);
+      }
+      progress?.({ percent: 60, label: 'Laying out the PDF…' });
+      let result;
+      try {
+        result = await ast.to('pdf', { pdfConfig: { engine: 'native' } });
+      } catch (error) {
+        throw new Error(error?.message || 'The PDF could not be generated from this document.');
+      }
+      const bytes = await toBytes(result?.value);
+      if (!bytes?.length) throw new Error('The converter returned an empty PDF.');
+      progress?.({ percent: 94, label: 'Saving the PDF…' });
+      return {
+        blob: new Blob([bytes], { type: 'application/pdf' }),
+        name: `${safeBaseName(file.name)}.pdf`,
+        details: `${formatBytes(bytes.length)} · converted to PDF`
+      };
+    }
+
+    async function wordToPdf(file, options, progress) {
+      return officeToPdf(file, options, progress, 'Word document');
+    }
+
+    async function powerpointToPdf(file, options, progress) {
+      return officeToPdf(file, options, progress, 'presentation');
+    }
+
+    async function excelToPdf(file, options, progress) {
+      return officeToPdf(file, options, progress, 'spreadsheet');
+    }
+
+    async function htmlToPdf(file, options, progress) {
+      return officeToPdf(file, options, progress, 'HTML file');
+    }
+
+    async function jpgToPdf(files, options, progress) {
+      const { imagesToPdf } = window.iLoveMyFilesModules['pdf-tools'];
+      const margin = Math.max(0, Math.min(100, Number(options.margin) || 0));
+      const result = await imagesToPdf(files, {
+        pageSize: options.pageSize || 'fit',
+        orientation: options.orientation || 'portrait',
+        margin,
+        fileSettings: files.map(() => ({ pageSize: options.pageSize || 'fit', orientation: options.orientation || 'portrait', margin }))
+      }, progress);
+      return { ...result, name: files.length === 1 ? `${safeBaseName(files[0].name)}-jpg.pdf` : 'ilovemyfiles-jpg.pdf', details: `${files.length} page(s) · JPG images` };
+    }
+
+    async function pdfToJpg(file, options, progress) {
+      const { pdfToImages } = window.iLoveMyFilesModules['pdf-tools'];
+      return pdfToImages(file, {
+        type: 'image/jpeg',
+        dpi: options.dpi || 150,
+        pages: options.pages || ''
+      }, progress);
+    }
+
+    function plainTextPages(pages) {
+      return pages.filter(page => page.lines.length);
+    }
+
+    async function pdfToWord(file, options, progress) {
+      const { OfficeGenerator } = await getOffice();
+      const pages = await window.iLoveMyFilesModules['pdf-security'].loadTextPages(file, progress);
+      if (!plainTextPages(pages).length) throw new Error('No selectable text was found in this PDF. Scanned PDFs need OCR first.');
+      progress?.({ percent: 65, label: 'Building the Word document…' });
+      const content = pages.map(page => ({
+        type: 'page',
+        metadata: { pageNumber: page.pageNumber, pageWidth: page.width, pageHeight: page.height },
+        children: page.lines.map(line => ({
+          type: 'paragraph',
+          text: line.text,
+          children: [{ type: 'text', text: line.text }]
+        }))
+      }));
+      const ast = {
+        type: 'pdf',
+        metadata: { title: safeBaseName(file.name) },
+        content,
+        attachments: [],
+        auxiliary: {},
+        warnings: [],
+        config: {}
+      };
+      let result;
+      try {
+        result = await OfficeGenerator.generate(ast, 'docx');
+      } catch (error) {
+        throw new Error(error?.message || 'The Word document could not be generated.');
+      }
+      const bytes = await toBytes(result?.value);
+      if (!bytes?.length) throw new Error('The converter returned an empty Word document.');
+      progress?.({ percent: 94, label: 'Saving the Word document…' });
+      const lines = pages.reduce((total, page) => total + page.lines.length, 0);
+      return {
+        blob: new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }),
+        name: `${safeBaseName(file.name)}.docx`,
+        details: `${pages.length} page(s) · ${lines} line(s)`
+      };
+    }
+
+    function rowsFromPage(page) {
+      const rows = [];
+      for (const line of page.lines) {
+        const cells = [];
+        let current = '';
+        let previousEnd = null;
+        for (const item of line.items) {
+          if (previousEnd !== null && item.x - previousEnd > Math.max(6, item.height * 0.7)) {
+            if (current.trim()) cells.push(current.trim());
+            current = item.text;
+          } else {
+            const needsSpace = current && !/\s$/.test(current) && !/^\s/.test(item.text);
+            current += (needsSpace ? ' ' : '') + item.text;
+          }
+          previousEnd = item.x + item.width;
+        }
+        if (current.trim()) cells.push(current.trim());
+        if (cells.length) rows.push(cells);
+      }
+      return rows;
+    }
+
+    async function pdfToExcel(file, options, progress) {
+      const XLSX = await import('xlsx');
+      const pages = await window.iLoveMyFilesModules['pdf-security'].loadTextPages(file, progress);
+      const rowsByPage = pages.map(page => ({ pageNumber: page.pageNumber, rows: rowsFromPage(page) })).filter(page => page.rows.length);
+      if (!rowsByPage.length) throw new Error('No selectable text was found in this PDF. Scanned PDFs need OCR first.');
+      progress?.({ percent: 68, label: 'Building the workbook…' });
+      const workbook = XLSX.utils.book_new();
+      for (const page of rowsByPage) {
+        const sheet = XLSX.utils.aoa_to_sheet(page.rows);
+        XLSX.utils.book_append_sheet(workbook, sheet, `Page ${page.pageNumber}`.slice(0, 31));
+      }
+      const bytes = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
+      progress?.({ percent: 94, label: 'Saving the workbook…' });
+      return {
+        blob: new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+        name: `${safeBaseName(file.name)}.xlsx`,
+        details: `${rowsByPage.length} sheet(s) · text placed in rows and columns`
+      };
+    }
+
+    function blobToDataUrl(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Could not read the rendered page.'));
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    async function pdfToPowerpoint(file, options, progress) {
+      const PptxGenJS = (await import('pptxgenjs')).default;
+      const { loadPdfDocument, renderPageToBlob } = await Promise.resolve(window.iLoveMyFilesModules['pdf-render']);
+      const dpi = Math.max(72, Math.min(300, Number(options.dpi) || 150));
+      const doc = await loadPdfDocument(file);
+      const pageCount = doc.numPages;
+      const pptx = new PptxGenJS();
+      try {
+        const firstPage = await doc.getPage(1);
+        const first = firstPage.getViewport({ scale: 1 });
+        firstPage.cleanup?.();
+        const slideWidth = 10;
+        const slideHeight = Math.max(3.5, Math.min(10, slideWidth * first.height / first.width));
+        pptx.defineLayout({ name: 'ILOVEMYFILES', width: slideWidth, height: slideHeight });
+        pptx.layout = 'ILOVEMYFILES';
+        for (let pageNumber = 1; pageNumber <= pageCount; pageNumber++) {
+          progress?.({ percent: Math.round((pageNumber - 1) / pageCount * 80), label: `Rendering page ${pageNumber} of ${pageCount}…` });
+          const page = await doc.getPage(pageNumber);
+          const { blob } = await renderPageToBlob(page, dpi / 72, 'image/jpeg', 0.9);
+          page.cleanup?.();
+          const slide = pptx.addSlide();
+          slide.addImage({ data: await blobToDataUrl(blob), x: 0, y: 0, w: slideWidth, h: slideHeight });
+        }
+      } finally {
+        await doc.destroy?.();
+      }
+      progress?.({ percent: 92, label: 'Saving the presentation…' });
+      const data = await pptx.write({ outputType: 'arraybuffer' });
+      return {
+        blob: new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' }),
+        name: `${safeBaseName(file.name)}.pptx`,
+        details: `${pageCount} slide(s) · one slide per PDF page`
+      };
+    }
+
+    async function pdfToPdfa(file, options, progress) {
+      const { PDFDocument } = await getSecurePdfLib();
+      const hasPassword = String(options.password || '').length > 0;
+      progress?.({ percent: 12, label: 'Opening the PDF…' });
+      let pdf;
+      try {
+        pdf = await PDFDocument.load(await file.arrayBuffer(), { password: options.password || '' });
+      } catch (error) {
+        const message = String(error?.message || '');
+        if (/password|encrypt|decrypt/i.test(message)) {
+          throw new Error(hasPassword
+            ? 'That password did not open this PDF. Check it and try again.'
+            : 'This PDF is password-protected. Enter its password and try again.');
+        }
+        throw new Error(message || 'Could not open this PDF.');
+      }
+      let workingFile = file;
+      if (hasPassword) {
+        progress?.({ percent: 20, label: 'Removing the existing password…' });
+        const unlocked = await PDFDocument.create();
+        const unlockedPages = await unlocked.copyPages(pdf, pdf.getPageIndices());
+        unlockedPages.forEach(page => unlocked.addPage(page));
+        try {
+          if (pdf.getTitle()) unlocked.setTitle(pdf.getTitle());
+          if (pdf.getAuthor()) unlocked.setAuthor(pdf.getAuthor());
+          if (pdf.getSubject()) unlocked.setSubject(pdf.getSubject());
+          if (pdf.getKeywords()) unlocked.setKeywords(pdf.getKeywords());
+        } catch { /* metadata is optional */ }
+        const unlockedBytes = await unlocked.save();
+        workingFile = new File([unlockedBytes], file.name, { type: 'application/pdf' });
+        pdf = await PDFDocument.load(unlockedBytes);
+      }
+      if (options.flatten) {
+        const { loadPdfDocument, renderPageToBlob } = await Promise.resolve(window.iLoveMyFilesModules['pdf-render']);
+        const source = await loadPdfDocument(workingFile);
+        const flattened = await PDFDocument.create();
+        try {
+          for (let pageNumber = 1; pageNumber <= source.numPages; pageNumber++) {
+            progress?.({ percent: Math.round(20 + (pageNumber / source.numPages) * 55), label: `Rasterising page ${pageNumber} of ${source.numPages}…` });
+            const page = await source.getPage(pageNumber);
+            const viewport = page.getViewport({ scale: 1 });
+            const { blob } = await renderPageToBlob(page, 200 / 72, 'image/jpeg', 0.92);
+            const image = await flattened.embedJpg(await blob.arrayBuffer());
+            flattened.addPage([viewport.width, viewport.height]).drawImage(image, { x: 0, y: 0, width: viewport.width, height: viewport.height });
+            page.cleanup?.();
+          }
+        } finally {
+          await source.destroy?.();
+        }
+        pdf = flattened;
+      }
+      progress?.({ percent: 86, label: 'Adding PDF/A metadata…' });
+      const conformance = ['1B', '2B', '3B', '2U', '3U'].includes(options.conformance) ? options.conformance : '2B';
+      try {
+        pdf.convertToPDFA({ conformance });
+      } catch (error) {
+        throw new Error(error?.message || 'This PDF could not be converted to PDF/A.');
+      }
+      const bytes = await pdf.save({ rewrite: true });
+      return {
+        blob: new Blob([bytes], { type: 'application/pdf' }),
+        name: `${safeBaseName(file.name)}-pdfa.pdf`,
+        details: `PDF/A-${conformance} best effort${options.flatten ? ' · pages rasterised' : ''} · validate with veraPDF`
+      };
+    }
+
+    window.iLoveMyFilesModules['pdf-convert'] = {
+      wordToPdf, powerpointToPdf, excelToPdf, htmlToPdf, jpgToPdf,
+      pdfToJpg, pdfToWord, pdfToExcel, pdfToPowerpoint, pdfToPdfa
+    };
+  });
+</script>

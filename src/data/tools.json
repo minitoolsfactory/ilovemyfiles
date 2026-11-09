@@ -5,6 +5,14 @@
       "label": "All tools"
     },
     {
+      "id": "pdf-tools",
+      "label": "PDF tools"
+    },
+    {
+      "id": "other-work",
+      "label": "Other work"
+    },
+    {
       "id": "organize-pdf",
       "label": "Organize PDF"
     },
@@ -13,8 +21,16 @@
       "label": "Optimize PDF"
     },
     {
+      "id": "to-pdf",
+      "label": "Convert to PDF"
+    },
+    {
       "id": "convert-pdf",
-      "label": "Convert PDF"
+      "label": "Convert from PDF"
+    },
+    {
+      "id": "security-pdf",
+      "label": "PDF security"
     },
     {
       "id": "edit-pdf",
@@ -27,6 +43,18 @@
     {
       "id": "data",
       "label": "Data & text"
+    },
+    {
+      "id": "developer",
+      "label": "Developer tools"
+    },
+    {
+      "id": "ai",
+      "label": "AI tools"
+    },
+    {
+      "id": "seo",
+      "label": "SEO tools"
     }
   ],
   "TOOLS": [
@@ -358,7 +386,7 @@
     {
       "id": "images-pdf",
       "slug": "image-to-pdf",
-      "category": "convert-pdf",
+      "category": "to-pdf",
       "cardTitle": "Images to PDF",
       "cardText": "Combine pictures into one PDF document.",
       "tag": "JPG · PNG · WEBP INPUT",
@@ -442,6 +470,25 @@
           "pdf-merge",
           "pdf-rotate-pages"
         ]
+      }
+    },
+    {
+      "id": "pdf-page-labels",
+      "slug": "pdf-page-labels",
+      "category": "edit-pdf",
+      "cardTitle": "Add PDF page labels",
+      "cardText": "Set logical page labels in PDF readers without stamping pages.",
+      "tag": "PDF NAVIGATION",
+      "icon": "purple",
+      "svg": "<path d=\"M6 4h12v16H6z\"/><path d=\"M9 8h6M9 12h6M9 16h3\"/><path d=\"m16 15 2 2 3-3\"/>",
+      "keywords": ["pdf page labels", "label pdf pages", "roman numeral page labels", "logical page numbering", "pdf navigation labels"],
+      "seo": {
+        "title": "Add PDF Page Labels Online - Roman Numerals & Custom Prefixes | iLoveMyFiles",
+        "description": "Add logical page labels to PDF navigation metadata using decimal, Roman or letter styles. Runs locally in your browser.",
+        "intro": "Set page labels that appear in compatible PDF readers' navigation panes. Choose a prefix, starting number and numbering style without printing marks over page content.",
+        "steps": ["Choose one PDF.", "Set a label prefix, starting number and style.", "Process and download the labeled PDF."],
+        "faqs": [["Are labels printed on the pages?", "No. Page labels are navigation metadata and do not alter visible page artwork."], ["Will every PDF reader show them?", "Support varies by PDF viewer. The labels are stored using the PDF page-label feature." ]],
+        "related": ["pdf-page-numbers", "pdf-organize", "pdf-merge"]
       }
     },
     {
@@ -599,6 +646,111 @@
           "image-convert",
           "image-resize",
           "image-crop"
+        ]
+      }
+    },
+    {
+      "id": "image-resize-kb",
+      "slug": "kb-resizer-image-converter-in-kb",
+      "category": "image",
+      "cardTitle": "Image resizer in KB",
+      "cardText": "Resize an image to a target file size in KB.",
+      "tag": "TARGET SIZE KB",
+      "icon": "green",
+      "svg": "<path d=\"M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3\"/><path d=\"m8 12 3 3 5-6\"/>",
+      "keywords": [
+        "image resizer in kb",
+        "kb resizer",
+        "resize image to kb",
+        "photo resizer in kb",
+        "reduce image size kb",
+        "image kb converter",
+        "compress image to kb",
+        "resize photo in kb"
+      ],
+      "seo": {
+        "title": "Image Resizer in KB - Resize Photo to Target Size | iLoveMyFiles",
+        "description": "Resize an image to a target file size in KB. Set the size you need and download a smaller image, all in your browser without uploading anything.",
+        "intro": "Resize images to a target size in kilobytes. Choose your target KB, pick the output format, and process your photos privately in the browser.",
+        "steps": [
+          "Add one or more images.",
+          "Enter the target file size in KB.",
+          "Choose the output format and process, then download the resized images."
+        ],
+        "faqs": [
+          [
+            "Can I hit an exact KB size?",
+            "The tool tries to reach your target size. Exact size cannot always be guaranteed, especially for very small targets."
+          ],
+          [
+            "Which formats work?",
+            "JPG and WebP are best for reaching small sizes. PNG stays lossless but is usually larger."
+          ],
+          [
+            "Does resizing change dimensions?",
+            "Yes. To reach a small target the image may be scaled down as well as re-encoded."
+          ],
+          [
+            "Can I resize many images?",
+            "Yes, and the results can be downloaded together as a ZIP."
+          ]
+        ],
+        "related": [
+          "image-compress",
+          "image-resize",
+          "image-convert"
+        ]
+      }
+    },
+    {
+      "id": "dsssb-photo-resizer",
+      "slug": "dsssb-photo-resizer",
+      "category": "image",
+      "cardTitle": "DSSSB Photo Resizer",
+      "cardText": "Resize a photo to the exact size DSSSB forms require.",
+      "tag": "DSSSB PHOTO SIZE",
+      "icon": "orange",
+      "svg": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"/><circle cx=\"8.5\" cy=\"9\" r=\"1.5\"/><path d=\"m4 17 5-5 3 3 3-4 5 6\"/>",
+      "keywords": [
+        "dsssb photo resizer",
+        "dsssb photo size",
+        "dsssb application form photo",
+        "resize photo for dsssb",
+        "dsssb photograph dimensions",
+        "dsssb photo in kb",
+        "dsssb photo size in kb"
+      ],
+      "seo": {
+        "title": "DSSSB Photo Resizer - Resize Photo for DSSSB Application Form | iLoveMyFiles",
+        "description": "Resize your photograph to the exact dimensions and file size required for DSSSB application forms. Process locally in your browser - no upload, no sign-up.",
+        "intro": "Resize a photo for a DSSSB application form. Choose the required dimensions and target file size in KB, then download a correctly sized photograph.",
+        "steps": [
+          "Add your photograph.",
+          "Choose the required width and height (or a DSSSB preset).",
+          "Set the target file size in KB and process, then download the photo."
+        ],
+        "faqs": [
+          [
+            "What size does a DSSSB photo need?",
+            "DSSSB usually asks for a specific photograph dimension and a maximum file size in KB. Check your form notice and set the width, height and target KB here before processing."
+          ],
+          [
+            "Can I set an exact file size?",
+            "The tool aims for your target KB. Small targets may lower quality or shrink the photo to stay close to the limit."
+          ],
+          [
+            "Which format should I use?",
+            "JPG is usually required for application forms and keeps the file small."
+          ],
+          [
+            "Is my photo uploaded?",
+            "No. Everything happens in your browser and your photo never leaves your device."
+          ]
+        ],
+        "related": [
+          "image-resize-kb",
+          "image-compress",
+          "image-convert"
         ]
       }
     },
@@ -960,6 +1112,339 @@
           "data-hash",
           "data-json-csv"
         ]
+      }
+    },
+    {
+      "id": "html-entities",
+      "slug": "html-entities",
+      "category": "data",
+      "cardTitle": "HTML entity encoder & decoder",
+      "cardText": "Encode special characters or decode HTML entities.",
+      "tag": "HTML · TEXT",
+      "icon": "purple",
+      "svg": "<path d=\"M8 5 3 12l5 7M16 5l5 7-5 7M14 3l-4 18\"/>",
+      "keywords": ["html entity encoder", "html entity decoder", "escape html", "unescape html", "html entities"],
+      "seo": {
+        "title": "HTML Entity Encoder & Decoder Online - Free & Private | iLoveMyFiles",
+        "description": "Encode text for HTML or decode named and numeric HTML entities in your browser. No upload or sign-up.",
+        "intro": "Encode reserved HTML characters before placing text in markup, or decode entity references back into readable text. Processing stays in your browser.",
+        "steps": ["Paste text or HTML entities.", "Choose encode or decode.", "Run the tool and copy or download the result."],
+        "faqs": [["Which characters are encoded?", "Ampersands, angle brackets, quotation marks and apostrophes are encoded."], ["Can it decode numeric entities?", "Yes. The browser's HTML parser decodes named and numeric character references."]],
+        "related": ["html-text", "markdown-html", "data-json"]
+      }
+    },
+    {
+      "id": "csv-jsonl",
+      "slug": "csv-jsonl-converter",
+      "category": "data",
+      "cardTitle": "CSV ↔ JSON Lines converter",
+      "cardText": "Convert CSV rows to JSONL or JSONL records back to CSV.",
+      "tag": "CSV · JSONL",
+      "icon": "blue",
+      "svg": "<path d=\"M4 5h16M4 12h16M4 19h16\"/><path d=\"m9 8 3 4-3 4M15 8h4M15 16h4\"/>",
+      "keywords": ["csv to jsonl", "jsonl to csv", "json lines converter", "ndjson converter", "newline delimited json"],
+      "seo": {
+        "title": "CSV to JSON Lines Converter - JSONL & NDJSON Online | iLoveMyFiles",
+        "description": "Convert CSV tables to JSON Lines or JSONL records to CSV in your browser. Private, local processing with no upload.",
+        "intro": "Convert tabular CSV into one JSON object per line, or turn JSON Lines and NDJSON records back into a CSV table. Conversion stays in your browser.",
+        "steps": ["Paste CSV or JSON Lines data.", "Choose the conversion direction.", "Run the converter and copy or download the result."],
+        "faqs": [["What is JSON Lines?", "JSON Lines stores one valid JSON value, usually an object, on each line."], ["Are duplicate CSV headers supported?", "No. Headers must be unique so values can map unambiguously to object properties." ]],
+      "related": ["data-json-csv", "csv-to-json", "json-yaml"]
+      }
+    },
+    {
+      "id": "uuid-decode",
+      "slug": "uuid-decoder",
+      "category": "data",
+      "cardTitle": "UUID decoder",
+      "cardText": "Inspect a UUID's version, variant and component fields.",
+      "tag": "UUID · INSPECT",
+      "icon": "teal",
+      "svg": "<path d=\"M8 4h8l4 4v8l-4 4H8l-4-4V8z\"/><path d=\"M9 9h6M9 12h6M9 15h3\"/>",
+      "keywords": ["uuid decoder", "uuid version", "parse uuid", "inspect uuid", "guid decoder"],
+      "seo": {
+        "title": "UUID Decoder - Inspect UUID Version & Variant Online | iLoveMyFiles",
+        "description": "Inspect a UUID's version, variant and hexadecimal fields locally in your browser. No upload or sign-up.",
+        "intro": "Check the structure of a UUID or GUID. The decoder reports its version, variant and component fields without contacting a server.",
+        "steps": ["Paste a UUID.", "Run the decoder.", "Copy or download the field breakdown."],
+        "faqs": [["Does a UUID reveal who created it?", "No. This tool only describes the identifier's structure; it cannot identify a person or system."], ["Which UUID versions are accepted?", "Standard versioned UUID strings with RFC variant bits are accepted."]],
+        "related": ["uuid-generator", "data-hash", "number-base"]
+      }
+    },
+    {
+      "id": "youtube-thumbnail",
+      "slug": "youtube-thumbnail-resizer",
+      "section": "tools",
+      "category": "image",
+      "cardTitle": "YouTube Thumbnail Resizer",
+      "cardText": "Resize and compress a thumbnail to 1280 × 720 JPEG.",
+      "tag": "1280 × 720 · JPEG",
+      "icon": "rose",
+      "svg": "<rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"2\"/><path d=\"m5 17 5-5 3 3 3-5 4 7\"/><circle cx=\"8\" cy=\"9\" r=\"1\"/>",
+      "keywords": ["youtube thumbnail resizer", "youtube thumbnail maker", "resize thumbnail 1280x720", "compress youtube thumbnail", "youtube thumbnail kb"],
+      "seo": {
+        "title": "YouTube Thumbnail Resizer & Compressor - 1280×720 | iLoveMyFiles",
+        "description": "Resize an image to a 1280×720 YouTube thumbnail and compress as JPEG locally. Preview dimensions and file size before download.",
+        "intro": "Prepare a thumbnail image at the standard 1280 × 720 canvas size. The tool center-crops to fill the frame, compresses to JPEG, and shows the resulting dimensions and byte size before download.",
+        "steps": ["Choose a JPEG, PNG or WebP image.", "Set JPEG quality and an optional target size (up to 2 MB).", "Review the before/after previews and download the JPEG."],
+        "faqs": [["Does this guarantee a specific YouTube ranking or display?", "No. It creates a 1280 × 720 image; YouTube controls display and compression on its platform."], ["Is the source cropped?", "The image is cover-fitted and centered, so parts at the edges may be cropped."], ["Is the image uploaded?", "No. Resizing and encoding run in your browser."]],
+        "related": ["image-palette", "image-compress", "image-convert"]
+      }
+    },
+    {
+      "id": "svg-optimizer",
+      "slug": "svg-optimizer",
+      "section": "tools",
+      "category": "image",
+      "cardTitle": "SVG Optimizer & Cleaner",
+      "cardText": "Remove whitespace and unsafe SVG content locally.",
+      "tag": "SANITIZE · MINIFY",
+      "icon": "teal",
+      "svg": "<path d=\"M4 5h16v14H4z\"/><path d=\"m8 9-2 3 2 3M16 9l2 3-2 3m-2-5-2 5\"/>",
+      "keywords": ["svg optimizer", "svg cleaner", "sanitize svg", "minify svg", "svg compressor"],
+      "seo": {
+        "title": "SVG Optimizer & Sanitizer Online - Clean SVG Locally | iLoveMyFiles",
+        "description": "Minify SVG markup and remove scripts, event handlers and external references. Preview sanitized SVG and compare size locally.",
+        "intro": "Clean SVG whitespace and remove active or external content that can pose a risk when opening untrusted SVG files. Sanitization can change unsupported SVG behavior; always review the preview and keep your original.",
+        "steps": ["Upload an SVG or paste SVG markup.", "Inspect the isolated sanitized preview and size comparison.", "Download the cleaned SVG."],
+        "faqs": [["Does optimization preserve every visual effect?", "Not guaranteed. Unsupported or unsafe elements can be removed, so review the preview before using the output."], ["Are SVG scripts executed?", "No. The preview is sandboxed and scripts, event handlers, foreignObject and external resource references are removed."], ["Is the file uploaded?", "No. Parsing and sanitization happen in your browser."]],
+        "related": ["image-convert", "image-compress", "image-palette"]
+      }
+    },
+    {
+      "id": "jwt-decoder",
+      "slug": "jwt-decoder",
+      "section": "tools",
+      "category": "developer",
+      "cardTitle": "JWT Decoder & Inspector",
+      "cardText": "Decode JWT header, payload and common claim timestamps.",
+      "tag": "DECODE ONLY · NO VERIFY",
+      "icon": "purple",
+      "svg": "<path d=\"M12 3 20 6v5c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z\"/><path d=\"M9 12h6M12 9v6\"/>",
+      "keywords": ["jwt decoder", "jwt inspector", "decode json web token", "jwt claims", "jwt exp checker"],
+      "seo": {
+        "title": "JWT Decoder & Inspector Online - Decode Header and Claims | iLoveMyFiles",
+        "description": "Decode JWT header and payload and inspect standard claims locally. Signature is not verified; never paste signing secrets.",
+        "intro": "Inspect the JSON header and payload of a compact JSON Web Token, including common timestamps and expiration. Decoding does not verify the signature or prove who issued the token. Treat tokens as credentials and use only tokens you are authorized to inspect.",
+        "steps": ["Paste a three-part compact JWT.", "Run the decoder to inspect header, payload and recognized claims.", "Review the explicit signature-verification warning."],
+        "faqs": [["Does this verify the signature?", "No. It only base64url-decodes header and payload. No signature verification occurs."], ["Should I paste a production token?", "Avoid sharing active credentials. The tool runs locally, but tokens can grant account access."], ["Does expiry mean the token is valid?", "No. The exp claim is displayed against your device clock; issuer, signature and other validation are not checked."]],
+        "related": ["base64-encoder", "hash-generator", "uuid-decoder"]
+      }
+    },
+    {
+      "id": "json-typescript",
+      "slug": "json-to-typescript-zod",
+      "section": "tools",
+      "category": "developer",
+      "cardTitle": "JSON to TypeScript & Zod",
+      "cardText": "Generate interfaces and validation schemas from JSON samples.",
+      "tag": "TYPES · VALIDATION",
+      "icon": "blue",
+      "svg": "<path d=\"M4 5h16v14H4z\"/><path d=\"M8 9h8M8 12h5M8 15h8\"/><path d=\"m14 11 2 2 2-2\"/>",
+      "keywords": ["json to typescript", "json to zod", "typescript interface generator", "zod schema generator", "json schema types"],
+      "seo": {
+        "title": "JSON to TypeScript & Zod Schema Generator | iLoveMyFiles",
+        "description": "Generate TypeScript types and Zod validation schemas from JSON samples in your browser. Nested objects, arrays and optional fields supported.",
+        "intro": "Turn a representative JSON sample into TypeScript interfaces and Zod schemas. Inference is based on the sample, so review optional fields and unions against your real API data before shipping.",
+        "steps": ["Paste one JSON object or array of objects.", "Choose a root type name and optional-field behavior.", "Generate, review, copy or download the TypeScript and Zod code."],
+        "faqs": [["Can one example reveal every optional field?", "No. Fields missing from the provided sample cannot be inferred; provide representative samples or edit the generated output."], ["Does it support nested data?", "Yes, nested objects and arrays are recursively converted. Mixed sample types are represented as unions where possible."], ["Is the sample uploaded?", "No. Generation runs locally."]],
+        "related": ["json-formatter", "json-yaml-converter", "json-to-csv"]
+      }
+    },
+    {
+      "id": "ai-token-cost",
+      "slug": "ai-token-counter-cost-calculator",
+      "section": "tools",
+      "category": "ai",
+      "cardTitle": "AI Token Counter & Cost Estimator",
+      "cardText": "Estimate tokens and API cost using disclosed heuristic rates.",
+      "tag": "APPROXIMATE · USD",
+      "icon": "orange",
+      "svg": "<circle cx=\"12\" cy=\"12\" r=\"8\"/><path d=\"M12 7v10m3-8c0-2-6-2-6 0s6 2 6 4-6 2-6 0\"/>",
+      "keywords": ["ai token counter", "token cost calculator", "llm api cost estimator", "prompt cost estimate", "ai pricing estimate"],
+      "seo": {
+        "title": "AI Token Counter & API Cost Estimator - Approximate | iLoveMyFiles",
+        "description": "Estimate prompt tokens and AI API cost with a disclosed character-based approximation and dated sample rates.",
+        "intro": "Estimate prompt token usage and a rough input/output cost for a few example models. This lightweight estimator uses a character heuristic, not a model tokenizer, and prices can change; verify the linked provider pricing before budgeting.",
+        "steps": ["Paste a prompt and choose a listed model.", "Enter the expected generated output token count.", "Review the approximate token count, cost formula, price source and review date."],
+        "faqs": [["Is the token count exact?", "No. It uses a disclosed characters-per-token heuristic. Actual tokenization depends on model and content."], ["Are prices guaranteed current?", "No. Sample rates have a review date and a provider source link; verify current pricing before making decisions."], ["Is my prompt uploaded?", "No. The estimate runs locally in your browser."]],
+        "related": ["json-formatter", "hash-generator", "base64-encoder"]
+      }
+    },
+    {
+      "id": "seo-meta-generator",
+      "slug": "seo-meta-tag-generator",
+      "section": "tools",
+      "category": "seo",
+      "cardTitle": "SEO Meta Tags & SERP Preview",
+      "cardText": "Create title, description, canonical and Open Graph tags.",
+      "tag": "META · OPEN GRAPH",
+      "icon": "purple",
+      "svg": "<path d=\"M4 5h16v14H4z\"/><path d=\"M7 9h10M7 12h7M7 16h10\"/>",
+      "keywords": ["seo meta tag generator", "meta description generator", "open graph tags", "canonical tag generator", "serp preview"],
+      "seo": {
+        "title": "SEO Meta Tag Generator & Search Result Preview | iLoveMyFiles",
+        "description": "Generate copy-ready title, description, canonical and Open Graph tags with a simulated search preview.",
+        "intro": "Build common page metadata and preview how a search-result snippet might look. Search engines can rewrite titles and snippets; length guidance is advisory, not a guarantee of display.",
+        "steps": ["Enter a title and description; add canonical and social image URLs if needed.", "Review the simulated search and social previews.", "Copy the generated HTML into your page head."],
+        "faqs": [["Will Google show this exact snippet?", "Not guaranteed. Google may choose different title links and snippets based on the query and page content."], ["Are character limits fixed?", "No. The preview is a rough guide; display width and query context matter."], ["Does it publish my metadata?", "No. It generates HTML locally for you to review and use."]],
+        "related": ["robots-txt-validator", "sitemap-validator", "html-entities"]
+      }
+    },
+    {
+      "id": "robots-sitemap-validator",
+      "slug": "robots-txt-sitemap-validator",
+      "section": "tools",
+      "category": "seo",
+      "cardTitle": "Robots.txt & Sitemap Validator",
+      "cardText": "Check robots directives and sitemap XML syntax offline.",
+      "tag": "OFFLINE SYNTAX CHECK",
+      "icon": "teal",
+      "svg": "<path d=\"M5 4h14v16H5z\"/><path d=\"M8 8h8M8 12h4M8 16h8\"/><path d=\"m14 12 2 2 3-4\"/>",
+      "keywords": ["robots.txt validator", "sitemap xml validator", "check sitemap", "robots tester", "sitemap syntax check"],
+      "seo": {
+        "title": "Robots.txt & XML Sitemap Validator - Offline Syntax Check | iLoveMyFiles",
+        "description": "Check robots.txt directives or sitemap XML syntax locally. Offline checks do not verify URLs, crawling or indexing.",
+        "intro": "Run an offline syntax and structure check on pasted robots.txt or sitemap XML. This does not fetch target URLs, test server behavior, submit a sitemap or confirm indexing.",
+        "steps": ["Choose robots.txt or sitemap XML mode.", "Paste the file content.", "Review syntax findings and apply fixes in your own file."],
+        "faqs": [["Does a valid sitemap mean it is indexed?", "No. Syntax validity does not show that URLs are crawlable, submitted or indexed."], ["Does this test my live robots.txt?", "No. It only checks the text you paste and does not make network requests."], ["Can it guarantee Google follows these directives?", "No. Robots processing can vary by crawler and server setup; check production behavior separately."]],
+        "related": ["seo-meta-generator", "json-formatter", "html-entities"]
+      }
+    },
+    {
+      "id": "prompt-security-checker",
+      "slug": "ai-prompt-security-checker",
+      "section": "tools",
+      "category": "ai",
+      "cardTitle": "AI Prompt Security Checker",
+      "cardText": "Flag common prompt injection and exposed-key patterns locally.",
+      "tag": "HEURISTIC · LOCAL",
+      "icon": "rose",
+      "svg": "<path d=\"M12 3 20 6v5c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z\"/><path d=\"M12 8v5m0 3h.01\"/>",
+      "keywords": ["prompt injection checker", "prompt security checker", "scan prompt for api key", "ai prompt safety", "prompt leak detector"],
+      "seo": {
+        "title": "AI Prompt Security Checker - Local Injection Heuristic Scan | iLoveMyFiles",
+        "description": "Scan prompt text for common injection phrases and exposed key patterns locally. Heuristic only; false positives and misses are possible.",
+        "intro": "Highlight a small set of common instruction-override phrases and recognizable key formats before reviewing a prompt. This is a local heuristic, not a complete security audit, and it may miss threats or flag benign text.",
+        "steps": ["Paste prompt text you are authorized to inspect.", "Run the local heuristic scan.", "Review each excerpt manually; do not treat a clean result as proof of safety."],
+        "faqs": [["Does this guarantee a prompt is safe?", "No. It checks a limited set of patterns and can produce false positives or miss attacks."], ["Is the prompt sent anywhere?", "No. The scan runs locally in your browser."], ["Should I paste live API keys?", "Avoid sharing active secrets. If a key may have been exposed, revoke and rotate it with its provider."]],
+        "related": ["jwt-decoder", "base64-encoder", "hash-generator"]
+      }
+    },
+    {
+      "id": "robots-txt-validator",
+      "slug": "robots-txt-validator",
+      "section": "tools",
+      "category": "seo",
+      "cardTitle": "Robots.txt Validator",
+      "cardText": "Check robots.txt directive syntax offline.",
+      "tag": "OFFLINE SYNTAX CHECK",
+      "icon": "teal",
+      "svg": "<path d=\"M5 4h14v16H5z\"/><path d=\"M8 8h8M8 12h4M8 16h8\"/><path d=\"m14 12 2 2 3-4\"/>",
+      "keywords": ["robots.txt validator", "robots tester", "robots rules checker", "robots syntax"],
+      "seo": {
+        "title": "Robots.txt Validator - Offline Syntax Check | iLoveMyFiles",
+        "description": "Check robots.txt directives offline in your browser. No live crawl, URL fetch or indexing claim.",
+        "intro": "Check pasted robots.txt syntax for directive formatting, group placement and common mistakes. This offline check does not fetch URLs or model every crawler's behavior.",
+        "steps": ["Paste robots.txt content.", "Run the syntax check.", "Review findings and test your live site separately."],
+        "faqs": [["Does this check Googlebot access on my live site?", "No. It checks pasted text only and sends no requests."], ["Does a clean result guarantee indexing?", "No. Robots syntax is only one crawlability factor and does not imply indexing."]],
+        "related": ["robots-sitemap-validator", "seo-meta-generator", "sitemap-validator"]
+      }
+    },
+    {
+      "id": "sitemap-validator",
+      "slug": "xml-sitemap-validator",
+      "section": "tools",
+      "category": "seo",
+      "cardTitle": "XML Sitemap Validator",
+      "cardText": "Check sitemap XML structure, URLs and duplicate entries offline.",
+      "tag": "OFFLINE XML CHECK",
+      "icon": "blue",
+      "svg": "<path d=\"M5 4h14v16H5z\"/><path d=\"M8 8h8M8 12h8M8 16h5\"/>",
+      "keywords": ["xml sitemap validator", "sitemap checker", "validate sitemap xml", "sitemap url format"],
+      "seo": {
+        "title": "XML Sitemap Validator - Offline Syntax & URL Check | iLoveMyFiles",
+        "description": "Validate sitemap XML structure, absolute URL formatting and duplicate locations locally. No indexing claims.",
+        "intro": "Check a pasted XML sitemap for a protocol urlset, loc elements, URL formatting, duplicates and lastmod dates. This is an offline syntax check, not an indexing or live URL test.",
+        "steps": ["Paste sitemap XML.", "Run the validator.", "Review reported XML or URL issues and verify your live sitemap separately."],
+        "faqs": [["Does a valid sitemap mean pages are indexed?", "No. A sitemap can be valid but URLs may be blocked, unavailable, non-canonical or not indexed."], ["Does the tool fetch every URL?", "No. No network requests are made; the content you paste is checked locally."]],
+        "related": ["robots-sitemap-validator", "robots-txt-validator", "seo-meta-generator"]
+      }
+    },
+    {
+      "id": "lorem-ipsum",
+      "slug": "lorem-ipsum-generator",
+      "category": "data",
+      "cardTitle": "Lorem Ipsum generator",
+      "cardText": "Generate placeholder paragraphs with adjustable length.",
+      "tag": "PLACEHOLDER TEXT",
+      "icon": "yellow",
+      "svg": "<path d=\"M5 5h14M5 9h14M5 13h10M5 17h12\"/>",
+      "keywords": ["lorem ipsum generator", "placeholder text", "dummy text", "sample paragraphs", "filler text"],
+      "seo": {
+        "title": "Lorem Ipsum Generator - Free Placeholder Text | iLoveMyFiles",
+        "description": "Generate placeholder paragraphs with a chosen number of words, locally in your browser.",
+        "intro": "Create simple placeholder paragraphs for mockups, layouts and prototypes. Choose the paragraph and word counts, then copy or download the generated text.",
+        "steps": ["Choose how many paragraphs and words you need.", "Choose whether to begin with Lorem ipsum.", "Generate, then copy or download the result."],
+        "faqs": [["Is this real content?", "No. Lorem Ipsum is placeholder text for design and layout testing."], ["Is text sent to a server?", "No. The text is generated locally in your browser."]],
+        "related": ["word-counter", "text-diff-checker", "text-replacement"]
+      }
+    },
+    {
+      "id": "image-palette",
+      "slug": "image-colour-palette",
+      "category": "image",
+      "cardTitle": "Image colour palette extractor",
+      "cardText": "Find dominant image colours and copy their HEX codes.",
+      "tag": "IMAGE · COLOURS",
+      "icon": "rose",
+      "svg": "<circle cx=\"8\" cy=\"8\" r=\"3\"/><circle cx=\"16\" cy=\"8\" r=\"3\"/><circle cx=\"8\" cy=\"16\" r=\"3\"/><circle cx=\"16\" cy=\"16\" r=\"3\"/>",
+      "keywords": ["image palette", "extract colours from image", "color palette generator", "dominant colors", "hex from image"],
+      "seo": {
+        "title": "Image Colour Palette Extractor - Find Dominant HEX Colours | iLoveMyFiles",
+        "description": "Extract approximate dominant colours and HEX codes from an image locally in your browser. No upload required.",
+        "intro": "Sample an image to discover its most common colours as HEX values. The image is processed locally and is not uploaded.",
+        "steps": ["Choose one image.", "Choose how many dominant colours to sample.", "Run the extractor and copy or download the HEX list."],
+        "faqs": [["Are these exact pixel colours?", "No. This is an approximate dominant palette based on quantised samples from a small thumbnail."], ["Are transparent pixels counted?", "Fully transparent pixels are ignored while sampling the palette."]],
+        "related": ["image-convert", "image-compress", "image-watermark"]
+      }
+    },
+    {
+      "id": "json-yaml",
+      "slug": "json-yaml-converter",
+      "category": "data",
+      "cardTitle": "JSON ↔ YAML converter",
+      "cardText": "Convert JSON to YAML or YAML to formatted JSON.",
+      "tag": "JSON · YAML",
+      "icon": "teal",
+      "svg": "<path d=\"M5 5h14v14H5zM8 9h8M8 12h5M8 15h8\"/><path d=\"m15 12 2 2 2-2\"/>",
+      "keywords": ["json to yaml", "yaml to json", "json yaml converter", "convert yaml json"],
+      "seo": {
+        "title": "JSON to YAML & YAML to JSON Converter - Free | iLoveMyFiles",
+        "description": "Convert JSON and YAML in either direction using your browser. Invalid data is reported locally; no upload required.",
+        "intro": "Move structured data between JSON and YAML. Choose a direction, validate the source and get formatted output without sending data to a server.",
+        "steps": ["Paste JSON or YAML.", "Choose the conversion direction.", "Run the converter, then copy or download the output."],
+        "faqs": [["Does the converter validate the input?", "Yes. Invalid JSON or YAML is reported with a parser error."], ["Is my data uploaded?", "No. Conversion runs locally in your browser."]],
+        "related": ["data-json", "yaml-json", "yaml-xml"]
+      }
+    },
+    {
+      "id": "text-diff",
+      "slug": "text-diff-checker",
+      "category": "data",
+      "cardTitle": "Text diff checker",
+      "cardText": "Compare two versions and see added or removed lines.",
+      "tag": "COMPARE TEXT",
+      "icon": "orange",
+      "svg": "<path d=\"M5 5h14M5 12h8M5 19h14\"/><path d=\"m17 9 3 3-3 3M12 16l-3 3 3 3\"/>",
+      "keywords": ["text diff", "compare text", "diff checker", "compare two texts", "text changes"],
+      "seo": {
+        "title": "Text Diff Checker - Compare Text Online Free | iLoveMyFiles",
+        "description": "Compare two text versions line by line and identify additions, removals and unchanged lines locally in your browser.",
+        "intro": "Paste the updated version and the original to see a simple line-by-line diff. Added lines are prefixed with +, removed lines with -, and shared lines with two spaces.",
+        "steps": ["Paste the new text in the first box.", "Paste the original text in the comparison box.", "Run the comparison and copy or download the diff."],
+        "faqs": [["Does the comparison upload my text?", "No. The comparison is calculated locally in your browser."], ["How are changes marked?", "Added lines start with +, removed lines with -, and unchanged lines with two spaces."]],
+        "related": ["text-replace", "data-wordcount", "data-json"]
       }
     },
     {
@@ -1380,6 +1865,2648 @@
           "pdf-flatten",
           "ocr",
           "pdf-to-images"
+        ]
+      }
+    },
+    {
+      "id": "pdf-unlock",
+      "slug": "unlock-pdf",
+      "category": "security-pdf",
+      "cardTitle": "Unlock PDF",
+      "cardText": "Remove password protection from PDFs you own.",
+      "tag": "REMOVE PDF PASSWORD",
+      "icon": "yellow",
+      "svg": "<rect x=\"5\" y=\"10\" width=\"14\" height=\"10\" rx=\"2\"/><path d=\"M8 10V7a4 4 0 0 1 7.4-2.1\"/><circle cx=\"12\" cy=\"15\" r=\"1.4\"/>",
+      "keywords": [
+        "unlock pdf",
+        "remove pdf password",
+        "decrypt pdf",
+        "pdf password remover",
+        "unprotected pdf"
+      ],
+      "seo": {
+        "title": "Unlock PDF Online - Remove Password Protection | iLoveMyFiles",
+        "description": "Remove password protection from a PDF you own directly in your browser. Enter the password once, decrypt locally, and download an unlocked copy.",
+        "intro": "Unlock a password-protected PDF so it opens without a password and can be edited, printed or merged. Enter the current password once; the decryption and rebuild happen entirely on your device.",
+        "steps": [
+          "Add the protected PDF.",
+          "Enter its open password if the document asks for one.",
+          "Process the file, then download the unlocked PDF."
+        ],
+        "faqs": [
+          [
+            "Are my files uploaded?",
+            "No. The PDF is decrypted and rebuilt in your browser with pdf-lib. Nothing is sent to a server."
+          ],
+          [
+            "Can you crack a password I do not know?",
+            "No. The tool needs the correct password to decrypt the file. It does not brute-force or bypass unknown passwords."
+          ],
+          [
+            "Does this remove print or copy restrictions?",
+            "Yes. The rebuilt copy is saved without the previous encryption and permission flags, so only unlock documents you are allowed to modify."
+          ]
+        ],
+        "related": [
+          "pdf-protect",
+          "pdf-sign",
+          "pdf-compress"
+        ]
+      }
+    },
+    {
+      "id": "pdf-protect",
+      "slug": "protect-pdf",
+      "category": "security-pdf",
+      "cardTitle": "Protect PDF",
+      "cardText": "Add AES-256 password protection and permissions.",
+      "tag": "AES-256 ENCRYPTION",
+      "icon": "green",
+      "svg": "<rect x=\"5\" y=\"10\" width=\"14\" height=\"10\" rx=\"2\"/><path d=\"M8 10V7a4 4 0 0 1 8 0v3\"/><circle cx=\"12\" cy=\"15\" r=\"1.4\"/>",
+      "keywords": [
+        "protect pdf",
+        "password protect pdf",
+        "encrypt pdf",
+        "aes-256 pdf",
+        "restrict pdf"
+      ],
+      "seo": {
+        "title": "Protect PDF with Password - AES-256 Encryption | iLoveMyFiles",
+        "description": "Password-protect a PDF with AES-256 encryption and optional print, copy and edit permissions. Everything runs locally in your browser.",
+        "intro": "Add a password to a PDF and choose what readers are allowed to do. The file is encrypted with AES-256 in your browser, so neither the document nor the password ever leaves your device.",
+        "steps": [
+          "Add the PDF you want to protect.",
+          "Set an open password and choose the allowed actions.",
+          "Process the file and download the encrypted copy."
+        ],
+        "faqs": [
+          [
+            "How strong is the encryption?",
+            "The output uses AES-256 encryption through pdf-lib. Use a long, unique password because there is no recovery option."
+          ],
+          [
+            "Can I recover a forgotten password?",
+            "No. Keep the password safe - the encrypted file cannot be opened without it, and this tool cannot recover it."
+          ],
+          [
+            "Will every reader respect the permissions?",
+            "Open-password protection is widely honoured. Some PDF readers ignore permission-only restrictions, so do not rely on them for sensitive data."
+          ]
+        ],
+        "related": [
+          "pdf-unlock",
+          "pdf-sign",
+          "pdf-remove-metadata"
+        ]
+      }
+    },
+    {
+      "id": "pdf-sign",
+      "slug": "sign-pdf",
+      "category": "security-pdf",
+      "cardTitle": "Sign PDF",
+      "cardText": "Add a typed signature and date to any page.",
+      "tag": "TYPED SIGNATURE",
+      "icon": "purple",
+      "svg": "<path d=\"M4 20h16\"/><path d=\"M5 15l8-9 3 3-8 9H5z\"/><path d=\"M13 6l3 3\"/>",
+      "keywords": [
+        "sign pdf",
+        "add signature to pdf",
+        "typed signature",
+        "pdf signer",
+        "sign document"
+      ],
+      "seo": {
+        "title": "Sign PDF Online - Add a Typed Signature | iLoveMyFiles",
+        "description": "Add a typed signature and date to a PDF in your browser. Choose the page, position, size and style, then download the signed file.",
+        "intro": "Place a visible typed signature on one page or every page of a PDF. Pick the style, size, colour and corner, then download a signed copy without uploading the document.",
+        "steps": [
+          "Add the PDF you want to sign.",
+          "Type your name and choose the page, position and style.",
+          "Process the file, then download the signed PDF."
+        ],
+        "faqs": [
+          [
+            "Is this a legally binding signature?",
+            "It adds a visible typed signature, not a cryptographic certificate signature. Whether it is acceptable depends on the document and jurisdiction."
+          ],
+          [
+            "Can I sign every page?",
+            "Yes. Tick Apply to every page to place the same signature block on all pages."
+          ],
+          [
+            "Are my files uploaded?",
+            "No. The signature is drawn into the PDF locally with pdf-lib and standard PDF fonts."
+          ]
+        ],
+        "related": [
+          "pdf-protect",
+          "pdf-watermark",
+          "pdf-redact"
+        ]
+      }
+    },
+    {
+      "id": "pdf-redact",
+      "slug": "redact-pdf",
+      "category": "security-pdf",
+      "cardTitle": "Redact PDF",
+      "cardText": "Permanently black out matching text.",
+      "tag": "TRUE REDACTION",
+      "icon": "rose",
+      "svg": "<path d=\"M5 4h14v16H5z\"/><path d=\"M8 9h2M8 12h5M8 15h3\"/><rect x=\"13\" y=\"14\" width=\"3\" height=\"2\" fill=\"currentColor\" stroke=\"none\"/>",
+      "keywords": [
+        "redact pdf",
+        "black out pdf text",
+        "remove pdf text",
+        "pdf redaction",
+        "hide text in pdf"
+      ],
+      "seo": {
+        "title": "Redact PDF Online - Permanently Black Out Text | iLoveMyFiles",
+        "description": "Permanently redact words and phrases in a PDF. Matching pages are flattened so hidden text cannot be selected, copied or searched.",
+        "intro": "Search the PDF's text layer for words or phrases and cover every match with a black box. Pages containing a match are flattened, which removes their selectable text instead of only hiding it behind a rectangle.",
+        "steps": [
+          "Add a PDF with selectable text.",
+          "Enter the words or phrases to redact and choose the pages.",
+          "Process the file, then download the redacted PDF."
+        ],
+        "faqs": [
+          [
+            "Is the text really removed?",
+            "Yes, on pages with a match the page is rasterised after the boxes are drawn, so the original text layer is discarded. Text on unaffected pages is kept."
+          ],
+          [
+            "Can I redact a scanned PDF?",
+            "Not directly. Scanned pages have no text layer, so run the Make PDF searchable tool with OCR first."
+          ],
+          [
+            "Why did a phrase not match?",
+            "Matching is literal and works on extracted text. Try a shorter phrase, check the page range, and enable case-only differences by leaving Match case unticked."
+          ]
+        ],
+        "related": [
+          "pdf-ocr",
+          "pdf-sign",
+          "pdf-remove-metadata"
+        ]
+      }
+    },
+    {
+      "id": "pdf-compare",
+      "slug": "compare-pdf",
+      "category": "security-pdf",
+      "cardTitle": "Compare PDFs",
+      "cardText": "Find text changes between two PDFs.",
+      "tag": "TEXT DIFF REPORT",
+      "icon": "blue",
+      "svg": "<path d=\"M4 4h7v16H4zM13 4h7v16h-7z\"/><path d=\"M7 8h1M7 12h1M16 8h1M16 12h1M16 16h1\"/>",
+      "keywords": [
+        "compare pdf",
+        "pdf diff",
+        "compare two pdfs",
+        "pdf text comparison",
+        "document comparison"
+      ],
+      "seo": {
+        "title": "Compare Two PDFs Online - Text Diff Report | iLoveMyFiles",
+        "description": "Compare the text of two PDFs in your browser and download an HTML report showing added, removed and unchanged lines.",
+        "intro": "Load two versions of a PDF and see exactly which lines of text were added or removed. The comparison runs locally and produces a colour-coded HTML report you can download or preview.",
+        "steps": [
+          "Add exactly two PDFs.",
+          "Choose whether to ignore case, whitespace or unchanged pages.",
+          "Process the files, then preview or download the HTML report."
+        ],
+        "faqs": [
+          [
+            "What exactly is compared?",
+            "The selectable text layer, line by line. Images, fonts and layout changes are not compared, and a reflowed paragraph may appear as several changed lines."
+          ],
+          [
+            "Do scanned PDFs work?",
+            "Only if they have a text layer. Run OCR first on scanned documents so there is text to compare."
+          ],
+          [
+            "Are my documents uploaded?",
+            "No. Both PDFs are parsed with PDF.js in your browser and the report is generated locally."
+          ]
+        ],
+        "related": [
+          "pdf-merge",
+          "pdf-split",
+          "pdf-ocr"
+        ]
+      }
+    },
+    {
+      "id": "jpg-to-pdf",
+      "slug": "jpg-to-pdf",
+      "category": "to-pdf",
+      "cardTitle": "JPG to PDF",
+      "cardText": "Turn JPG photos into a single PDF.",
+      "tag": "JPG → PDF",
+      "icon": "orange",
+      "svg": "<rect x=\"4\" y=\"5\" width=\"16\" height=\"14\" rx=\"2\"/><circle cx=\"9\" cy=\"10\" r=\"1.6\"/><path d=\"m5 17 4.5-4 3 2.5 3-3L20 17\"/>",
+      "keywords": [
+        "jpg to pdf",
+        "jpeg to pdf",
+        "convert jpg to pdf",
+        "image to pdf",
+        "photos to pdf"
+      ],
+      "seo": {
+        "title": "JPG to PDF Online - Convert JPEG Photos to PDF | iLoveMyFiles",
+        "description": "Convert JPG and JPEG images into one PDF in your browser. Choose page size, orientation and margins, then download instantly.",
+        "intro": "Combine JPG photos into a single PDF, one image per page, in the order you arrange. The conversion runs locally, so your photos are never uploaded.",
+        "steps": [
+          "Add one or more JPG or JPEG images.",
+          "Reorder them and choose the page size, orientation and margin.",
+          "Process the files, then download the PDF."
+        ],
+        "faqs": [
+          [
+            "Can I add many photos?",
+            "Yes. Each image becomes its own page, and you can drag the rows to change their order before converting."
+          ],
+          [
+            "Does this work with PNG or WebP?",
+            "This tool accepts JPG and JPEG only. Use the Images to PDF tool for other image formats."
+          ],
+          [
+            "Are my photos uploaded?",
+            "No. The PDF is built in your browser with pdf-lib and the images never leave your device."
+          ]
+        ],
+        "related": [
+          "images-pdf",
+          "image-resize",
+          "image-compress"
+        ]
+      }
+    },
+    {
+      "id": "word-to-pdf",
+      "slug": "word-to-pdf",
+      "category": "to-pdf",
+      "cardTitle": "Word to PDF",
+      "cardText": "Convert DOCX documents into clean PDFs.",
+      "tag": "DOCX → PDF",
+      "icon": "blue",
+      "svg": "<path d=\"M5 3h9l5 5v13H5z\"/><path d=\"M14 3v5h5\"/><path d=\"M8 12l1.5 5 1.5-3.5 1.5 3.5 1.5-5\"/>",
+      "keywords": [
+        "word to pdf",
+        "docx to pdf",
+        "convert word document",
+        "word converter",
+        "docx pdf"
+      ],
+      "seo": {
+        "title": "Word to PDF Online - Convert DOCX Documents | iLoveMyFiles",
+        "description": "Convert DOCX files to PDF directly in your browser. Headings, paragraphs, lists, tables and images are kept, with no upload required.",
+        "intro": "Turn a Word .docx document into a PDF without uploading it. The converter reads the document locally, keeps its headings and basic formatting, and produces a PDF you can download.",
+        "steps": [
+          "Add one .docx file.",
+          "Run the tool and wait for the local conversion.",
+          "Download the generated PDF."
+        ],
+        "faqs": [
+          [
+            "Does it support .doc files?",
+            "No. Save legacy .doc files as .docx in Word, LibreOffice or Google Docs before converting."
+          ],
+          [
+            "Will the layout be identical?",
+            "Common formatting is preserved, but complex layouts, unusual fonts, columns and floating objects may shift. Check the result before sharing."
+          ],
+          [
+            "Are my documents uploaded?",
+            "No. The DOCX is parsed and converted to PDF in your browser."
+          ]
+        ],
+        "related": [
+          "powerpoint-to-pdf",
+          "excel-to-pdf",
+          "pdf-to-word"
+        ]
+      }
+    },
+    {
+      "id": "powerpoint-to-pdf",
+      "slug": "powerpoint-to-pdf",
+      "category": "to-pdf",
+      "cardTitle": "PowerPoint to PDF",
+      "cardText": "Convert PPTX presentations to PDF.",
+      "tag": "PPTX → PDF",
+      "icon": "orange",
+      "svg": "<path d=\"M4 4h16v12H4z\"/><path d=\"M12 16v4M8 20h8M7 12l3-3 2.5 2.5L17 7\"/>",
+      "keywords": [
+        "powerpoint to pdf",
+        "pptx to pdf",
+        "convert presentation",
+        "slides to pdf",
+        "ppt converter"
+      ],
+      "seo": {
+        "title": "PowerPoint to PDF Online - Convert PPTX Slides | iLoveMyFiles",
+        "description": "Convert PPTX presentations to PDF in your browser. Keep slide text, images and layout without uploading your file.",
+        "intro": "Convert a PowerPoint .pptx presentation into a PDF for easy sharing. Slide content is read locally and rendered into a printable PDF document.",
+        "steps": [
+          "Add one .pptx presentation.",
+          "Run the conversion.",
+          "Download the PDF and check the slide layout."
+        ],
+        "faqs": [
+          [
+            "Does it support old .ppt files?",
+            "No. Open the file in PowerPoint or LibreOffice and save it as .pptx first."
+          ],
+          [
+            "Are animations preserved?",
+            "No. PDF is a static format, so transitions, animations and embedded video are not included."
+          ],
+          [
+            "Are my slides uploaded?",
+            "No. The presentation is converted entirely inside your browser."
+          ]
+        ],
+        "related": [
+          "word-to-pdf",
+          "excel-to-pdf",
+          "pdf-to-powerpoint"
+        ]
+      }
+    },
+    {
+      "id": "excel-to-pdf",
+      "slug": "excel-to-pdf",
+      "category": "to-pdf",
+      "cardTitle": "Excel to PDF",
+      "cardText": "Convert XLSX spreadsheets to PDF.",
+      "tag": "XLSX → PDF",
+      "icon": "green",
+      "svg": "<path d=\"M5 3h14v18H5z\"/><path d=\"M5 9h14M5 15h14M10 3v18M15 3v18\"/>",
+      "keywords": [
+        "excel to pdf",
+        "xlsx to pdf",
+        "convert spreadsheet",
+        "spreadsheet pdf",
+        "excel converter"
+      ],
+      "seo": {
+        "title": "Excel to PDF Online - Convert XLSX Spreadsheets | iLoveMyFiles",
+        "description": "Convert XLSX spreadsheets to PDF locally in your browser. Keep worksheet tables and values without uploading your data.",
+        "intro": "Turn an Excel .xlsx workbook into a PDF for sharing or printing. Worksheets and cell values are read locally and laid out in a PDF document.",
+        "steps": [
+          "Add one .xlsx spreadsheet.",
+          "Run the local conversion.",
+          "Download the PDF and check wide sheets."
+        ],
+        "faqs": [
+          [
+            "Does it support .xls files?",
+            "No. Save older .xls workbooks as .xlsx before converting."
+          ],
+          [
+            "Will formulas and charts be kept?",
+            "Calculated cell values and tables are included; formulas and some charts may be flattened or simplified."
+          ],
+          [
+            "Is my spreadsheet uploaded?",
+            "No. The workbook is parsed and converted in your browser."
+          ]
+        ],
+        "related": [
+          "word-to-pdf",
+          "powerpoint-to-pdf",
+          "pdf-to-excel"
+        ]
+      }
+    },
+    {
+      "id": "html-to-pdf",
+      "slug": "html-to-pdf",
+      "category": "to-pdf",
+      "cardTitle": "HTML to PDF",
+      "cardText": "Convert a saved HTML file into a PDF.",
+      "tag": "HTML → PDF",
+      "icon": "purple",
+      "svg": "<path d=\"M4 4h16v16H4z\"/><path d=\"m8 9-2.5 3L8 15M16 9l2.5 3L16 15M13 7l-2 10\"/>",
+      "keywords": [
+        "html to pdf",
+        "convert html",
+        "save webpage pdf",
+        "html converter",
+        "webpage to pdf"
+      ],
+      "seo": {
+        "title": "HTML to PDF Online - Convert Saved Web Pages | iLoveMyFiles",
+        "description": "Convert a saved HTML file into a PDF in your browser. Styles are rendered locally, with no upload or third-party service.",
+        "intro": "Turn a saved .html or .htm file into a PDF document. The page is rendered locally with its embedded styles and split into printable pages.",
+        "steps": [
+          "Add one saved .html or .htm file.",
+          "Run the conversion.",
+          "Download the PDF and check images and fonts."
+        ],
+        "faqs": [
+          [
+            "Can I convert a URL directly?",
+            "Not currently. Save the page from your browser as HTML, then add that file."
+          ],
+          [
+            "Why are images or fonts missing?",
+            "Only content available inside the saved file is used. External images, web fonts and scripts may not load offline."
+          ],
+          [
+            "Are my files uploaded?",
+            "No. The HTML is rendered and converted inside your browser."
+          ]
+        ],
+        "related": [
+          "word-to-pdf",
+          "pdf-to-word",
+          "pdf-to-pdfa"
+        ]
+      }
+    },
+    {
+      "id": "pdf-to-jpg",
+      "slug": "pdf-to-jpg",
+      "category": "convert-pdf",
+      "cardTitle": "PDF to JPG",
+      "cardText": "Render each PDF page as a JPG image.",
+      "tag": "PDF → JPG",
+      "icon": "blue",
+      "svg": "<rect x=\"4\" y=\"4\" width=\"16\" height=\"16\" rx=\"2\"/><path d=\"M5 17l4-4 3 3 2-2 5 5\"/><circle cx=\"15.5\" cy=\"8.5\" r=\"1.5\"/>",
+      "keywords": [
+        "pdf to jpg",
+        "pdf to jpeg",
+        "convert pdf to image",
+        "pdf page image",
+        "pdf jpg converter"
+      ],
+      "seo": {
+        "title": "PDF to JPG Online - Convert Pages to JPEG Images | iLoveMyFiles",
+        "description": "Convert PDF pages to JPG images in your browser. Choose pages and resolution, then download individual images or a ZIP.",
+        "intro": "Turn each page of a PDF into a JPG image at the resolution you choose. The PDF is rendered locally with PDF.js, so confidential documents stay on your device.",
+        "steps": [
+          "Add one PDF file.",
+          "Choose the resolution and optionally a page range.",
+          "Process the file, then download the JPGs or the ZIP."
+        ],
+        "faqs": [
+          [
+            "How do I choose specific pages?",
+            "Leave the pages box empty for all pages, or enter ranges such as 1-3, 5, 8-10."
+          ],
+          [
+            "What resolution should I use?",
+            "150 DPI is a good balance for screens. Use 200 or 300 DPI for printing, keeping in mind that larger images increase the download size."
+          ],
+          [
+            "Are my PDFs uploaded?",
+            "No. Rendering happens with PDF.js in your browser and nothing is sent to a server."
+          ]
+        ],
+        "related": [
+          "pdf-to-images",
+          "jpg-to-pdf",
+          "pdf-to-powerpoint"
+        ]
+      }
+    },
+    {
+      "id": "pdf-to-word",
+      "slug": "pdf-to-word",
+      "category": "convert-pdf",
+      "cardTitle": "PDF to Word",
+      "cardText": "Convert selectable PDF text into a DOCX file.",
+      "tag": "PDF → DOCX",
+      "icon": "blue",
+      "svg": "<path d=\"M5 3h9l5 5v13H5z\"/><path d=\"M14 3v5h5\"/><path d=\"M8 12l1.5 5 1.5-3.5 1.5 3.5 1.5-5\"/>",
+      "keywords": [
+        "pdf to word",
+        "pdf to docx",
+        "convert pdf to word",
+        "pdf word converter",
+        "editable pdf"
+      ],
+      "seo": {
+        "title": "PDF to Word Online - Convert PDF to DOCX | iLoveMyFiles",
+        "description": "Convert the selectable text of a PDF into an editable Word DOCX document in your browser. No upload, no sign-up.",
+        "intro": "Extract text from a PDF and place it into a Word .docx document. Paragraphs and line breaks are rebuilt from the PDF's text layer, giving you an editable starting point for text-heavy documents.",
+        "steps": [
+          "Add one PDF with selectable text.",
+          "Run the conversion.",
+          "Download the DOCX and refine the layout in Word."
+        ],
+        "faqs": [
+          [
+            "Will the page layout match exactly?",
+            "No. Text is rebuilt into paragraphs, so columns, tables, images and precise positioning are simplified. Check the result before publishing."
+          ],
+          [
+            "Can it read scanned PDFs?",
+            "Not directly. Run the Make PDF searchable tool with OCR first, then convert the searchable PDF."
+          ],
+          [
+            "Are my files uploaded?",
+            "No. Text is extracted with PDF.js and the DOCX is generated in your browser."
+          ]
+        ],
+        "related": [
+          "word-to-pdf",
+          "pdf-to-excel",
+          "pdf-ocr"
+        ]
+      }
+    },
+    {
+      "id": "pdf-to-powerpoint",
+      "slug": "pdf-to-powerpoint",
+      "category": "convert-pdf",
+      "cardTitle": "PDF to PowerPoint",
+      "cardText": "Turn each PDF page into a slide image.",
+      "tag": "PDF → PPTX",
+      "icon": "orange",
+      "svg": "<path d=\"M4 4h16v12H4z\"/><path d=\"M12 16v4M8 20h8\"/><circle cx=\"9\" cy=\"8\" r=\"1.5\"/><path d=\"m5 14 4-3 3 2 2-2 5 4\"/>",
+      "keywords": [
+        "pdf to powerpoint",
+        "pdf to pptx",
+        "convert pdf slides",
+        "pdf presentation",
+        "pdf to slide"
+      ],
+      "seo": {
+        "title": "PDF to PowerPoint Online - Convert Pages to Slides | iLoveMyFiles",
+        "description": "Turn each PDF page into an image slide in a PPTX presentation, directly in your browser. Choose the slide resolution and download.",
+        "intro": "Create a PowerPoint presentation from a PDF by placing each page as a picture on its own slide. The slide size follows the page shape, so the result looks like the original document.",
+        "steps": [
+          "Add one PDF file.",
+          "Choose the slide image resolution.",
+          "Process the file, then download the PPTX."
+        ],
+        "faqs": [
+          [
+            "Is the text editable in PowerPoint?",
+            "No. Each page is added as an image, so text is not editable. Use PDF to Word for editable text."
+          ],
+          [
+            "Why is the file large?",
+            "Higher DPI settings create larger slide images. Use 110 or 150 DPI for smaller presentations."
+          ],
+          [
+            "Are my PDFs uploaded?",
+            "No. Pages are rendered with PDF.js and the PPTX is assembled in your browser."
+          ]
+        ],
+        "related": [
+          "powerpoint-to-pdf",
+          "pdf-to-jpg",
+          "pdf-to-images"
+        ]
+      }
+    },
+    {
+      "id": "pdf-to-excel",
+      "slug": "pdf-to-excel",
+      "category": "convert-pdf",
+      "cardTitle": "PDF to Excel",
+      "cardText": "Place PDF text into rows and columns in XLSX.",
+      "tag": "PDF → XLSX",
+      "icon": "green",
+      "svg": "<path d=\"M5 3h14v18H5z\"/><path d=\"M5 9h14M5 15h14M10 3v18M15 3v18\"/><path d=\"m7 6 1.5 1L10 5\"/>",
+      "keywords": [
+        "pdf to excel",
+        "pdf to xlsx",
+        "convert pdf to spreadsheet",
+        "pdf table to excel",
+        "pdf data extraction"
+      ],
+      "seo": {
+        "title": "PDF to Excel Online - Convert PDF to XLSX | iLoveMyFiles",
+        "description": "Convert selectable PDF text into an XLSX workbook in your browser. Each page becomes a worksheet with rows and columns grouped by position.",
+        "intro": "Extract text from a PDF into an Excel workbook, with each page placed on its own worksheet. Text is grouped into rows and columns using its position on the page, so tables are the best fit.",
+        "steps": [
+          "Add one PDF with selectable text.",
+          "Run the conversion.",
+          "Download the XLSX and clean up columns in Excel."
+        ],
+        "faqs": [
+          [
+            "Does it keep tables intact?",
+            "It groups text by vertical and horizontal position, which works best for simple tables. Merged cells and complex layouts may need manual clean-up."
+          ],
+          [
+            "Can it read scanned PDFs?",
+            "Not directly. Make the PDF searchable with OCR first, then convert it."
+          ],
+          [
+            "Are my files uploaded?",
+            "No. The PDF is parsed with PDF.js and the workbook is generated locally."
+          ]
+        ],
+        "related": [
+          "excel-to-pdf",
+          "pdf-to-word",
+          "pdf-ocr"
+        ]
+      }
+    },
+    {
+      "id": "pdf-to-pdfa",
+      "slug": "pdf-to-pdfa",
+      "category": "convert-pdf",
+      "cardTitle": "PDF to PDF/A",
+      "cardText": "Create an archival PDF/A copy with metadata.",
+      "tag": "PDF/A ARCHIVE",
+      "icon": "teal",
+      "svg": "<path d=\"M5 4h14v16H5z\"/><path d=\"M8 8h8M8 12h8M8 16h5\"/><circle cx=\"17\" cy=\"17\" r=\"3\"/><path d=\"m16 17 1 1 2-2\"/>",
+      "keywords": [
+        "pdf to pdfa",
+        "pdf/a converter",
+        "archival pdf",
+        "pdfa-2b",
+        "long term pdf"
+      ],
+      "seo": {
+        "title": "PDF to PDF/A Online - Archival Conversion | iLoveMyFiles",
+        "description": "Create a PDF/A archival copy in your browser. Adds XMP metadata and an sRGB output intent, with optional page rasterisation.",
+        "intro": "Convert a PDF into a PDF/A copy intended for long-term archiving. The tool adds the PDF/A identifier, XMP metadata and an embedded sRGB output intent, and can rasterise pages for maximum compatibility.",
+        "steps": [
+          "Add one PDF file.",
+          "Choose the PDF/A level and whether to rasterise pages.",
+          "Process the file and validate the result if strict compliance is required."
+        ],
+        "faqs": [
+          [
+            "Is the output fully PDF/A compliant?",
+            "The conversion is best-effort and adds the required structure for common cases, but strict compliance depends on the source. Validate with veraPDF for archival use."
+          ],
+          [
+            "Should I rasterise the pages?",
+            "Rasterising removes selectable text and can increase the file size, but it avoids font and transparency problems. Leave it off to preserve searchable text."
+          ],
+          [
+            "Are my files uploaded?",
+            "No. The conversion runs locally with pdf-lib in your browser."
+          ]
+        ],
+        "related": [
+          "pdf-compress",
+          "pdf-remove-metadata",
+          "pdf-flatten"
+        ]
+      }
+    },
+    {
+      "id": "url-codec",
+      "slug": "url-encoder",
+      "category": "data",
+      "cardTitle": "URL encoder",
+      "cardText": "Percent-encode text for use in URL components.",
+      "tag": "URL ENCODE · DECODE",
+      "icon": "purple",
+      "svg": "<path d=\"M4 12h16M13 5l7 7-7 7\"/><path d=\"M4 5v14\"/>",
+      "keywords": [
+        "url encoder",
+        "url encoder",
+        "url encoder"
+      ],
+      "seo": {
+        "title": "URL encoder Online - Free & Private | iLoveMyFiles",
+        "description": "Percent-encode text for use in URL components. Runs in your browser; your text stays on your device.",
+        "intro": "Percent-encode text for use in URL components. Use the controls to choose how to process your input, then copy or download the result.",
+        "steps": [
+          "Enter text or values in the input area.",
+          "Choose the operation and options.",
+          "Run the tool, then copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Are my files or text uploaded?",
+            "No. Processing happens locally in your browser."
+          ],
+          [
+            "Can I copy the result?",
+            "Yes. Copy the output or download it as a text file."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-wordcount"
+        ]
+      }
+    },
+    {
+      "id": "text-binary",
+      "slug": "text-to-binary",
+      "category": "data",
+      "cardTitle": "Text to Binary",
+      "cardText": "Convert text to UTF-8 binary bytes, or decode binary bytes into text.",
+      "tag": "BINARY CONVERTER",
+      "icon": "orange",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h2v2H8zM12 9h2M16 9h-2M8 13h2M12 13h2M16 13h-2\"/>",
+      "keywords": [
+        "text to binary",
+        "text to binary",
+        "text to binary"
+      ],
+      "seo": {
+        "title": "Text to Binary Online - Free & Private | iLoveMyFiles",
+        "description": "Convert text to UTF-8 binary bytes, or decode binary bytes into text. Runs in your browser; your text stays on your device.",
+        "intro": "Convert text to UTF-8 binary bytes, or decode binary bytes into text. Use the controls to choose how to process your input, then copy or download the result.",
+        "steps": [
+          "Enter text or values in the input area.",
+          "Choose the operation and options.",
+          "Run the tool, then copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Are my files or text uploaded?",
+            "No. Processing happens locally in your browser."
+          ],
+          [
+            "Can I copy the result?",
+            "Yes. Copy the output or download it as a text file."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-wordcount"
+        ]
+      }
+    },
+    {
+      "id": "text-hex",
+      "slug": "text-to-hex",
+      "category": "data",
+      "cardTitle": "Text to Hex",
+      "cardText": "Convert text to hexadecimal bytes, or decode hex back into text.",
+      "tag": "HEX CONVERTER",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"m8 16 8-8M8 8h3v3M13 13h3v3\"/>",
+      "keywords": [
+        "text to hex",
+        "text to hex",
+        "text to hex"
+      ],
+      "seo": {
+        "title": "Text to Hex Online - Free & Private | iLoveMyFiles",
+        "description": "Convert text to hexadecimal bytes, or decode hex back into text. Runs in your browser; your text stays on your device.",
+        "intro": "Convert text to hexadecimal bytes, or decode hex back into text. Use the controls to choose how to process your input, then copy or download the result.",
+        "steps": [
+          "Enter text or values in the input area.",
+          "Choose the operation and options.",
+          "Run the tool, then copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Are my files or text uploaded?",
+            "No. Processing happens locally in your browser."
+          ],
+          [
+            "Can I copy the result?",
+            "Yes. Copy the output or download it as a text file."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-wordcount"
+        ]
+      }
+    },
+    {
+      "id": "text-case",
+      "slug": "text-case-converter",
+      "category": "data",
+      "cardTitle": "Text case converter",
+      "cardText": "Convert text to uppercase, lowercase, title case or sentence case.",
+      "tag": "CASE FORMATTING",
+      "icon": "teal",
+      "svg": "<path d=\"M4 7h16M4 12h10M4 17h13\"/><path d=\"m17 10 3 2-3 2\"/>",
+      "keywords": [
+        "text case converter",
+        "text case converter",
+        "text case converter"
+      ],
+      "seo": {
+        "title": "Text case converter Online - Free & Private | iLoveMyFiles",
+        "description": "Convert text to uppercase, lowercase, title case or sentence case. Runs in your browser; your text stays on your device.",
+        "intro": "Convert text to uppercase, lowercase, title case or sentence case. Use the controls to choose how to process your input, then copy or download the result.",
+        "steps": [
+          "Enter text or values in the input area.",
+          "Choose the operation and options.",
+          "Run the tool, then copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Are my files or text uploaded?",
+            "No. Processing happens locally in your browser."
+          ],
+          [
+            "Can I copy the result?",
+            "Yes. Copy the output or download it as a text file."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-wordcount"
+        ]
+      }
+    },
+    {
+      "id": "text-reverse",
+      "slug": "reverse-text",
+      "category": "data",
+      "cardTitle": "Reverse text",
+      "cardText": "Reverse the order of characters in a text string.",
+      "tag": "REVERSE STRING",
+      "icon": "rose",
+      "svg": "<path d=\"M4 12h16M13 5l7 7-7 7\"/><path d=\"M4 5v14\"/>",
+      "keywords": [
+        "reverse text",
+        "reverse text",
+        "reverse text"
+      ],
+      "seo": {
+        "title": "Reverse text Online - Free & Private | iLoveMyFiles",
+        "description": "Reverse the order of characters in a text string. Runs in your browser; your text stays on your device.",
+        "intro": "Reverse the order of characters in a text string. Use the controls to choose how to process your input, then copy or download the result.",
+        "steps": [
+          "Enter text or values in the input area.",
+          "Choose the operation and options.",
+          "Run the tool, then copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Are my files or text uploaded?",
+            "No. Processing happens locally in your browser."
+          ],
+          [
+            "Can I copy the result?",
+            "Yes. Copy the output or download it as a text file."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-wordcount"
+        ]
+      }
+    },
+    {
+      "id": "text-dedupe",
+      "slug": "remove-duplicate-lines",
+      "category": "data",
+      "cardTitle": "Remove duplicate lines",
+      "cardText": "Remove repeated lines while preserving the first occurrence.",
+      "tag": "DEDUPLICATE LINES",
+      "icon": "purple",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h2v2H8zM12 9h2M16 9h-2M8 13h2M12 13h2M16 13h-2\"/>",
+      "keywords": [
+        "remove duplicate lines",
+        "remove duplicate lines",
+        "remove duplicate lines"
+      ],
+      "seo": {
+        "title": "Remove duplicate lines Online - Free & Private | iLoveMyFiles",
+        "description": "Remove repeated lines while preserving the first occurrence. Runs in your browser; your text stays on your device.",
+        "intro": "Remove repeated lines while preserving the first occurrence. Use the controls to choose how to process your input, then copy or download the result.",
+        "steps": [
+          "Enter text or values in the input area.",
+          "Choose the operation and options.",
+          "Run the tool, then copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Are my files or text uploaded?",
+            "No. Processing happens locally in your browser."
+          ],
+          [
+            "Can I copy the result?",
+            "Yes. Copy the output or download it as a text file."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-wordcount"
+        ]
+      }
+    },
+    {
+      "id": "text-sort",
+      "slug": "sort-lines",
+      "category": "data",
+      "cardTitle": "Sort lines alphabetically",
+      "cardText": "Sort lines ascending or descending with natural numeric ordering.",
+      "tag": "SORT LINES",
+      "icon": "orange",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"m8 16 8-8M8 8h3v3M13 13h3v3\"/>",
+      "keywords": [
+        "sort lines alphabetically",
+        "sort lines alphabetically",
+        "sort lines"
+      ],
+      "seo": {
+        "title": "Sort lines alphabetically Online - Free & Private | iLoveMyFiles",
+        "description": "Sort lines ascending or descending with natural numeric ordering. Runs in your browser; your text stays on your device.",
+        "intro": "Sort lines ascending or descending with natural numeric ordering. Use the controls to choose how to process your input, then copy or download the result.",
+        "steps": [
+          "Enter text or values in the input area.",
+          "Choose the operation and options.",
+          "Run the tool, then copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Are my files or text uploaded?",
+            "No. Processing happens locally in your browser."
+          ],
+          [
+            "Can I copy the result?",
+            "Yes. Copy the output or download it as a text file."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-wordcount"
+        ]
+      }
+    },
+    {
+      "id": "text-line-numbers",
+      "slug": "add-line-numbers",
+      "category": "data",
+      "cardTitle": "Add line numbers",
+      "cardText": "Prefix each line with its line number.",
+      "tag": "NUMBER EACH LINE",
+      "icon": "blue",
+      "svg": "<path d=\"M4 7h16M4 12h10M4 17h13\"/><path d=\"m17 10 3 2-3 2\"/>",
+      "keywords": [
+        "add line numbers",
+        "add line numbers",
+        "add line numbers"
+      ],
+      "seo": {
+        "title": "Add line numbers Online - Free & Private | iLoveMyFiles",
+        "description": "Prefix each line with its line number. Runs in your browser; your text stays on your device.",
+        "intro": "Prefix each line with its line number. Use the controls to choose how to process your input, then copy or download the result.",
+        "steps": [
+          "Enter text or values in the input area.",
+          "Choose the operation and options.",
+          "Run the tool, then copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Are my files or text uploaded?",
+            "No. Processing happens locally in your browser."
+          ],
+          [
+            "Can I copy the result?",
+            "Yes. Copy the output or download it as a text file."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-wordcount"
+        ]
+      }
+    },
+    {
+      "id": "text-remove-empty",
+      "slug": "remove-empty-lines",
+      "category": "data",
+      "cardTitle": "Remove empty lines",
+      "cardText": "Remove blank and whitespace-only lines from text.",
+      "tag": "CLEAN EMPTY LINES",
+      "icon": "teal",
+      "svg": "<path d=\"M4 12h16M13 5l7 7-7 7\"/><path d=\"M4 5v14\"/>",
+      "keywords": [
+        "remove empty lines",
+        "remove empty lines",
+        "remove empty lines"
+      ],
+      "seo": {
+        "title": "Remove empty lines Online - Free & Private | iLoveMyFiles",
+        "description": "Remove blank and whitespace-only lines from text. Runs in your browser; your text stays on your device.",
+        "intro": "Remove blank and whitespace-only lines from text. Use the controls to choose how to process your input, then copy or download the result.",
+        "steps": [
+          "Enter text or values in the input area.",
+          "Choose the operation and options.",
+          "Run the tool, then copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Are my files or text uploaded?",
+            "No. Processing happens locally in your browser."
+          ],
+          [
+            "Can I copy the result?",
+            "Yes. Copy the output or download it as a text file."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-wordcount"
+        ]
+      }
+    },
+    {
+      "id": "text-replace",
+      "slug": "text-replacement",
+      "category": "data",
+      "cardTitle": "Text replacement tool",
+      "cardText": "Find text and replace one or every matching occurrence.",
+      "tag": "FIND & REPLACE",
+      "icon": "rose",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h2v2H8zM12 9h2M16 9h-2M8 13h2M12 13h2M16 13h-2\"/>",
+      "keywords": [
+        "text replacement tool",
+        "text replacement tool",
+        "text replacement"
+      ],
+      "seo": {
+        "title": "Text replacement tool Online - Free & Private | iLoveMyFiles",
+        "description": "Find text and replace one or every matching occurrence. Runs in your browser; your text stays on your device.",
+        "intro": "Find text and replace one or every matching occurrence. Use the controls to choose how to process your input, then copy or download the result.",
+        "steps": [
+          "Enter text or values in the input area.",
+          "Choose the operation and options.",
+          "Run the tool, then copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Are my files or text uploaded?",
+            "No. Processing happens locally in your browser."
+          ],
+          [
+            "Can I copy the result?",
+            "Yes. Copy the output or download it as a text file."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-wordcount"
+        ]
+      }
+    },
+    {
+      "id": "percentage-calculator",
+      "slug": "percentage-calculator",
+      "category": "data",
+      "cardTitle": "Percentage calculator",
+      "cardText": "Calculate a percentage of a value or percentage change.",
+      "tag": "PERCENTAGE MATH",
+      "icon": "purple",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"m8 16 8-8M8 8h3v3M13 13h3v3\"/>",
+      "keywords": [
+        "percentage calculator",
+        "percentage calculator",
+        "percentage calculator"
+      ],
+      "seo": {
+        "title": "Percentage calculator Online - Free & Private | iLoveMyFiles",
+        "description": "Calculate a percentage of a value or percentage change. Runs in your browser; your text stays on your device.",
+        "intro": "Calculate a percentage of a value or percentage change. Use the controls to choose how to process your input, then copy or download the result.",
+        "steps": [
+          "Enter text or values in the input area.",
+          "Choose the operation and options.",
+          "Run the tool, then copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Are my files or text uploaded?",
+            "No. Processing happens locally in your browser."
+          ],
+          [
+            "Can I copy the result?",
+            "Yes. Copy the output or download it as a text file."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-wordcount"
+        ]
+      }
+    },
+    {
+      "id": "age-calculator",
+      "slug": "age-calculator",
+      "category": "data",
+      "cardTitle": "Age calculator",
+      "cardText": "Calculate age in years, months and days from a date of birth.",
+      "tag": "AGE IN YEARS · MONTHS · DAYS",
+      "icon": "orange",
+      "svg": "<path d=\"M4 7h16M4 12h10M4 17h13\"/><path d=\"m17 10 3 2-3 2\"/>",
+      "keywords": [
+        "age calculator",
+        "age calculator",
+        "age calculator"
+      ],
+      "seo": {
+        "title": "Age calculator Online - Free & Private | iLoveMyFiles",
+        "description": "Calculate age in years, months and days from a date of birth. Runs in your browser; your text stays on your device.",
+        "intro": "Calculate age in years, months and days from a date of birth. Use the controls to choose how to process your input, then copy or download the result.",
+        "steps": [
+          "Enter text or values in the input area.",
+          "Choose the operation and options.",
+          "Run the tool, then copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Are my files or text uploaded?",
+            "No. Processing happens locally in your browser."
+          ],
+          [
+            "Can I copy the result?",
+            "Yes. Copy the output or download it as a text file."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-wordcount"
+        ]
+      }
+    },
+    {
+      "id": "date-difference",
+      "slug": "date-difference-calculator",
+      "category": "data",
+      "cardTitle": "Date difference calculator",
+      "cardText": "Calculate calendar days and weekdays between two dates.",
+      "tag": "DATE DIFFERENCE",
+      "icon": "blue",
+      "svg": "<path d=\"M4 12h16M13 5l7 7-7 7\"/><path d=\"M4 5v14\"/>",
+      "keywords": [
+        "date difference calculator",
+        "date difference calculator",
+        "date difference calculator"
+      ],
+      "seo": {
+        "title": "Date difference calculator Online - Free & Private | iLoveMyFiles",
+        "description": "Calculate calendar days and weekdays between two dates. Runs in your browser; your text stays on your device.",
+        "intro": "Calculate calendar days and weekdays between two dates. Use the controls to choose how to process your input, then copy or download the result.",
+        "steps": [
+          "Enter text or values in the input area.",
+          "Choose the operation and options.",
+          "Run the tool, then copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Are my files or text uploaded?",
+            "No. Processing happens locally in your browser."
+          ],
+          [
+            "Can I copy the result?",
+            "Yes. Copy the output or download it as a text file."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-wordcount"
+        ]
+      }
+    },
+    {
+      "id": "number-base",
+      "slug": "number-base-converter",
+      "category": "data",
+      "cardTitle": "Number base converter",
+      "cardText": "Convert integer values between binary, octal, decimal and hexadecimal.",
+      "tag": "BASE CONVERTER",
+      "icon": "teal",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h2v2H8zM12 9h2M16 9h-2M8 13h2M12 13h2M16 13h-2\"/>",
+      "keywords": [
+        "number base converter",
+        "number base converter",
+        "number base converter"
+      ],
+      "seo": {
+        "title": "Number base converter Online - Free & Private | iLoveMyFiles",
+        "description": "Convert integer values between binary, octal, decimal and hexadecimal. Runs in your browser; your text stays on your device.",
+        "intro": "Convert integer values between binary, octal, decimal and hexadecimal. Use the controls to choose how to process your input, then copy or download the result.",
+        "steps": [
+          "Enter text or values in the input area.",
+          "Choose the operation and options.",
+          "Run the tool, then copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Are my files or text uploaded?",
+            "No. Processing happens locally in your browser."
+          ],
+          [
+            "Can I copy the result?",
+            "Yes. Copy the output or download it as a text file."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-wordcount"
+        ]
+      }
+    },
+    {
+      "id": "morse-code",
+      "slug": "morse-code-converter",
+      "category": "data",
+      "cardTitle": "Morse code encoder & decoder",
+      "cardText": "Encode text as Morse code or decode Morse back into text.",
+      "tag": "MORSE CODE",
+      "icon": "rose",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"m8 16 8-8M8 8h3v3M13 13h3v3\"/>",
+      "keywords": [
+        "morse code encoder & decoder",
+        "morse code encoder",
+        "morse code converter"
+      ],
+      "seo": {
+        "title": "Morse code encoder & decoder Online - Free & Private | iLoveMyFiles",
+        "description": "Encode text as Morse code or decode Morse back into text. Runs in your browser; your text stays on your device.",
+        "intro": "Encode text as Morse code or decode Morse back into text. Use the controls to choose how to process your input, then copy or download the result.",
+        "steps": [
+          "Enter text or values in the input area.",
+          "Choose the operation and options.",
+          "Run the tool, then copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Are my files or text uploaded?",
+            "No. Processing happens locally in your browser."
+          ],
+          [
+            "Can I copy the result?",
+            "Yes. Copy the output or download it as a text file."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-wordcount"
+        ]
+      }
+    },
+    {
+      "id": "base32-codec",
+      "slug": "base32-encoder",
+      "category": "data",
+      "cardTitle": "Base32 encoder & decoder",
+      "cardText": "Encode UTF-8 text as Base32 or decode Base32 back to text.",
+      "tag": "BASE32",
+      "icon": "purple",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "base32",
+        "base32 encoder & decoder",
+        "base32 encoder"
+      ],
+      "seo": {
+        "title": "Base32 encoder & decoder Online - Free & Private | iLoveMyFiles",
+        "description": "Encode UTF-8 text as Base32 or decode Base32 back to text. Runs locally in your browser.",
+        "intro": "Encode UTF-8 text as Base32 or decode Base32 back to text. Paste your source content, run the conversion and copy or download the result.",
+        "steps": [
+          "Paste or type your source content.",
+          "Choose the conversion option if available.",
+          "Run the tool and copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Conversion runs locally in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Use the download control after processing."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-json-csv",
+          "data-base64"
+        ]
+      }
+    },
+    {
+      "id": "url-base64",
+      "slug": "url-safe-base64",
+      "category": "data",
+      "cardTitle": "URL-safe Base64 encoder & decoder",
+      "cardText": "Encode text using URL-safe Base64 or decode it back.",
+      "tag": "URL-SAFE BASE64",
+      "icon": "purple",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "base64 url safe",
+        "url-safe base64 encoder & decoder",
+        "url safe base64"
+      ],
+      "seo": {
+        "title": "URL-safe Base64 encoder & decoder Online - Free & Private | iLoveMyFiles",
+        "description": "Encode text using URL-safe Base64 or decode it back. Runs locally in your browser.",
+        "intro": "Encode text using URL-safe Base64 or decode it back. Paste your source content, run the conversion and copy or download the result.",
+        "steps": [
+          "Paste or type your source content.",
+          "Choose the conversion option if available.",
+          "Run the tool and copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Conversion runs locally in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Use the download control after processing."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-json-csv",
+          "data-base64"
+        ]
+      }
+    },
+    {
+      "id": "text-octal",
+      "slug": "text-to-octal",
+      "category": "data",
+      "cardTitle": "Text to Octal",
+      "cardText": "Convert text to octal byte values and decode octal back to text.",
+      "tag": "OCTAL CONVERTER",
+      "icon": "purple",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "text to octal",
+        "text to octal",
+        "text to octal"
+      ],
+      "seo": {
+        "title": "Text to Octal Online - Free & Private | iLoveMyFiles",
+        "description": "Convert text to octal byte values and decode octal back to text. Runs locally in your browser.",
+        "intro": "Convert text to octal byte values and decode octal back to text. Paste your source content, run the conversion and copy or download the result.",
+        "steps": [
+          "Paste or type your source content.",
+          "Choose the conversion option if available.",
+          "Run the tool and copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Conversion runs locally in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Use the download control after processing."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-json-csv",
+          "data-base64"
+        ]
+      }
+    },
+    {
+      "id": "ascii-codec",
+      "slug": "ascii-to-text",
+      "category": "data",
+      "cardTitle": "ASCII to Text & Text to ASCII",
+      "cardText": "Convert ASCII character codes to text and text back to ASCII codes.",
+      "tag": "ASCII CONVERTER",
+      "icon": "purple",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "ascii conversion",
+        "ascii to text & text to ascii",
+        "ascii to text"
+      ],
+      "seo": {
+        "title": "ASCII to Text & Text to ASCII Online - Free & Private | iLoveMyFiles",
+        "description": "Convert ASCII character codes to text and text back to ASCII codes. Runs locally in your browser.",
+        "intro": "Convert ASCII character codes to text and text back to ASCII codes. Paste your source content, run the conversion and copy or download the result.",
+        "steps": [
+          "Paste or type your source content.",
+          "Choose the conversion option if available.",
+          "Run the tool and copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Conversion runs locally in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Use the download control after processing."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-json-csv",
+          "data-base64"
+        ]
+      }
+    },
+    {
+      "id": "xml-json",
+      "slug": "xml-to-json",
+      "category": "data",
+      "cardTitle": "XML to JSON",
+      "cardText": "Convert XML documents into JSON objects.",
+      "tag": "XML → JSON",
+      "icon": "purple",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "xml to json",
+        "xml to json",
+        "xml to json"
+      ],
+      "seo": {
+        "title": "XML to JSON Online - Free & Private | iLoveMyFiles",
+        "description": "Convert XML documents into JSON objects. Runs locally in your browser.",
+        "intro": "Convert XML documents into JSON objects. Paste your source content, run the conversion and copy or download the result.",
+        "steps": [
+          "Paste or type your source content.",
+          "Choose the conversion option if available.",
+          "Run the tool and copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Conversion runs locally in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Use the download control after processing."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-json-csv",
+          "data-base64"
+        ]
+      }
+    },
+    {
+      "id": "json-xml",
+      "slug": "json-to-xml",
+      "category": "data",
+      "cardTitle": "JSON to XML",
+      "cardText": "Convert JSON objects to well-formed XML documents.",
+      "tag": "JSON → XML",
+      "icon": "purple",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "json to xml",
+        "json to xml",
+        "json to xml"
+      ],
+      "seo": {
+        "title": "JSON to XML Online - Free & Private | iLoveMyFiles",
+        "description": "Convert JSON objects to well-formed XML documents. Runs locally in your browser.",
+        "intro": "Convert JSON objects to well-formed XML documents. Paste your source content, run the conversion and copy or download the result.",
+        "steps": [
+          "Paste or type your source content.",
+          "Choose the conversion option if available.",
+          "Run the tool and copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Conversion runs locally in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Use the download control after processing."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-json-csv",
+          "data-base64"
+        ]
+      }
+    },
+    {
+      "id": "csv-xml",
+      "slug": "csv-to-xml",
+      "category": "data",
+      "cardTitle": "CSV to XML",
+      "cardText": "Convert CSV tables into XML row and field elements.",
+      "tag": "CSV → XML",
+      "icon": "purple",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "csv to xml",
+        "csv to xml",
+        "csv to xml"
+      ],
+      "seo": {
+        "title": "CSV to XML Online - Free & Private | iLoveMyFiles",
+        "description": "Convert CSV tables into XML row and field elements. Runs locally in your browser.",
+        "intro": "Convert CSV tables into XML row and field elements. Paste your source content, run the conversion and copy or download the result.",
+        "steps": [
+          "Paste or type your source content.",
+          "Choose the conversion option if available.",
+          "Run the tool and copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Conversion runs locally in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Use the download control after processing."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-json-csv",
+          "data-base64"
+        ]
+      }
+    },
+    {
+      "id": "markdown-html",
+      "slug": "markdown-to-html",
+      "category": "data",
+      "cardTitle": "Markdown to HTML",
+      "cardText": "Convert common Markdown syntax into HTML.",
+      "tag": "MARKDOWN → HTML",
+      "icon": "purple",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "markdown to html",
+        "markdown to html",
+        "markdown to html"
+      ],
+      "seo": {
+        "title": "Markdown to HTML Online - Free & Private | iLoveMyFiles",
+        "description": "Convert common Markdown syntax into HTML. Runs locally in your browser.",
+        "intro": "Convert common Markdown syntax into HTML. Paste your source content, run the conversion and copy or download the result.",
+        "steps": [
+          "Paste or type your source content.",
+          "Choose the conversion option if available.",
+          "Run the tool and copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Conversion runs locally in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Use the download control after processing."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-json-csv",
+          "data-base64"
+        ]
+      }
+    },
+    {
+      "id": "bbcode-html",
+      "slug": "bbcode-to-html",
+      "category": "data",
+      "cardTitle": "BBCode to HTML",
+      "cardText": "Convert common forum BBCode tags into HTML.",
+      "tag": "BBCODE → HTML",
+      "icon": "purple",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "bbcode to html",
+        "bbcode to html",
+        "bbcode to html"
+      ],
+      "seo": {
+        "title": "BBCode to HTML Online - Free & Private | iLoveMyFiles",
+        "description": "Convert common forum BBCode tags into HTML. Runs locally in your browser.",
+        "intro": "Convert common forum BBCode tags into HTML. Paste your source content, run the conversion and copy or download the result.",
+        "steps": [
+          "Paste or type your source content.",
+          "Choose the conversion option if available.",
+          "Run the tool and copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Conversion runs locally in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Use the download control after processing."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-json-csv",
+          "data-base64"
+        ]
+      }
+    },
+    {
+      "id": "html-text",
+      "slug": "html-to-text",
+      "category": "data",
+      "cardTitle": "HTML to Text",
+      "cardText": "Extract readable text from HTML markup.",
+      "tag": "HTML → TEXT",
+      "icon": "purple",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "html to text",
+        "html to text",
+        "html to text"
+      ],
+      "seo": {
+        "title": "HTML to Text Online - Free & Private | iLoveMyFiles",
+        "description": "Extract readable text from HTML markup. Runs locally in your browser.",
+        "intro": "Extract readable text from HTML markup. Paste your source content, run the conversion and copy or download the result.",
+        "steps": [
+          "Paste or type your source content.",
+          "Choose the conversion option if available.",
+          "Run the tool and copy or download the result."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Conversion runs locally in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Use the download control after processing."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-json-csv",
+          "data-base64"
+        ]
+      }
+    },
+    {
+      "id": "csv-to-excel",
+      "slug": "csv-to-excel",
+      "category": "data",
+      "cardTitle": "CSV to Excel",
+      "cardText": "Convert CSV rows into an XLSX spreadsheet.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "csv to excel",
+        "csv to xlsx",
+        "spreadsheet converter"
+      ],
+      "seo": {
+        "title": "CSV to Excel Online - Free & Private | iLoveMyFiles",
+        "description": "Convert CSV rows into an XLSX spreadsheet. Process data locally in your browser.",
+        "intro": "Convert CSV rows into an XLSX spreadsheet.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "file-hash-md5",
+      "slug": "file-hash-md5",
+      "category": "data",
+      "cardTitle": "File Hash Generator (MD5)",
+      "cardText": "Calculate MD5 checksums for uploaded files.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "file hash generator (md5)",
+        "md5 file hash",
+        "file checksum md5"
+      ],
+      "seo": {
+        "title": "File Hash Generator (MD5) Online - Free & Private | iLoveMyFiles",
+        "description": "Calculate MD5 checksums for uploaded files. Process data locally in your browser.",
+        "intro": "Calculate MD5 checksums for uploaded files.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "file-hash-sha256",
+      "slug": "file-hash-sha256",
+      "category": "data",
+      "cardTitle": "File Hash Generator (SHA-256)",
+      "cardText": "Calculate SHA-256 checksums for uploaded files.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "file hash generator (sha-256)",
+        "sha256 file hash",
+        "file checksum sha256"
+      ],
+      "seo": {
+        "title": "File Hash Generator (SHA-256) Online - Free & Private | iLoveMyFiles",
+        "description": "Calculate SHA-256 checksums for uploaded files. Process data locally in your browser.",
+        "intro": "Calculate SHA-256 checksums for uploaded files.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "md5-hash",
+      "slug": "md5-hash-generator",
+      "category": "data",
+      "cardTitle": "MD5 hash generator",
+      "cardText": "Generate an MD5 digest from text.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "md5 hash generator",
+        "md5 hash text",
+        "md5 checksum"
+      ],
+      "seo": {
+        "title": "MD5 hash generator Online - Free & Private | iLoveMyFiles",
+        "description": "Generate an MD5 digest from text. Process data locally in your browser.",
+        "intro": "Generate an MD5 digest from text.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "sha1-hash",
+      "slug": "sha1-hash-generator",
+      "category": "data",
+      "cardTitle": "SHA1 hash generator",
+      "cardText": "Generate a SHA-1 digest from text.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "sha1 hash generator",
+        "sha1 hash text",
+        "sha1 checksum"
+      ],
+      "seo": {
+        "title": "SHA1 hash generator Online - Free & Private | iLoveMyFiles",
+        "description": "Generate a SHA-1 digest from text. Process data locally in your browser.",
+        "intro": "Generate a SHA-1 digest from text.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "sha256-hash",
+      "slug": "sha256-hash-generator",
+      "category": "data",
+      "cardTitle": "SHA256 hash generator",
+      "cardText": "Generate a SHA-256 digest from text.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "sha256 hash generator",
+        "sha256 hash text",
+        "sha256 checksum"
+      ],
+      "seo": {
+        "title": "SHA256 hash generator Online - Free & Private | iLoveMyFiles",
+        "description": "Generate a SHA-256 digest from text. Process data locally in your browser.",
+        "intro": "Generate a SHA-256 digest from text.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "csv-to-json",
+      "slug": "csv-to-json",
+      "category": "data",
+      "cardTitle": "CSV to JSON",
+      "cardText": "Convert a CSV table with a header row into JSON records.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "csv to json"
+      ],
+      "seo": {
+        "title": "CSV to JSON Online - Free & Private | iLoveMyFiles",
+        "description": "Convert a CSV table with a header row into JSON records. Process data locally in your browser.",
+        "intro": "Convert a CSV table with a header row into JSON records.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "sql-to-csv",
+      "slug": "sql-to-csv",
+      "category": "data",
+      "cardTitle": "SQL to CSV",
+      "cardText": "Convert standard SQL INSERT statements to CSV.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "sql to csv",
+        "sql insert to csv"
+      ],
+      "seo": {
+        "title": "SQL to CSV Online - Free & Private | iLoveMyFiles",
+        "description": "Convert standard SQL INSERT statements to CSV. Process data locally in your browser.",
+        "intro": "Convert standard SQL INSERT statements to CSV.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "sql-to-json",
+      "slug": "sql-to-json",
+      "category": "data",
+      "cardTitle": "SQL to JSON",
+      "cardText": "Convert standard SQL INSERT statements to JSON records.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "sql to json",
+        "sql insert to json"
+      ],
+      "seo": {
+        "title": "SQL to JSON Online - Free & Private | iLoveMyFiles",
+        "description": "Convert standard SQL INSERT statements to JSON records. Process data locally in your browser.",
+        "intro": "Convert standard SQL INSERT statements to JSON records.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "uuid-generator",
+      "slug": "uuid-generator",
+      "category": "data",
+      "cardTitle": "UUID generator",
+      "cardText": "Generate random version 4 UUID identifiers.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "uuid generator",
+        "generate uuid",
+        "uuid v4"
+      ],
+      "seo": {
+        "title": "UUID generator Online - Free & Private | iLoveMyFiles",
+        "description": "Generate random version 4 UUID identifiers. Process data locally in your browser.",
+        "intro": "Generate random version 4 UUID identifiers.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "markdown-viewer",
+      "slug": "markdown-viewer",
+      "category": "data",
+      "cardTitle": "Markdown viewer",
+      "cardText": "Render Markdown as a downloadable HTML preview.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "markdown viewer",
+        "markdown preview",
+        "markdown renderer"
+      ],
+      "seo": {
+        "title": "Markdown viewer Online - Free & Private | iLoveMyFiles",
+        "description": "Render Markdown as a downloadable HTML preview. Process data locally in your browser.",
+        "intro": "Render Markdown as a downloadable HTML preview.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "json-viewer",
+      "slug": "json-viewer",
+      "category": "data",
+      "cardTitle": "JSON viewer",
+      "cardText": "Validate and pretty-print a JSON document.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "json viewer",
+        "json tree viewer"
+      ],
+      "seo": {
+        "title": "JSON viewer Online - Free & Private | iLoveMyFiles",
+        "description": "Validate and pretty-print a JSON document. Process data locally in your browser.",
+        "intro": "Validate and pretty-print a JSON document.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "xml-viewer",
+      "slug": "xml-viewer",
+      "category": "data",
+      "cardTitle": "XML viewer",
+      "cardText": "Validate and format an XML document.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "xml viewer",
+        "xml formatter"
+      ],
+      "seo": {
+        "title": "XML viewer Online - Free & Private | iLoveMyFiles",
+        "description": "Validate and format an XML document. Process data locally in your browser.",
+        "intro": "Validate and format an XML document.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "xml-format",
+      "slug": "xml-formatter",
+      "category": "data",
+      "cardTitle": "XML formatter",
+      "cardText": "Format and validate XML input.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "xml formatter",
+        "format xml",
+        "xml beautifier"
+      ],
+      "seo": {
+        "title": "XML formatter Online - Free & Private | iLoveMyFiles",
+        "description": "Format and validate XML input. Process data locally in your browser.",
+        "intro": "Format and validate XML input.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "yaml-json",
+      "slug": "yaml-to-json",
+      "category": "data",
+      "cardTitle": "YAML to JSON",
+      "cardText": "Convert YAML documents into JSON.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "yaml to json",
+        "yaml json converter"
+      ],
+      "seo": {
+        "title": "YAML to JSON Online - Free & Private | iLoveMyFiles",
+        "description": "Convert YAML documents into JSON. Process data locally in your browser.",
+        "intro": "Convert YAML documents into JSON.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "yaml-xml",
+      "slug": "yaml-to-xml",
+      "category": "data",
+      "cardTitle": "YAML to XML",
+      "cardText": "Convert YAML documents into XML.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "yaml to xml",
+        "yaml xml converter"
+      ],
+      "seo": {
+        "title": "YAML to XML Online - Free & Private | iLoveMyFiles",
+        "description": "Convert YAML documents into XML. Process data locally in your browser.",
+        "intro": "Convert YAML documents into XML.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "slug-generator",
+      "slug": "slug-generator",
+      "category": "data",
+      "cardTitle": "Slug generator",
+      "cardText": "Create URL-friendly slugs from text.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "slug generator",
+        "slug from text",
+        "url slug"
+      ],
+      "seo": {
+        "title": "Slug generator Online - Free & Private | iLoveMyFiles",
+        "description": "Create URL-friendly slugs from text. Process data locally in your browser.",
+        "intro": "Create URL-friendly slugs from text.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "cron-generator",
+      "slug": "cron-expression-generator",
+      "category": "data",
+      "cardTitle": "Cron expression generator",
+      "cardText": "Build a standard five-field cron expression.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "cron expression generator",
+        "cron generator",
+        "crontab expression"
+      ],
+      "seo": {
+        "title": "Cron expression generator Online - Free & Private | iLoveMyFiles",
+        "description": "Build a standard five-field cron expression. Process data locally in your browser.",
+        "intro": "Build a standard five-field cron expression.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "regex-tester",
+      "slug": "regex-tester",
+      "category": "data",
+      "cardTitle": "Regex tester",
+      "cardText": "Test a regular expression against sample text and list matches.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "regex tester",
+        "regex test",
+        "regular expression tester"
+      ],
+      "seo": {
+        "title": "Regex tester Online - Free & Private | iLoveMyFiles",
+        "description": "Test a regular expression against sample text and list matches. Process data locally in your browser.",
+        "intro": "Test a regular expression against sample text and list matches.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "htaccess-generator",
+      "slug": "htaccess-generator",
+      "category": "data",
+      "cardTitle": "HTACCESS generator",
+      "cardText": "Generate common Apache .htaccess directives.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "htaccess generator",
+        "htaccess rules",
+        "apache htaccess"
+      ],
+      "seo": {
+        "title": "HTACCESS generator Online - Free & Private | iLoveMyFiles",
+        "description": "Generate common Apache .htaccess directives. Process data locally in your browser.",
+        "intro": "Generate common Apache .htaccess directives.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "chmod-calculator",
+      "slug": "chmod-calculator",
+      "category": "data",
+      "cardTitle": "Chmod calculator",
+      "cardText": "Convert Unix permission bits to octal and symbolic form.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "chmod calculator",
+        "chmod permissions",
+        "unix file mode"
+      ],
+      "seo": {
+        "title": "Chmod calculator Online - Free & Private | iLoveMyFiles",
+        "description": "Convert Unix permission bits to octal and symbolic form. Process data locally in your browser.",
+        "intro": "Convert Unix permission bits to octal and symbolic form.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "csv-viewer",
+      "slug": "csv-viewer",
+      "category": "data",
+      "cardTitle": "CSV viewer",
+      "cardText": "Parse and preview CSV data as a table.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "csv viewer",
+        "csv editor",
+        "csv preview"
+      ],
+      "seo": {
+        "title": "CSV viewer Online - Free & Private | iLoveMyFiles",
+        "description": "Parse and preview CSV data as a table. Process data locally in your browser.",
+        "intro": "Parse and preview CSV data as a table.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "sql-highlighter",
+      "slug": "sql-syntax-highlighter",
+      "category": "data",
+      "cardTitle": "SQL syntax highlighter",
+      "cardText": "Format SQL with basic syntax highlighting in a text output.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "sql syntax highlighter",
+        "sql formatter",
+        "sql highlighter"
+      ],
+      "seo": {
+        "title": "SQL syntax highlighter Online - Free & Private | iLoveMyFiles",
+        "description": "Format SQL with basic syntax highlighting in a text output. Process data locally in your browser.",
+        "intro": "Format SQL with basic syntax highlighting in a text output.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "font-converter",
+      "slug": "font-converter",
+      "category": "data",
+      "cardTitle": "Font converter",
+      "cardText": "Inspect common web font formats and choose conversion guidance.",
+      "tag": "DEVELOPER TOOL",
+      "icon": "blue",
+      "svg": "<path d=\"M5 5h14v14H5z\"/><path d=\"M8 9h8M8 12h8M8 15h5\"/>",
+      "keywords": [
+        "font converter",
+        "ttf to woff",
+        "woff2 converter"
+      ],
+      "seo": {
+        "title": "Font converter Online - Free & Private | iLoveMyFiles",
+        "description": "Inspect common web font formats and choose conversion guidance. Process data locally in your browser.",
+        "intro": "Inspect common web font formats and choose conversion guidance.",
+        "steps": [
+          "Paste or type source data.",
+          "Run the selected operation.",
+          "Copy or download the output."
+        ],
+        "faqs": [
+          [
+            "Is my data uploaded?",
+            "No. Processing runs in your browser."
+          ],
+          [
+            "Can I download the result?",
+            "Yes. Download the generated output."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "data-base64",
+          "data-json-csv"
         ]
       }
     }

@@ -212,6 +212,31 @@
     const m = Math.max(0, Math.round(Number(margin) || 0));
     return { blob, name: `${safeBaseName(file.name)}-${width + m * 2}x${height + m * 2}.${ext || extensionFor(type)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}`, width: width + m * 2, height: height + m * 2, sizeBytes: blob.size, mimeType: blob.type || type };
   }
+
+  async function makeYoutubeThumbnail(file, { quality = 86, targetKb = 2048 } = {}) {
+    const image = await loadImage(file);
+    const width = 1280, height = 720;
+    const canvas = makeCanvas(width, height);
+    const context = canvas.getContext('2d', { alpha: false });
+    context.fillStyle = '#fff';
+    context.fillRect(0, 0, width, height);
+    // Cover-fit the source to the standard thumbnail aspect ratio; crop evenly.
+    const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+    const drawWidth = image.naturalWidth * scale;
+    const drawHeight = image.naturalHeight * scale;
+    context.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+    const desiredBytes = Math.max(64 * 1024, Math.min(2 * 1024 * 1024, Number(targetKb) * 1024 || 2 * 1024 * 1024));
+    let low = 0.35, high = Math.max(0.4, Math.min(0.96, Number(quality) / 100));
+    let best = await canvasToBlob(canvas, 'image/jpeg', high);
+    for (let attempt = 0; attempt < 8 && best.size > desiredBytes; attempt++) {
+      high = Math.max(0.2, high - 0.09);
+      const candidate = await canvasToBlob(canvas, 'image/jpeg', high);
+      if (Math.abs(candidate.size - desiredBytes) < Math.abs(best.size - desiredBytes)) best = candidate;
+      if (candidate.size <= desiredBytes) { best = candidate; break; }
+    }
+    canvas.width = 1; canvas.height = 1;
+    return { blob: best, name: `${safeBaseName(file.name)}-youtube-thumbnail.jpg`, details: `1280 × 720 · ${formatBytes(best.size)}${best.size > desiredBytes ? ' · target size could not be reached at this quality' : ''}`, width, height, sizeBytes: best.size, mimeType: 'image/jpeg' };
+  }
   
   async function cropImage(file, area, type, margin = 0, ext = null) {
     const image = await loadImage(file);
@@ -383,6 +408,6 @@
     }
     return info;
   }
-      window.iLoveMyFilesModules['image-tools'] = { canvasToBmp, convertImage, resizeImage, cropImage, compressImage, rotateImage, watermarkImage, readImageDimensions, detectImageType, getImageInfo };
+      window.iLoveMyFilesModules['image-tools'] = { canvasToBmp, convertImage, resizeImage, makeYoutubeThumbnail, cropImage, compressImage, rotateImage, watermarkImage, readImageDimensions, detectImageType, getImageInfo };
   });
 </script>

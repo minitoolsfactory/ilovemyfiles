@@ -1,0 +1,117 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import toolData from '../data/tools.json';
+import ToolSeoContent from '../components/ToolSeoContent.astro';
+import ToolWorkspace from '../components/ToolWorkspace.astro';
+import ClientRuntime from '../components/client/ClientRuntime.astro';
+import ToolStyles from '../components/ToolStyles.astro';
+
+const { TOOLS } = toolData;
+const YAML_RESERVED = new Set(['string','number','boolean','any','unknown','never','object','function','new','delete','default','class','const','let','var','return','export','import','interface','type','enum','extends','implements','private','public','readonly','static','null','undefined','this','true','false']);
+const yamlName = name => { let result = (String(name).match(/[A-Za-z0-9_$]+/g) || []).map(word => word[0]?.toUpperCase() + word.slice(1)).join('') || 'Root'; return /^\d/.test(result) ? `_${result}` : result; };
+function renderStructure(value, rootName) {
+  const types = new Map(), schemas = new Map();
+  const visit = (item, name) => {
+    if (item === null) return 'null';
+    if (Array.isArray(item)) return item.length ? `${[...new Set(item.map(child => visit(child, `${name}Item`)))].join(' | ')}[]` : 'unknown[]';
+    if (item && typeof item === 'object') {
+      const typeName = yamlName(name);
+      if (types.has(typeName)) return typeName;
+      const properties = Object.entries(item);
+      const interfaceLines = properties.map(([key, child]) => {
+        const nameSafe = /^[A-Za-z_$][\w$]*$/.test(key) && !YAML_RESERVED.has(key) ? key : JSON.stringify(key);
+        return `  ${nameSafe}: ${visit(child, `${typeName}${yamlName(key)}`)};`;
+      });
+      types.set(typeName, `export interface ${typeName} {\n${interfaceLines.join('\n')}\n}`);
+      const schemaLines = properties.map(([key, child]) => `  ${JSON.stringify(key)}: ${zodFor(child, `${typeName}${yamlName(key)}`)},`);
+      schemas.set(typeName, `export const ${typeName}Schema = z.object({\n${schemaLines.join('\n')}\n});`);
+      return typeName;
+    }
+    return typeof item;
+  };
+  const zodFor = (item, name) => item === null ? 'z.null()' : Array.isArray(item) ? `z.array(${item.length ? zodFor(item[0], `${name}Item`) : 'z.unknown()'})` : item && typeof item === 'object' ? `${visit(item, name)}Schema` : typeof item === 'string' ? 'z.string()' : typeof item === 'number' ? 'z.number()' : typeof item === 'boolean' ? 'z.boolean()' : 'z.unknown()';
+  const type = visit(value, rootName);
+  const root = yamlName(rootName);
+  if (type !== root) types.set(root, `export type ${root} = ${type};`);
+  const schema = value && typeof value === 'object' && !Array.isArray(value) ? `${root}Schema` : zodFor(value, root);
+  return { typescript: [...types.values()].join('\n\n'), zod: `import { z } from 'zod';\n\n${[...schemas.values()].join('\n\n')}\n\nexport type ${root} = z.infer<typeof ${schema}>;` };
+}
+
+export function getStaticPaths() {
+  return toolData.TOOLS.map(tool => ({
+    params: { slug: tool.section === 'tools' ? `tools/${tool.slug}` : tool.slug }
+  }));
+}
+
+const slug = Astro.params.slug;
+const isNestedToolRoute = String(slug ?? '').startsWith('tools/');
+const normalizedSlug = String(slug ?? '').replace(/^tools\//, '');
+const tool = TOOLS.find(item => item.slug === normalizedSlug);
+const routePath = isNestedToolRoute ? `/tools/${normalizedSlug}/` : `/${normalizedSlug}/`;
+const schemaPreview = tool?.id === 'json-typescript' ? renderStructure({
+  candidate: { id: 123, displayName: 'Avery Example', active: true, roles: ['editor', 'reviewer'], profile: { country: 'IN', verified: false } },
+  audit: null
+}, 'ApiExample') : null;
+const structuredData = tool ? {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: tool.cardTitle,
+  applicationCategory: 'UtilitiesApplication',
+  operatingSystem: 'Any modern browser',
+  description: tool.seo.description,
+  url: `https://ilovemyfiles.com${routePath}`,
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  featureList: [tool.cardText, 'Processes in your browser']
+} : null;
+const breadcrumbData = tool ? {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://ilovemyfiles.com/' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://ilovemyfiles.com/#tools' },
+    { '@type': 'ListItem', position: 3, name: tool.cardTitle, item: `https://ilovemyfiles.com${routePath}` }
+  ]
+} : null;
+---
+<BaseLayout>
+  <ToolStyles />
+  <Fragment slot="head">
+    <title>{tool?.seo?.title ?? 'iLoveMyFiles'}</title>
+    <meta name="description" content={tool?.seo?.description ?? ''} />
+    <meta name="robots" content={tool ? 'index,follow' : 'noindex,follow'} />
+    <link rel="canonical" href={`https://ilovemyfiles.com${routePath}`} />
+    <meta property="og:title" content={tool?.seo?.title ?? 'iLoveMyFiles'} />
+    <meta property="og:description" content={tool?.seo?.description ?? ''} />
+    <meta property="og:url" content={`https://ilovemyfiles.com${routePath}`} />
+    <meta property="og:type" content="website" />
+    {structuredData && <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />}
+    {breadcrumbData && <script type="application/ld+json" set:html={JSON.stringify(breadcrumbData)} />}
+  </Fragment>
+  {tool && (
+    <section class="tool-view tool-page-view">
+      <ToolSeoContent tool={tool}>
+        <ToolWorkspace tool={tool} />
+        {schemaPreview && (
+          <section class="tool-example" aria-labelledby="schema-example-title">
+            <h2 id="schema-example-title">Example: generated output</h2>
+            <p>From a sample object containing nested data, a mixed array and a nullable field:</p>
+            <div class="schema-example-grid">
+              <div><h3>TypeScript</h3><pre><code>{schemaPreview.typescript}</code></pre></div>
+              <div><h3>Zod</h3><pre><code>{schemaPreview.zod}</code></pre></div>
+            </div>
+            <p class="field-help">Generated types reflect only supplied sample data. Check optionality and mixed types against representative inputs.</p>
+          </section>
+        )}
+      </ToolSeoContent>
+    </section>
+  )}
+  <ClientRuntime />
+</BaseLayout>
+<style is:global>
+  .tool-example{margin-top:28px;padding:20px;border:1px solid var(--canvas-border);border-radius:16px;background:var(--canvas-surface);box-shadow:var(--canvas-shadow)}
+  .tool-example h2{margin:0 0 8px;font-size:20px}
+  .tool-example h3{font-size:14px}
+  .schema-example-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  .schema-example-grid pre{max-height:420px;overflow:auto;padding:14px;border-radius:10px;background:var(--color-surface-soft);font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+  @media(max-width:700px){.schema-example-grid{grid-template-columns:1fr}}
+</style>

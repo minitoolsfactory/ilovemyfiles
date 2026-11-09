@@ -1,0 +1,11 @@
+{
+  "reviewed": "2026-10-26",
+  "sourceName": "OpenAI API pricing page",
+  "sourceUrl": "https://openai.com/api/pricing/",
+  "method": "Approximate token count: 1 token per 4 characters (English prose heuristic). Prices below are USD per 1 million tokens; verify current provider pricing before budgeting.",
+  "models": [
+    { "id": "gpt-5.4", "name": "GPT-5.4", "inputPerMillion": 2.5, "outputPerMillion": 15 },
+    { "id": "gpt-5.4-mini", "name": "GPT-5.4 mini", "inputPerMillion": 0.75, "outputPerMillion": 4.5 },
+    { "id": "gpt-5.4-nano", "name": "GPT-5.4 nano", "inputPerMillion": 0.2, "outputPerMillion": 1.25 }
+  ]
+}

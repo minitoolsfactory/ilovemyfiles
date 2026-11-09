@@ -3,63 +3,101 @@
 <script>
   window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
     window.iLoveMyFilesModules ??= {};
-      const { safeBaseName } = window.iLoveMyFilesModules['file-utils'];
-  let tesseractPromise = null;
-  function getTesseract() {
-    if (!tesseractPromise) tesseractPromise = import('tesseract.js');
-    return tesseractPromise;
-  }
-  
-  async function pdfPagesToImages(file, progress) {
-    const { loadPdfDocument, renderPageToBlob } = await Promise.resolve(window.iLoveMyFilesModules['pdf-render']);
-    const doc = await loadPdfDocument(file);
-    const images = [];
-    try {
-      const count = doc.numPages;
-      for (let index = 1; index <= count; index++) {
-        progress?.({ percent: Math.round((index - 1) / count * 25), label: `Rendering page ${index} of ${count}…` });
-        const page = await doc.getPage(index);
-        const { blob } = await renderPageToBlob(page, 200 / 72, 'image/png');
-        images.push(blob);
-        page.cleanup?.();
+    const { safeBaseName } = window.iLoveMyFilesModules['file-utils'];
+    let tesseractPromise = null;
+    function getTesseract() {
+      if (!tesseractPromise) {
+        tesseractPromise = import('tesseract.js').catch(error => {
+          tesseractPromise = null;
+          throw error;
+        });
       }
-    } finally { await doc.destroy?.(); }
-    return images;
-  }
-  
-  async function ocrFile(file, options = {}, progress) {
-    const lang = options.lang || 'eng';
-    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-    const images = isPdf ? await pdfPagesToImages(file, progress) : [file];
-  
-    progress?.({ percent: 30, label: 'Loading OCR engine (first run downloads it)…' });
-    const { createWorker } = await getTesseract();
-    const worker = await createWorker(lang, 1, {
-      logger: message => {
-        if (message.status) {
-          progress?.({ percent: 30 + Math.round((message.progress || 0) * 65), label: message.status });
+      return tesseractPromise;
+    }
+
+    async function ocrFile(file, options = {}, progress) {
+      if (!file || file.size === 0) throw new Error('Choose a non-empty image or PDF file.');
+      const lang = options.lang || 'eng';
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      const dpi = Math.max(100, Math.min(300, Math.round(Number(options.dpi) || 200)));
+      const pdfRender = isPdf ? await Promise.resolve(window.iLoveMyFilesModules['pdf-render']) : null;
+      const pdfDocument = pdfRender ? await pdfRender.loadPdfDocument(file) : null;
+      const totalPages = pdfDocument?.numPages ?? 1;
+      let currentPage = 1;
+      let recognizing = false;
+      let worker;
+
+      progress?.({ percent: 5, label: 'Loading OCR engine (first run downloads it)…' });
+      try {
+        const { createWorker } = await getTesseract();
+        worker = await createWorker(lang, 1, {
+          logger: message => {
+            if (!message.status) return;
+            const fraction = Math.max(0, Math.min(1, message.progress || 0));
+            const percent = recognizing
+              ? 20 + Math.round(((currentPage - 1 + fraction) / totalPages) * 75)
+              : 5 + Math.round(fraction * 15);
+            progress?.({ percent, label: message.status });
+          }
+        });
+
+        const parts = [];
+        let confidenceSum = 0;
+        let confidenceCount = 0;
+        let hasRecognizedText = false;
+        for (let index = 1; index <= totalPages; index++) {
+          currentPage = index;
+          let page;
+          let canvas;
+          let image = file;
+          try {
+            if (pdfDocument) {
+              progress?.({
+                percent: 20 + Math.round(((index - 1) / totalPages) * 75),
+                label: `Rendering page ${index} of ${totalPages}…`
+              });
+              page = await pdfDocument.getPage(index);
+              const viewport = page.getViewport({ scale: dpi / 72 });
+              if (viewport.width * viewport.height > 30_000_000) {
+                throw new Error(`Page is too large to render safely at ${dpi} DPI. Choose a lower PDF resolution.`);
+              }
+              canvas = await pdfRender.renderPageToCanvas(page, dpi / 72, true);
+              image = canvas;
+            }
+            recognizing = true;
+            const { data } = await worker.recognize(image);
+            const text = (data.text || '').trim();
+            hasRecognizedText ||= text.length > 0;
+            parts.push(totalPages > 1 ? `--- Page ${index} ---\n${text}` : text);
+            if (typeof data.confidence === 'number') {
+              confidenceSum += data.confidence;
+              confidenceCount++;
+            }
+          } catch (error) {
+            const detail = error instanceof Error ? error.message : String(error);
+            throw new Error(`OCR failed on page ${index} of ${totalPages}: ${detail}. Check the document language and resolution.`, { cause: error });
+          } finally {
+            if (canvas) {
+              canvas.width = 1;
+              canvas.height = 1;
+            }
+            page?.cleanup?.();
+          }
         }
+
+        const text = parts.join('\n\n').trim();
+        if (!hasRecognizedText) throw new Error('No text was recognized. Try a higher resolution, a clearer scan, or a different document language.');
+        const confidence = confidenceCount ? Math.round(confidenceSum / confidenceCount) : null;
+        return {
+          blob: new Blob([text], { type: 'text/plain' }),
+          name: `${safeBaseName(file.name)}-ocr.txt`,
+          details: `${text.length} characters${confidence != null ? ` · ${confidence}% confidence` : ''}`,
+          text
+        };
+      } finally {
+        await Promise.all([worker?.terminate(), pdfDocument?.destroy()]);
       }
-    });
-    try {
-      const parts = [];
-      let confidenceSum = 0, confidenceCount = 0;
-      for (let index = 0; index < images.length; index++) {
-        const { data } = await worker.recognize(images[index]);
-        const text = (data.text || '').trim();
-        parts.push(images.length > 1 ? `--- Page ${index + 1} ---\n${text}` : text);
-        if (typeof data.confidence === 'number') { confidenceSum += data.confidence; confidenceCount++; }
-      }
-      const text = parts.join('\n\n').trim();
-      const confidence = confidenceCount ? Math.round(confidenceSum / confidenceCount) : null;
-      return {
-        blob: new Blob([text], { type: 'text/plain' }),
-        name: `${safeBaseName(file.name)}-ocr.txt`,
-        details: `${text.length} characters${confidence != null ? ` · ${confidence}% confidence` : ''}`,
-        text
-      };
-    } finally { await worker.terminate(); }
-  }
-      window.iLoveMyFilesModules['ocr'] = { ocrFile };
+    }
+    window.iLoveMyFilesModules['ocr'] = { ocrFile };
   });
 </script>

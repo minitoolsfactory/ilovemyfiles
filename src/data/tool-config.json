@@ -13,6 +13,20 @@
     "hint": "Supported input: common browser-readable images",
     "options": "<div class=\"field-row\"><div><label class=\"field-label\" for=\"compress-format\">Output format</label><select id=\"compress-format\" class=\"field-control\"><option value=\"image/webp\">WebP</option><option value=\"image/jpeg\" data-ext=\"jpg\">JPG</option><option value=\"image/jpeg\" data-ext=\"jpeg\">JPEG</option><option value=\"image/png\">PNG</option><option value=\"image/bmp\">BMP</option><option value=\"image/gif\">GIF</option><option value=\"image/x-icon\">ICO</option><option value=\"image/svg+xml\">SVG</option><option value=\"image/tiff\">TIFF</option></select></div><div><label class=\"field-label\" for=\"compress-mode\">Compression mode</label><select id=\"compress-mode\" class=\"field-control\"><option value=\"target\">Target size (KB)</option><option value=\"quality\">Quality slider</option></select></div></div><div id=\"quality-option\" hidden><label class=\"field-label\" for=\"quality\">Quality <output id=\"quality-value\">78%</output></label><input id=\"quality\" class=\"range-control\" type=\"range\" min=\"20\" max=\"95\" value=\"78\"><p class=\"field-help\">Adjustable quality is available for JPG and WebP. Choose target size for other formats.</p></div><div id=\"target-option\"><label class=\"field-label\" for=\"target-kb\">Target file size (KB)</label><input id=\"target-kb\" class=\"field-control\" type=\"number\" min=\"5\" max=\"50000\" value=\"200\"><p class=\"field-help\">The tool will try to reach this size. Exact size and quality cannot be guaranteed.</p></div>"
   },
+  "image-resize-kb": {
+    "title": "Image resizer in KB",
+    "description": "Resize an image to a target file size in KB.",
+    "accept": "image/*",
+    "hint": "Supported input: common browser-readable images",
+    "options": "<div class=\"field-row\"><div><label class=\"field-label\" for=\"kb-format\">Output format</label><select id=\"kb-format\" class=\"field-control\"><option value=\"image/webp\">WebP</option><option value=\"image/jpeg\" data-ext=\"jpg\">JPG</option><option value=\"image/jpeg\" data-ext=\"jpeg\">JPEG</option><option value=\"image/png\">PNG</option></select></div><div><label class=\"field-label\" for=\"target-kb\">Target file size (KB)</label><input id=\"target-kb\" class=\"field-control\" type=\"number\" min=\"5\" max=\"50000\" value=\"100\"><p class=\"field-help\">The tool will try to reach this size by adjusting quality and dimensions. Exact size cannot always be guaranteed.</p></div></div>"
+  },
+  "dsssb-photo-resizer": {
+    "title": "DSSSB Photo Resizer",
+    "description": "Resize a photo to the exact dimensions DSSSB application forms require.",
+    "accept": "image/*",
+    "hint": "Supported input: common browser-readable images",
+    "options": "<div class=\"field-row\"><div><label class=\"field-label\" for=\"dsssb-preset\">DSSSB preset</label><select id=\"dsssb-preset\" class=\"field-control\"><option value=\"custom\">Custom dimensions</option><option value=\"35x45\">3.5 × 4.5 cm (standard photo)</option><option value=\"2x2\">2 × 2 inch</option></select></div></div><div class=\"field-row\"><div><label class=\"field-label\" for=\"dsssb-width\">Width (px)</label><input id=\"dsssb-width\" class=\"field-control\" type=\"number\" min=\"1\" max=\"20000\" value=\"300\"></div><div><label class=\"field-label\" for=\"dsssb-height\">Height (px)</label><input id=\"dsssb-height\" class=\"field-control\" type=\"number\" min=\"1\" max=\"20000\" value=\"400\"></div></div><div><label class=\"field-label\" for=\"dsssb-target-kb\">Target file size (KB)</label><input id=\"dsssb-target-kb\" class=\"field-control\" type=\"number\" min=\"5\" max=\"50000\" value=\"100\"><p class=\"field-help\">The tool will try to reach this size. DSSSB forms often set a maximum KB for the photograph.</p></div><div class=\"field-row\"><div><label class=\"field-label\" for=\"dsssb-format\">Output format</label><select id=\"dsssb-format\" class=\"field-control\"><option value=\"image/jpeg\" data-ext=\"jpg\">JPG</option><option value=\"image/jpeg\" data-ext=\"jpeg\">JPEG</option><option value=\"image/png\">PNG</option><option value=\"image/webp\">WebP</option></select></div></div><p class=\"field-help\">Check your DSSSB form notice for the exact photo dimensions and maximum file size before you download.</p>"
+  },
   "image-resize": {
     "title": "Image Size compressor",
     "description": "Reduce an image's file size by resizing it to the dimensions you need.",
@@ -61,6 +75,126 @@
     "accept": "application/pdf,.pdf",
     "hint": "Choose one PDF file.",
     "options": "<div class=\"field-row\"><div><label class=\"field-label\" for=\"numbers-position\">Position</label><select id=\"numbers-position\" class=\"field-control\"><option value=\"bottom-center\">Bottom centre</option><option value=\"bottom-right\">Bottom right</option><option value=\"bottom-left\">Bottom left</option><option value=\"top-center\">Top centre</option><option value=\"top-right\">Top right</option><option value=\"top-left\">Top left</option></select></div><div><label class=\"field-label\" for=\"numbers-start\">Start at</label><input id=\"numbers-start\" class=\"field-control\" type=\"number\" min=\"1\" max=\"100000\" value=\"1\"></div></div><div class=\"field-row\"><div><label class=\"field-label\" for=\"numbers-format\">Number format</label><select id=\"numbers-format\" class=\"field-control\"><option value=\"page\">Page 1</option><option value=\"pg\">Pg 1</option><option value=\"dash\">- 1 -</option><option value=\"number\">1</option><option value=\"custom\">Custom…</option></select></div><div><label class=\"field-label\" for=\"numbers-font\">Font</label><div id=\"numbers-font-picker\"></div><input id=\"numbers-font\" type=\"hidden\" value=\"helvetica\"></div></div><div class=\"check-row\"><label class=\"check-field\"><input id=\"numbers-bold\" type=\"checkbox\"> Bold</label><label class=\"check-field\"><input id=\"numbers-italic\" type=\"checkbox\"> Italic</label><label class=\"check-field\"><input id=\"numbers-underline\" type=\"checkbox\"> Underline</label></div><div id=\"numbers-custom-wrap\" hidden><label class=\"field-label\" for=\"numbers-custom\">Custom text</label><input id=\"numbers-custom\" class=\"field-control\" type=\"text\" placeholder=\"Example: Page {n} of 5\"><p class=\"field-help\">Use {n} where the page number should appear.</p></div><div class=\"field-row\"><div><label class=\"field-label\" for=\"numbers-size\">Font size</label><input id=\"numbers-size\" class=\"field-control\" type=\"number\" min=\"6\" max=\"72\" value=\"11\"></div><div><label class=\"field-label\" for=\"numbers-color\">Colour</label><input id=\"numbers-color\" class=\"field-control color-control\" type=\"color\" value=\"#383d52\"></div></div>"
+  },
+  "pdf-page-labels": {
+    "title": "Add PDF page labels",
+    "description": "Set logical page labels that appear in supporting PDF readers.",
+    "accept": "application/pdf,.pdf",
+    "hint": "Choose one PDF file.",
+    "options": "<label class=\"field-label\" for=\"label-prefix\">Label prefix</label><input id=\"label-prefix\" class=\"field-control\" type=\"text\" maxlength=\"40\" value=\"Page \"><div class=\"field-row\"><div><label class=\"field-label\" for=\"label-start\">Start number</label><input id=\"label-start\" class=\"field-control\" type=\"number\" min=\"1\" max=\"999999\" value=\"1\"></div><div><label class=\"field-label\" for=\"label-style\">Number style</label><select id=\"label-style\" class=\"field-control\"><option value=\"D\">1, 2, 3 (decimal)</option><option value=\"r\">i, ii, iii (lower Roman)</option><option value=\"R\">I, II, III (upper Roman)</option><option value=\"a\">a, b, c (lower letters)</option><option value=\"A\">A, B, C (upper letters)</option></select></div></div><p class=\"field-help\">Page labels are PDF navigation metadata, not printed numbers on the page. Some viewers may not display them.</p>"
+  },
+  "youtube-thumbnail": {
+    "title": "YouTube Thumbnail Resizer & Compressor",
+    "description": "Resize an image to 1280 × 720 and compress it as a JPEG thumbnail.",
+    "accept": "image/jpeg,image/png,image/webp",
+    "hint": "Choose a JPEG, PNG or WebP image.",
+    "options": "<div class=\"field-row\"><div><label class=\"field-label\" for=\"thumbnail-quality\">JPEG quality (%)</label><input id=\"thumbnail-quality\" class=\"field-control\" type=\"number\" min=\"40\" max=\"96\" value=\"86\"></div><div><label class=\"field-label\" for=\"thumbnail-target-kb\">Target size (KB, max 2048)</label><input id=\"thumbnail-target-kb\" class=\"field-control\" type=\"number\" min=\"64\" max=\"2048\" value=\"2048\"></div></div><p class=\"field-help\">The tool center-crops to fill 16:9. If the target cannot be reached at the selected quality, the result size and notice will say so.</p>"
+  },
+  "svg-optimizer": {
+    "mode": "text",
+    "title": "SVG Optimizer & Cleaner",
+    "description": "Minify and sanitize SVG markup, then inspect a sandboxed preview.",
+    "accept": "image/svg+xml,.svg",
+    "hint": "Choose one SVG file, or paste SVG markup in the text area.",
+    "options": "<p class=\"field-help\">Unsafe elements, event-handler attributes and external references are removed. Visual fidelity is not guaranteed for every SVG feature; inspect the preview and retain your original.</p>"
+  },
+  "jwt-decoder": {
+    "mode": "text",
+    "title": "JWT Decoder & Inspector",
+    "description": "Decode a compact JWT header, payload and common claims locally.",
+    "accept": "",
+    "options": "<p class=\"field-help security-warning\"><b>Decode only:</b> this tool does not verify signatures or prove authenticity. Never provide signing secrets. Treat active tokens as credentials.</p>"
+  },
+  "json-typescript": {
+    "mode": "text",
+    "title": "JSON to TypeScript & Zod Generator",
+    "description": "Generate TypeScript interfaces and Zod schemas from a JSON sample.",
+    "accept": "",
+    "options": "<label class=\"field-label\" for=\"schema-root-name\">Root type name</label><input id=\"schema-root-name\" class=\"field-control\" value=\"Root\" maxlength=\"60\"><label class=\"check-field\"><input id=\"schema-optional\" type=\"checkbox\"> Mark fields optional</label><p class=\"field-help\">Only sample-observed fields can be inferred. Add representative examples and review the generated unions and optional fields.</p>"
+  },
+  "ai-token-cost": {
+    "mode": "text",
+    "title": "AI Token Counter & Cost Estimator",
+    "description": "Estimate prompt tokens and approximate input/output API cost.",
+    "accept": "",
+    "options": "<label class=\"field-label\" for=\"ai-pricing-model\">Example price profile</label><select id=\"ai-pricing-model\" class=\"field-control\"><option value=\"gpt-5.4\">GPT-5.4 · $2.50 / $15 per 1M</option><option value=\"gpt-5.4-mini\" selected>GPT-5.4 mini · $0.75 / $4.50 per 1M</option><option value=\"gpt-5.4-nano\">GPT-5.4 nano · $0.20 / $1.25 per 1M</option></select><label class=\"field-label\" for=\"ai-output-tokens\">Estimated output tokens</label><input id=\"ai-output-tokens\" class=\"field-control\" type=\"number\" min=\"0\" max=\"1000000\" value=\"500\"><p class=\"field-help\">Input tokens are estimated at 1 token per 4 characters, not model-tokenized. Sample prices are per 1M tokens and were reviewed 2026-10-26. <a href=\"https://openai.com/api/pricing/\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAI pricing source</a>. Verify current rates before budgeting.</p>"
+  },
+  "seo-meta-generator": {
+    "mode": "text",
+    "title": "SEO Meta Tags & SERP Preview Generator",
+    "description": "Generate title, description, canonical and Open Graph markup with a simulated preview.",
+    "accept": "",
+    "options": "<label class=\"field-label\" for=\"meta-title-input\">Page title</label><input id=\"meta-title-input\" class=\"field-control\" maxlength=\"200\" placeholder=\"A clear, specific page title\"><label class=\"field-label\" for=\"meta-description-input\">Meta description</label><textarea id=\"meta-description-input\" class=\"field-control\" rows=\"3\" maxlength=\"500\" placeholder=\"Summarise the page for searchers\"></textarea><label class=\"field-label\" for=\"meta-url-input\">Canonical URL (optional)</label><input id=\"meta-url-input\" class=\"field-control\" type=\"url\" placeholder=\"https://example.com/page/\"><label class=\"field-label\" for=\"meta-image-input\">Social image URL (optional)</label><input id=\"meta-image-input\" class=\"field-control\" type=\"url\" placeholder=\"https://example.com/image.jpg\"><p class=\"field-help\">Preview is simulated. Search engines may rewrite snippets; no character count guarantees display.</p>"
+  },
+  "robots-txt-validator": {
+    "mode": "text",
+    "title": "Robots.txt Validator",
+    "description": "Check robots.txt directive syntax offline.",
+    "accept": "",
+    "options": "<p class=\"field-help\">Offline syntax check only. No live URL fetch, crawl test, sitemap submission or indexing status is checked.</p>"
+  },
+  "sitemap-validator": {
+    "mode": "text",
+    "title": "XML Sitemap Validator",
+    "description": "Check XML sitemap structure and loc URLs offline.",
+    "accept": "",
+    "options": "<p class=\"field-help\">Offline XML and URL syntax check only. It does not fetch the listed URLs or tell you whether Google indexed them.</p>"
+  },
+  "robots-sitemap-validator": {
+    "mode": "text",
+    "title": "Robots.txt & Sitemap Validator",
+    "description": "Run offline syntax checks on robots directives or sitemap XML.",
+    "accept": "",
+    "options": "<label class=\"field-label\" for=\"validator-mode\">Content type</label><select id=\"validator-mode\" class=\"field-control\"><option value=\"robots\">robots.txt</option><option value=\"sitemap\">XML sitemap</option></select><p class=\"field-help\">Offline syntax check only. It does not fetch URLs or indicate crawling or indexing.</p>"
+  },
+  "robots-sitemap-validator": {
+    "mode": "text",
+    "title": "Robots.txt & Sitemap Validator",
+    "description": "Run offline syntax checks on robots.txt directives or XML sitemaps.",
+    "accept": "",
+    "options": "<label class=\"field-label\" for=\"validator-mode\">Content type</label><select id=\"validator-mode\" class=\"field-control\"><option value=\"robots\">robots.txt</option><option value=\"sitemap\">XML sitemap</option></select><p class=\"field-help\">Offline syntax check only. This does not fetch URLs, test live crawling, submit a sitemap or indicate indexing.</p>"
+  },
+  "jwt-decoder": {
+    "mode": "text",
+    "title": "JWT Decoder & Inspector",
+    "description": "Decode a JSON Web Token header, payload and standard claims.",
+    "accept": "",
+    "options": "<p class=\"field-help security-warning\"><b>Decode only:</b> this tool does not verify signatures or prove authenticity. Never provide signing secrets. Treat active tokens as credentials.</p>"
+  },
+  "json-typescript": {
+    "mode": "text",
+    "title": "JSON to TypeScript & Zod Generator",
+    "description": "Generate TypeScript interfaces and Zod schemas from a JSON sample.",
+    "accept": "",
+    "options": "<label class=\"field-label\" for=\"schema-root-name\">Root type name</label><input id=\"schema-root-name\" class=\"field-control\" value=\"Root\" maxlength=\"60\"><label class=\"check-field\"><input id=\"schema-optional\" type=\"checkbox\"> Mark fields optional</label><p class=\"field-help\">Only fields seen in the sample can be inferred. Review optional and mixed types before using the generated code.</p>"
+  },
+  "ai-token-cost": {
+    "mode": "text",
+    "title": "AI Token Counter & Cost Estimator",
+    "description": "Estimate prompt tokens and approximate API input/output cost.",
+    "accept": "",
+    "options": "<label class=\"field-label\" for=\"ai-pricing-model\">Example price profile</label><select id=\"ai-pricing-model\" class=\"field-control\"><option value=\"gpt-5.4\">GPT-5.4 · $2.50 / $15 per 1M</option><option value=\"gpt-5.4-mini\" selected>GPT-5.4 mini · $0.75 / $4.50 per 1M</option><option value=\"gpt-5.4-nano\">GPT-5.4 nano · $0.20 / $1.25 per 1M</option></select><label class=\"field-label\" for=\"ai-output-tokens\">Estimated output tokens</label><input id=\"ai-output-tokens\" class=\"field-control\" type=\"number\" min=\"0\" max=\"1000000\" value=\"500\"><p class=\"field-help\">Token count is approximate (1 token per 4 characters). Rates reviewed 2026-10-26; <a href=\"https://openai.com/api/pricing/\" target=\"_blank\" rel=\"noopener noreferrer\">source and date</a>. Verify current prices before budgeting.</p>"
+  },
+  "seo-meta-generator": {
+    "mode": "text",
+    "title": "SEO Meta Tags & SERP Preview Generator",
+    "description": "Generate title, description, canonical and Open Graph metadata.",
+    "accept": "",
+    "options": "<label class=\"field-label\" for=\"meta-title-input\">Page title</label><input id=\"meta-title-input\" class=\"field-control\" maxlength=\"200\" placeholder=\"A clear, specific page title\"><label class=\"field-label\" for=\"meta-description-input\">Meta description</label><textarea id=\"meta-description-input\" class=\"field-control\" rows=\"3\" maxlength=\"500\" placeholder=\"Summarise the page for searchers\"></textarea><label class=\"field-label\" for=\"meta-url-input\">Canonical URL (optional)</label><input id=\"meta-url-input\" class=\"field-control\" type=\"url\" placeholder=\"https://example.com/page/\"><label class=\"field-label\" for=\"meta-image-input\">Social image URL (optional)</label><input id=\"meta-image-input\" class=\"field-control\" type=\"url\" placeholder=\"https://example.com/image.jpg\"><p class=\"field-help\">Preview is illustrative. Search engines can rewrite snippets; length guidance is not a guarantee.</p>"
+  },
+  "prompt-security-checker": {
+    "mode": "text",
+    "title": "AI Prompt Security Checker",
+    "description": "Scan prompt text for a limited set of suspicious patterns locally.",
+    "accept": "",
+    "options": "<p class=\"field-help security-warning\">Heuristic screening only. False positives and missed attacks are possible; a clean scan is not proof of safety. Avoid pasting active secrets.</p>"
+  },
+  "prompt-security-checker": {
+    "mode": "text",
+    "title": "AI Prompt Security Checker",
+    "description": "Scan prompt text for a small set of injection and exposed-key patterns.",
+    "accept": "",
+    "options": "<p class=\"field-help security-warning\">Heuristic screening only: false positives and missed attacks are possible. Do not treat a clean scan as proof of safety. Avoid pasting active secrets.</p>"
   },
   "pdf-watermark": {
     "title": "Watermark PDF",
@@ -132,6 +266,112 @@
     "accept": "",
     "options": "<div class=\"field-row\"><div><label class=\"field-label\" for=\"json-mode\">Mode</label><select id=\"json-mode\" class=\"field-control\"><option value=\"pretty\">Pretty-print</option><option value=\"minify\">Minify</option></select></div><div><label class=\"field-label\" for=\"json-indent\">Indent</label><input id=\"json-indent\" class=\"field-control\" type=\"number\" min=\"0\" max=\"8\" value=\"2\"></div></div>"
   },
+  "youtube-thumbnail": {
+    "title": "YouTube Thumbnail Resizer & Compressor",
+    "description": "Resize an image to 1280 × 720 and compress it as a JPEG thumbnail.",
+    "accept": "image/jpeg,image/png,image/webp",
+    "hint": "Choose a JPEG, PNG or WebP image.",
+    "options": "<div class=\"field-row\"><div><label class=\"field-label\" for=\"thumbnail-quality\">JPEG quality (%)</label><input id=\"thumbnail-quality\" class=\"field-control\" type=\"number\" min=\"40\" max=\"96\" value=\"86\"></div><div><label class=\"field-label\" for=\"thumbnail-target-kb\">Target size (KB, max 2048)</label><input id=\"thumbnail-target-kb\" class=\"field-control\" type=\"number\" min=\"64\" max=\"2048\" value=\"2048\"></div></div><p class=\"field-help\">The tool center-crops to fill 16:9. If the target cannot be reached at the selected quality, the result size and notice will say so.</p>"
+  },
+  "svg-optimizer": {
+    "mode": "text",
+    "title": "SVG Optimizer & Cleaner",
+    "description": "Minify and sanitize SVG markup, then inspect a sandboxed preview.",
+    "accept": "image/svg+xml,.svg",
+    "hint": "Choose one SVG file, or paste SVG markup in the text area.",
+    "options": "<p class=\"field-help\">Unsafe elements, event-handler attributes and external references are removed. Visual fidelity is not guaranteed for every SVG feature; inspect the preview and retain your original.</p>"
+  },
+  "jwt-decoder": {
+    "mode": "text",
+    "title": "JWT Decoder & Inspector",
+    "description": "Decode a compact JWT header, payload and common claims locally.",
+    "accept": "",
+    "options": "<p class=\"field-help security-warning\"><b>Decode only:</b> this tool does not verify signatures or prove authenticity. Never provide signing secrets. Treat active tokens as credentials.</p>"
+  },
+  "json-typescript": {
+    "mode": "text",
+    "title": "JSON to TypeScript & Zod Generator",
+    "description": "Generate TypeScript interfaces and Zod schemas from a JSON sample.",
+    "accept": "",
+    "options": "<label class=\"field-label\" for=\"schema-root-name\">Root type name</label><input id=\"schema-root-name\" class=\"field-control\" value=\"Root\" maxlength=\"60\"><label class=\"check-field\"><input id=\"schema-optional\" type=\"checkbox\"> Mark fields optional</label><p class=\"field-help\">Only sample-observed fields can be inferred. Add representative examples and review the generated unions and optional fields.</p>"
+  },
+  "ai-token-cost": {
+    "mode": "text",
+    "title": "AI Token Counter & Cost Estimator",
+    "description": "Estimate prompt tokens and approximate input/output API cost.",
+    "accept": "",
+    "options": "<label class=\"field-label\" for=\"ai-pricing-model\">Example price profile</label><select id=\"ai-pricing-model\" class=\"field-control\"><option value=\"gpt-5.4\">GPT-5.4 · $2.50 / $15 per 1M</option><option value=\"gpt-5.4-mini\" selected>GPT-5.4 mini · $0.75 / $4.50 per 1M</option><option value=\"gpt-5.4-nano\">GPT-5.4 nano · $0.20 / $1.25 per 1M</option></select><label class=\"field-label\" for=\"ai-output-tokens\">Estimated output tokens</label><input id=\"ai-output-tokens\" class=\"field-control\" type=\"number\" min=\"0\" max=\"1000000\" value=\"500\"><p class=\"field-help\">Input tokens are estimated at 1 token per 4 characters, not model-tokenized. Sample prices are per 1M tokens and were reviewed 2026-10-26. <a href=\"https://openai.com/api/pricing/\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAI pricing source</a>. Verify current rates before budgeting.</p>"
+  },
+  "seo-meta-generator": {
+    "mode": "text",
+    "title": "SEO Meta Tags & SERP Preview Generator",
+    "description": "Generate title, description, canonical and Open Graph markup with a simulated preview.",
+    "accept": "",
+    "options": "<label class=\"field-label\" for=\"meta-title-input\">Page title</label><input id=\"meta-title-input\" class=\"field-control\" maxlength=\"200\" placeholder=\"A clear, specific page title\"><label class=\"field-label\" for=\"meta-description-input\">Meta description</label><textarea id=\"meta-description-input\" class=\"field-control\" rows=\"3\" maxlength=\"500\" placeholder=\"Summarise the page for searchers\"></textarea><label class=\"field-label\" for=\"meta-url-input\">Canonical URL (optional)</label><input id=\"meta-url-input\" class=\"field-control\" type=\"url\" placeholder=\"https://example.com/page/\"><label class=\"field-label\" for=\"meta-image-input\">Social image URL (optional)</label><input id=\"meta-image-input\" class=\"field-control\" type=\"url\" placeholder=\"https://example.com/image.jpg\"><p class=\"field-help\">Preview is simulated. Search engines may rewrite snippets; no character count guarantees display.</p>"
+  },
+  "robots-sitemap-validator": {
+    "mode": "text",
+    "title": "Robots.txt & Sitemap Validator",
+    "description": "Run offline syntax checks on robots.txt directives or XML sitemaps.",
+    "accept": "",
+    "options": "<label class=\"field-label\" for=\"validator-mode\">Content type</label><select id=\"validator-mode\" class=\"field-control\"><option value=\"robots\">robots.txt</option><option value=\"sitemap\">XML sitemap</option></select><p class=\"field-help\">Offline syntax check only. This does not fetch URLs, test live crawling, submit a sitemap or indicate indexing.</p>"
+  },
+  "prompt-security-checker": {
+    "mode": "text",
+    "title": "AI Prompt Security Checker",
+    "description": "Scan prompt text for a small set of injection and exposed-key patterns.",
+    "accept": "",
+    "options": "<p class=\"field-help security-warning\">Heuristic screening only: false positives and missed attacks are possible. Do not treat a clean scan as proof of safety. Avoid pasting active secrets.</p>"
+  },
+  "csv-jsonl": {
+    "mode": "text",
+    "title": "CSV ↔ JSON Lines converter",
+    "description": "Convert CSV tables to JSON Lines and JSON Lines back to CSV.",
+    "accept": "",
+    "options": "<label class=\"field-label\" for=\"csv-jsonl-mode\">Direction</label><select id=\"csv-jsonl-mode\" class=\"field-control\"><option value=\"csv-to-jsonl\">CSV → JSON Lines</option><option value=\"jsonl-to-csv\">JSON Lines → CSV</option></select><p class=\"field-help\">JSON Lines uses one JSON object per line. Input is limited to 2 MB; CSV headers must be unique.</p>"
+  },
+  "uuid-decode": {
+    "mode": "text",
+    "title": "UUID decoder",
+    "description": "Inspect a UUID's version, variant and component fields.",
+    "accept": "",
+    "options": "<p class=\"field-help\">Paste one UUID. This explains its structure; it does not reveal a user's identity or guarantee when it was created.</p>"
+  },
+  "lorem-ipsum": {
+    "mode": "text",
+    "title": "Lorem Ipsum generator",
+    "description": "Generate placeholder paragraphs with a chosen length.",
+    "accept": "",
+    "options": "<div class=\"field-row\"><div><label class=\"field-label\" for=\"lorem-paragraphs\">Paragraphs (1–20)</label><input id=\"lorem-paragraphs\" class=\"field-control\" type=\"number\" min=\"1\" max=\"20\" value=\"3\"></div><div><label class=\"field-label\" for=\"lorem-words\">Words per paragraph (1–500)</label><input id=\"lorem-words\" class=\"field-control\" type=\"number\" min=\"1\" max=\"500\" value=\"60\"></div></div><label class=\"check-field\"><input id=\"lorem-start\" type=\"checkbox\" checked> Start with “Lorem ipsum”</label><p class=\"field-help\">Creates placeholder text locally in your browser.</p>"
+  },
+  "image-palette": {
+    "title": "Image colour palette extractor",
+    "description": "Extract the most common colours from an image as HEX values.",
+    "accept": "image/*",
+    "hint": "Choose one image to sample locally.",
+    "options": "<label class=\"field-label\" for=\"palette-count\">Number of colours</label><select id=\"palette-count\" class=\"field-control\"><option value=\"4\">4 colours</option><option value=\"6\" selected>6 colours</option><option value=\"8\">8 colours</option><option value=\"12\">12 colours</option></select><p class=\"field-help\">A small thumbnail is sampled in your browser. Fully transparent pixels are ignored. Results are approximate dominant colours, not exact colour quantisation.</p>"
+  },
+  "html-entities": {
+    "mode": "text",
+    "title": "HTML entity encoder & decoder",
+    "description": "Encode special characters for HTML or decode HTML entities back to text.",
+    "accept": "",
+    "options": "<label class=\"field-label\" for=\"entities-mode\">Mode</label><select id=\"entities-mode\" class=\"field-control\"><option value=\"encode\">Encode special characters</option><option value=\"decode\">Decode HTML entities</option></select><p class=\"field-help\">Handles ampersands, angle brackets, quotes and named or numeric entities. Runs locally in your browser.</p>"
+  },
+  "json-yaml": {
+    "mode": "text",
+    "title": "JSON ↔ YAML converter",
+    "description": "Convert JSON to YAML or YAML to formatted JSON.",
+    "accept": "",
+    "options": "<label class=\"field-label\" for=\"jsonyaml-mode\">Direction</label><select id=\"jsonyaml-mode\" class=\"field-control\"><option value=\"json-to-yaml\">JSON → YAML</option><option value=\"yaml-to-json\">YAML → JSON</option></select><p class=\"field-help\">Uses the built-in YAML parser. Invalid input is reported without changing your original text.</p>"
+  },
+  "text-diff": {
+    "mode": "text",
+    "title": "Text diff checker",
+    "description": "Compare two text versions and list added, removed and unchanged lines.",
+    "accept": "",
+    "options": "<p class=\"field-help\">Paste the new version in the first box and the original version in the second. Lines are compared locally; large comparisons are limited to keep the browser responsive.</p>"
+  },
   "data-base64": {
     "mode": "text",
     "title": "Base64 encoder",
@@ -186,7 +426,7 @@
     "description": "Extract selectable text from an image or PDF.",
     "accept": "image/*,application/pdf,.pdf",
     "hint": "Choose one image or PDF file.",
-    "options": "<label class=\"field-label\" for=\"ocr-lang\">Document language</label><select id=\"ocr-lang\" class=\"field-control\"><option value=\"eng\" selected>English</option><option value=\"spa\">Spanish</option><option value=\"fra\">French</option><option value=\"deu\">German</option><option value=\"ita\">Italian</option><option value=\"por\">Portuguese</option><option value=\"nld\">Dutch</option><option value=\"rus\">Russian</option><option value=\"ara\">Arabic</option><option value=\"chi_sim\">Chinese (Simplified)</option><option value=\"jpn\">Japanese</option></select><p class=\"field-help\">The OCR engine and language data (a few MB) download on first use and are cached by your browser. Your file is processed locally and never uploaded.</p>"
+    "options": "<label class=\"field-label\" for=\"ocr-lang\">Document language</label><select id=\"ocr-lang\" class=\"field-control\"><option value=\"eng\" selected>English</option><option value=\"spa\">Spanish</option><option value=\"fra\">French</option><option value=\"deu\">German</option><option value=\"ita\">Italian</option><option value=\"por\">Portuguese</option><option value=\"nld\">Dutch</option><option value=\"rus\">Russian</option><option value=\"ara\">Arabic</option><option value=\"chi_sim\">Chinese (Simplified)</option><option value=\"jpn\">Japanese</option></select><label class=\"field-label\" for=\"ocr-dpi\">PDF scan resolution</label><select id=\"ocr-dpi\" class=\"field-control\"><option value=\"150\">150 DPI - faster</option><option value=\"200\" selected>200 DPI - balanced</option><option value=\"300\">300 DPI - sharper OCR (slower)</option></select><p class=\"field-help\">Resolution applies to PDF pages only; higher DPI can improve small-text recognition but takes longer and uses more memory. The OCR engine and language data download on first use and are cached by your browser. Files are processed locally and never uploaded.</p>"
   },
   "pdf-flatten": {
     "title": "Flatten PDF",
@@ -201,5 +441,453 @@
     "accept": "application/pdf,.pdf",
     "hint": "Choose one scanned or image-only PDF.",
     "options": "<label class=\"field-label\" for=\"pdf-ocr-lang\">Document language</label><select id=\"pdf-ocr-lang\" class=\"field-control\"><option value=\"eng\" selected>English</option><option value=\"spa\">Spanish</option><option value=\"fra\">French</option><option value=\"deu\">German</option><option value=\"ita\">Italian</option><option value=\"por\">Portuguese</option><option value=\"nld\">Dutch</option><option value=\"swe\">Swedish</option><option value=\"dan\">Danish</option><option value=\"nor\">Norwegian</option><option value=\"fin\">Finnish</option></select><label class=\"field-label\" for=\"pdf-ocr-dpi\">Render resolution</label><select id=\"pdf-ocr-dpi\" class=\"field-control\"><option value=\"110\">110 DPI - fastest</option><option value=\"150\" selected>150 DPI - balanced</option><option value=\"200\">200 DPI - sharper OCR</option><option value=\"300\">300 DPI - best accuracy (slow, large)</option></select><label class=\"field-label\" for=\"pdf-ocr-quality\">Output image quality</label><select id=\"pdf-ocr-quality\" class=\"field-control\"><option value=\"low\">Low (JPEG 60%)</option><option value=\"medium\">Medium (JPEG 80%)</option><option value=\"high\" selected>High (JPEG 92%)</option><option value=\"lossless\">Lossless (PNG)</option></select><p class=\"field-help\">OCR runs locally with Tesseract.js. The engine and language data (a few MB) download from a CDN on first use and are then cached. Pages are rasterised, so the original look is kept but any existing selectable text is replaced by the new text layer.</p>"
+  },
+  "pdf-unlock": {
+    "title": "Unlock PDF",
+    "description": "Remove password protection from a PDF you own.",
+    "accept": "application/pdf,.pdf",
+    "hint": "Choose the protected PDF. Enter its password if the document asks for one.",
+    "options": "<label class=\"field-label\" for=\"unlock-password\">PDF password (if required)</label><input id=\"unlock-password\" class=\"field-control\" type=\"password\" autocomplete=\"off\" placeholder=\"Leave blank if the PDF opens without a password\"><p class=\"field-help\">Only unlock documents you are allowed to open. Decryption happens in your browser - the file is never uploaded.</p>"
+  },
+  "pdf-protect": {
+    "title": "Protect PDF",
+    "description": "Add AES-256 password protection and set document permissions.",
+    "accept": "application/pdf,.pdf",
+    "hint": "Choose one PDF to protect.",
+    "options": "<div class=\"field-row\"><div><label class=\"field-label\" for=\"protect-password\">Open password</label><input id=\"protect-password\" class=\"field-control\" type=\"password\" autocomplete=\"new-password\" placeholder=\"Required\"></div><div><label class=\"field-label\" for=\"protect-owner-password\">Owner password (optional)</label><input id=\"protect-owner-password\" class=\"field-control\" type=\"password\" autocomplete=\"new-password\" placeholder=\"Defaults to the open password\"></div></div><label class=\"field-label\">Allow readers to</label><div class=\"check-row\"><label class=\"check-field\"><input id=\"protect-print\" type=\"checkbox\" checked> Print</label><label class=\"check-field\"><input id=\"protect-copy\" type=\"checkbox\" checked> Copy text</label><label class=\"check-field\"><input id=\"protect-modify\" type=\"checkbox\"> Edit</label><label class=\"check-field\"><input id=\"protect-annotate\" type=\"checkbox\"> Annotate</label></div><p class=\"field-help\">The file is encrypted locally with AES-256. There is no recovery option - keep the password safe. Open the result in a PDF reader to confirm the protection before sharing it.</p>"
+  },
+  "pdf-sign": {
+    "title": "Sign PDF",
+    "description": "Add a typed signature and date to a PDF.",
+    "accept": "application/pdf,.pdf",
+    "hint": "Choose one PDF to sign.",
+    "options": "<label class=\"field-label\" for=\"sign-text\">Signature text</label><input id=\"sign-text\" class=\"field-control\" type=\"text\" placeholder=\"Your name\" maxlength=\"120\"><div class=\"field-row\"><div><label class=\"field-label\" for=\"sign-page\">Page</label><input id=\"sign-page\" class=\"field-control\" type=\"number\" min=\"1\" value=\"1\"></div><div><label class=\"field-label\" for=\"sign-size\">Font size (pt)</label><input id=\"sign-size\" class=\"field-control\" type=\"number\" min=\"8\" max=\"96\" value=\"26\"></div></div><label class=\"check-field\"><input id=\"sign-all\" type=\"checkbox\"> Apply to every page</label><div class=\"field-row\"><div><label class=\"field-label\" for=\"sign-position\">Position</label><select id=\"sign-position\" class=\"field-control\"><option value=\"bottom-right\" selected>Bottom right</option><option value=\"bottom-center\">Bottom centre</option><option value=\"bottom-left\">Bottom left</option><option value=\"center-right\">Middle right</option><option value=\"center-center\">Centre</option><option value=\"center-left\">Middle left</option><option value=\"top-right\">Top right</option><option value=\"top-center\">Top centre</option><option value=\"top-left\">Top left</option></select></div><div><label class=\"field-label\" for=\"sign-font\">Style</label><select id=\"sign-font\" class=\"field-control\"><option value=\"signature\" selected>Signature (italic serif)</option><option value=\"serif\">Serif</option><option value=\"sans\">Sans</option><option value=\"mono\">Monospace</option></select></div></div><div class=\"field-row\"><div><label class=\"field-label\" for=\"sign-color\">Colour</label><input id=\"sign-color\" class=\"field-control color-control\" type=\"color\" value=\"#23293f\"></div><div><label class=\"field-label\" for=\"sign-margin\">Margin (pt)</label><input id=\"sign-margin\" class=\"field-control\" type=\"number\" min=\"0\" max=\"200\" value=\"40\"></div></div><label class=\"check-field\"><input id=\"sign-date\" type=\"checkbox\" checked> Add the signing date</label><p class=\"field-help\">This adds a visible typed signature. It is not a cryptographic certificate signature and does not prove who signed the document.</p>"
+  },
+  "pdf-redact": {
+    "title": "Redact PDF",
+    "description": "Permanently cover matching text and remove it from the page.",
+    "accept": "application/pdf,.pdf",
+    "hint": "Choose one PDF containing selectable text.",
+    "options": "<label class=\"field-label\" for=\"redact-terms\">Text to redact</label><textarea id=\"redact-terms\" class=\"field-control\" rows=\"3\" placeholder=\"One word or phrase per line\"></textarea><label class=\"field-label\" for=\"redact-pages\">Pages (optional)</label><input id=\"redact-pages\" class=\"field-control\" type=\"text\" placeholder=\"All pages\"><div class=\"field-row\"><div><label class=\"field-label\" for=\"redact-dpi\">Output resolution</label><select id=\"redact-dpi\" class=\"field-control\"><option value=\"110\">110 DPI - fastest</option><option value=\"150\" selected>150 DPI - balanced</option><option value=\"200\">200 DPI - sharp</option><option value=\"300\">300 DPI - print</option></select></div><div><label class=\"field-label\">Options</label><label class=\"check-field\"><input id=\"redact-match-case\" type=\"checkbox\"> Match case</label></div></div><p class=\"field-help\">Matching uses the PDF's selectable text layer. Any page containing a match is flattened, so all text on that page stops being selectable or searchable. Use OCR first for scanned pages. Separate search phrases with new lines or commas.</p>"
+  },
+  "pdf-compare": {
+    "title": "Compare PDFs",
+    "description": "See which lines of text changed between two PDFs.",
+    "accept": "application/pdf,.pdf",
+    "hint": "Choose exactly two PDFs. The newest two files are kept.",
+    "options": "<label class=\"check-field\"><input id=\"compare-ignore-case\" type=\"checkbox\"> Ignore letter case</label><label class=\"check-field\"><input id=\"compare-ignore-space\" type=\"checkbox\"> Ignore extra whitespace</label><label class=\"check-field\"><input id=\"compare-show-unchanged\" type=\"checkbox\"> Include matching text for unchanged pages</label><p class=\"field-help\">The report always lists every page, matching-line counts, and added or removed lines. Turn on the option to include all matching text for unchanged pages. Scanned pages need OCR first; line wrapping and layout-only edits may appear as differences.</p>"
+  },
+  "jpg-to-pdf": {
+    "title": "JPG to PDF",
+    "description": "Combine JPG photos into one PDF document.",
+    "accept": "image/jpeg,.jpg,.jpeg",
+    "hint": "Choose one or more JPG or JPEG images.",
+    "options": "<div class=\"field-row\"><div><label class=\"field-label\" for=\"jpg-page-size\">Page size</label><select id=\"jpg-page-size\" class=\"field-control\"><option value=\"fit\" selected>Fit to each image</option><option value=\"a4\">A4 (210 × 297 mm)</option><option value=\"a3\">A3 (297 × 420 mm)</option><option value=\"letter\">US Letter (8.5 × 11 in)</option><option value=\"legal\">US Legal (8.5 × 14 in)</option></select></div><div><label class=\"field-label\" for=\"jpg-orientation\">Orientation</label><select id=\"jpg-orientation\" class=\"field-control\"><option value=\"portrait\" selected>Portrait</option><option value=\"landscape\">Landscape</option><option value=\"auto\">Match each image</option></select></div></div><div class=\"margin-control\"><div class=\"margin-head\"><span class=\"field-label\">Margin</span><span class=\"margin-unit\">pt</span></div><div class=\"margin-presets\" role=\"group\" aria-label=\"Margin presets\"><button type=\"button\" class=\"margin-preset active\" data-value=\"0\" data-target=\"jpg-margin\">0</button><button type=\"button\" class=\"margin-preset\" data-value=\"5\" data-target=\"jpg-margin\">5</button><button type=\"button\" class=\"margin-preset\" data-value=\"10\" data-target=\"jpg-margin\">10</button><button type=\"button\" class=\"margin-preset\" data-value=\"20\" data-target=\"jpg-margin\">20</button></div><div class=\"stepper\"><button type=\"button\" class=\"stepper-btn\" data-step=\"-1\" data-target=\"jpg-margin\" aria-label=\"Decrease margin\">−</button><input id=\"jpg-margin\" aria-label=\"Margin\" class=\"field-control\" type=\"number\" min=\"0\" max=\"200\" step=\"1\" value=\"0\" inputmode=\"numeric\"><button type=\"button\" class=\"stepper-btn\" data-step=\"1\" data-target=\"jpg-margin\" aria-label=\"Increase margin\">+</button></div></div><p class=\"field-help\">Each image gets its own page in the order shown. Drag files in the list to reorder them before converting.</p>"
+  },
+  "word-to-pdf": {
+    "title": "Word to PDF",
+    "description": "Convert DOCX documents to PDF.",
+    "accept": ".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "hint": "Choose one .docx file.",
+    "options": "<p class=\"field-help\">Headings, paragraphs, lists, tables and embedded images are converted locally to PDF. Legacy .doc files must first be saved as .docx. Complex layouts and some fonts may shift. Your document is never uploaded.</p>"
+  },
+  "powerpoint-to-pdf": {
+    "title": "PowerPoint to PDF",
+    "description": "Convert PPTX presentations to PDF.",
+    "accept": ".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "hint": "Choose one .pptx file.",
+    "options": "<p class=\"field-help\">Slides, text, images and notes layout are converted locally to PDF. Legacy .ppt files must first be saved as .pptx. Some animations, transitions and theme fonts may not carry over.</p>"
+  },
+  "excel-to-pdf": {
+    "title": "Excel to PDF",
+    "description": "Convert XLSX spreadsheets to PDF.",
+    "accept": ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "hint": "Choose one .xlsx file.",
+    "options": "<p class=\"field-help\">Worksheets, cell values and tables are converted locally to PDF. Legacy .xls files must first be saved as .xlsx. Very wide sheets and charts may be simplified.</p>"
+  },
+  "html-to-pdf": {
+    "title": "HTML to PDF",
+    "description": "Convert a saved HTML file into a PDF.",
+    "accept": ".html,.htm,text/html",
+    "hint": "Choose one saved .html or .htm file.",
+    "options": "<p class=\"field-help\">The HTML file is rendered locally into PDF pages. Styles inside the file are applied; external images, fonts and scripts may not load. Very long pages are split automatically.</p>"
+  },
+  "pdf-to-jpg": {
+    "title": "PDF to JPG",
+    "description": "Render each PDF page as a JPG image.",
+    "accept": "application/pdf,.pdf",
+    "hint": "Choose one PDF file.",
+    "options": "<label class=\"field-label\" for=\"ptj-dpi\">Resolution</label><select id=\"ptj-dpi\" class=\"field-control\"><option value=\"110\">110 DPI - smallest</option><option value=\"150\" selected>150 DPI - balanced</option><option value=\"200\">200 DPI - sharp</option><option value=\"300\">300 DPI - print (large)</option></select><label class=\"field-label\" for=\"ptj-pages\">Pages (optional)</label><input id=\"ptj-pages\" class=\"field-control\" type=\"text\" placeholder=\"All pages\"><p class=\"field-help\">Each page becomes a separate JPG. Leave the pages box empty for every page, or enter ranges such as 1-3, 5. Download individual images or all of them as a ZIP.</p>"
+  },
+  "pdf-to-word": {
+    "title": "PDF to Word",
+    "description": "Convert selectable PDF text into a DOCX document.",
+    "accept": "application/pdf,.pdf",
+    "hint": "Choose one PDF containing selectable text.",
+    "options": "<p class=\"field-help\">Extracts the selectable text layer into paragraphs in a Word document. Scanned PDFs need OCR first. Images, columns and complex layouts are simplified, so this is best for text-heavy documents.</p>"
+  },
+  "pdf-to-powerpoint": {
+    "title": "PDF to PowerPoint",
+    "description": "Turn each PDF page into a slide image.",
+    "accept": "application/pdf,.pdf",
+    "hint": "Choose one PDF file.",
+    "options": "<label class=\"field-label\" for=\"ptp-dpi\">Slide image resolution</label><select id=\"ptp-dpi\" class=\"field-control\"><option value=\"110\">110 DPI - smallest</option><option value=\"150\" selected>150 DPI - balanced</option><option value=\"200\">200 DPI - sharp</option><option value=\"300\">300 DPI - print (large)</option></select><p class=\"field-help\">Each PDF page becomes a picture on its own slide. Text is not editable in PowerPoint, but the slide layout matches each page's shape.</p>"
+  },
+  "pdf-to-excel": {
+    "title": "PDF to Excel",
+    "description": "Place PDF text into rows and columns in an XLSX workbook.",
+    "accept": "application/pdf,.pdf",
+    "hint": "Choose one PDF containing selectable text.",
+    "options": "<p class=\"field-help\">Each page becomes a worksheet. Text is grouped into rows and columns using its position, so tabular PDFs work best. Scanned PDFs need OCR first; complex layouts may need manual clean-up in Excel.</p>"
+  },
+  "pdf-to-pdfa": {
+    "title": "PDF to PDF/A",
+    "description": "Create an archival PDF/A copy with XMP metadata.",
+    "accept": "application/pdf,.pdf",
+    "hint": "Choose one PDF file.",
+    "options": "<label class=\"field-label\" for=\"pdfa-conformance\">PDF/A level</label><select id=\"pdfa-conformance\" class=\"field-control\"><option value=\"2B\" selected>PDF/A-2b (recommended)</option><option value=\"3B\">PDF/A-3b</option><option value=\"1B\">PDF/A-1b (strictest)</option></select><label class=\"check-field\"><input id=\"pdfa-flatten\" type=\"checkbox\"> Rasterise pages (best compatibility)</label><label class=\"field-label\" for=\"pdfa-password\">PDF password (if required)</label><input id=\"pdfa-password\" class=\"field-control\" type=\"password\" autocomplete=\"off\" placeholder=\"Leave blank if the PDF opens without a password\"><p class=\"field-help\">Adds the PDF/A identifier, XMP metadata and an embedded sRGB output intent. Rasterising pages improves compatibility but removes selectable text. This is a best-effort conversion - validate strict conformance with veraPDF.</p>"
+  },
+  "url-codec": {
+    "title": "URL encoder & decoder",
+    "description": "Encode a URL component or decode percent-encoded text.",
+    "accept": "",
+    "hint": "Type or paste text.",
+    "options": "<label class=\"field-label\" for=\"url-mode\">Operation</label><select id=\"url-mode\" class=\"field-control\"><option value=\"encode\">Encode</option><option value=\"decode\">Decode</option></select><p class=\"field-help\">Encodes and decodes URL components (not entire URLs with reserved delimiters). UTF-8 text is supported.</p>"
+  },
+  "text-binary": {
+    "title": "Text to Binary",
+    "description": "Convert text and UTF-8 bytes to binary and back.",
+    "accept": "",
+    "hint": "Type text or binary groups.",
+    "options": "<label class=\"field-label\" for=\"binary-mode\">Operation</label><select id=\"binary-mode\" class=\"field-control\"><option value=\"encode\">Text to binary</option><option value=\"decode\">Binary to text</option></select><p class=\"field-help\">Binary output uses UTF-8 bytes separated by spaces, so accented characters and emoji round-trip correctly.</p>"
+  },
+  "text-hex": {
+    "title": "Text to Hex",
+    "description": "Convert text and UTF-8 bytes to hexadecimal and back.",
+    "accept": "",
+    "hint": "Type text or hexadecimal bytes.",
+    "options": "<label class=\"field-label\" for=\"hex-mode\">Operation</label><select id=\"hex-mode\" class=\"field-control\"><option value=\"encode\">Text to hex</option><option value=\"decode\">Hex to text</option></select><p class=\"field-help\">Hex output uses UTF-8 bytes separated by spaces.</p>"
+  },
+  "text-case": {
+    "title": "Text case converter",
+    "description": "Convert text to uppercase, lowercase, title case or sentence case.",
+    "accept": "",
+    "hint": "Type or paste text.",
+    "options": "<label class=\"field-label\" for=\"case-mode\">Case style</label><select id=\"case-mode\" class=\"field-control\"><option value=\"upper\">UPPERCASE</option><option value=\"lower\">lowercase</option><option value=\"title\">Title Case</option><option value=\"sentence\">Sentence case</option></select>"
+  },
+  "text-sort": {
+    "title": "Sort lines",
+    "description": "Sort lines alphabetically in ascending or descending order.",
+    "accept": "",
+    "hint": "Enter one item per line.",
+    "options": "<label class=\"field-label\" for=\"sort-mode\">Sort direction</label><select id=\"sort-mode\" class=\"field-control\"><option value=\"ascending\">Ascending (A–Z)</option><option value=\"descending\">Descending (Z–A)</option></select><p class=\"field-help\">Sorting ignores case and uses natural numeric order.</p>"
+  },
+  "text-replace": {
+    "title": "Text replacement tool",
+    "description": "Find text and replace matching occurrences.",
+    "accept": "",
+    "hint": "Paste the text to edit.",
+    "options": "<label class=\"field-label\" for=\"replace-search\">Find</label><input id=\"replace-search\" class=\"field-control\" type=\"text\"><label class=\"field-label\" for=\"replace-with\">Replace with</label><input id=\"replace-with\" class=\"field-control\" type=\"text\"><label class=\"check-field\"><input id=\"replace-all\" type=\"checkbox\" checked><span>Replace every occurrence</span></label>"
+  },
+  "text-reverse": {
+    "title": "Reverse text",
+    "description": "Reverse the order of text characters.",
+    "accept": "",
+    "hint": "Type or paste text.",
+    "options": "<p class=\"field-help\">Reverses Unicode code points, preserving common emoji as a single character.</p>"
+  },
+  "text-dedupe": {
+    "title": "Remove duplicate lines",
+    "description": "Remove repeated lines while keeping first appearances.",
+    "accept": "",
+    "hint": "Enter one item per line.",
+    "options": "<p class=\"field-help\">Matching is exact and case-sensitive; the first copy of each line is kept.</p>"
+  },
+  "text-line-numbers": {
+    "title": "Add line numbers",
+    "description": "Add sequential numbers to each line.",
+    "accept": "",
+    "hint": "Enter multiline text.",
+    "options": "<p class=\"field-help\">Every line is numbered starting at 1, including blank lines.</p>"
+  },
+  "text-remove-empty": {
+    "title": "Remove empty lines",
+    "description": "Remove blank and whitespace-only lines.",
+    "accept": "",
+    "hint": "Enter multiline text.",
+    "options": "<p class=\"field-help\">Lines containing only spaces or tabs are removed.</p>"
+  },
+  "percentage-calculator": {
+    "title": "Percentage calculator",
+    "description": "Calculate a percentage of a value or percentage change.",
+    "accept": "",
+    "hint": "Enter two numbers.",
+    "options": "<label class=\"field-label\" for=\"percentage-mode\">Calculation</label><select id=\"percentage-mode\" class=\"field-control\"><option value=\"of\">What is X% of Y? (enter X then Y)</option><option value=\"change\">Percentage change from X to Y</option></select><p class=\"field-help\">Enter two values in the input: percent and amount, or starting value and ending value.</p>"
+  },
+  "age-calculator": {
+    "title": "Age calculator",
+    "description": "Calculate age from a date of birth.",
+    "accept": "",
+    "hint": "Choose a birth date.",
+    "options": "<label class=\"field-label\" for=\"age-date\">Date of birth</label><input id=\"age-date\" class=\"field-control\" type=\"date\"><p class=\"field-help\">The result is based on today’s date on this device.</p>"
+  },
+  "date-difference": {
+    "title": "Date difference calculator",
+    "description": "Count calendar days and weekdays between two dates.",
+    "accept": "",
+    "hint": "Enter two dates, one per line.",
+    "options": "<p class=\"field-help\">Enter start date then end date on separate lines using YYYY-MM-DD. Weekdays exclude Saturdays and Sundays.</p>"
+  },
+  "number-base": {
+    "title": "Number base converter",
+    "description": "Convert integer values among common numeral systems.",
+    "accept": "",
+    "hint": "Enter an integer in the selected source base.",
+    "options": "<div class=\"field-row\"><div><label class=\"field-label\" for=\"base-from\">From base</label><select id=\"base-from\" class=\"field-control\"><option value=\"2\">Binary (2)</option><option value=\"8\">Octal (8)</option><option value=\"10\" selected>Decimal (10)</option><option value=\"16\">Hexadecimal (16)</option></select></div><div><label class=\"field-label\" for=\"base-to\">To base</label><select id=\"base-to\" class=\"field-control\"><option value=\"2\">Binary (2)</option><option value=\"8\">Octal (8)</option><option value=\"10\">Decimal (10)</option><option value=\"16\" selected>Hexadecimal (16)</option></select></div></div>"
+  },
+  "morse-code": {
+    "title": "Morse code encoder & decoder",
+    "description": "Convert text to Morse code and Morse code to text.",
+    "accept": "",
+    "hint": "Type text or Morse code.",
+    "options": "<label class=\"field-label\" for=\"morse-mode\">Operation</label><select id=\"morse-mode\" class=\"field-control\"><option value=\"encode\">Text to Morse</option><option value=\"decode\">Morse to text</option></select><p class=\"field-help\">Separate letters with spaces and words with / when decoding.</p>"
+  },
+  "base32-codec": {
+    "title": "base32 codec",
+    "description": "Base32 alphabet is A–Z and 2–7; output is padded using standard RFC 4648 rules.",
+    "accept": "",
+    "hint": "Paste or type text.",
+    "options": "<label class=\"field-label\" for=\"base32-mode\">Base32 mode</label><select id=\"base32-mode\" class=\"field-control\"><option value=\"encode\">Encode text</option><option value=\"decode\">Decode Base32</option></select><p class=\"field-help\">Base32 alphabet is A–Z and 2–7; output is padded using standard RFC 4648 rules.</p>"
+  },
+  "url-base64": {
+    "title": "url base64",
+    "description": "URL-safe Base64 uses - and _ in place of + and / and omits padding in encoded output.",
+    "accept": "",
+    "hint": "Paste or type text.",
+    "options": "<label class=\"field-label\" for=\"urlb64-mode\">Operation</label><select id=\"urlb64-mode\" class=\"field-control\"><option value=\"encode\">Encode</option><option value=\"decode\">Decode</option></select><p class=\"field-help\">URL-safe Base64 uses - and _ in place of + and / and omits padding in encoded output.</p>"
+  },
+  "text-octal": {
+    "title": "text octal",
+    "description": "Uses UTF-8 bytes represented by three-digit octal groups.",
+    "accept": "",
+    "hint": "Paste or type text.",
+    "options": "<label class=\"field-label\" for=\"octal-mode\">Operation</label><select id=\"octal-mode\" class=\"field-control\"><option value=\"encode\">Text to octal</option><option value=\"decode\">Octal to text</option></select><p class=\"field-help\">Uses UTF-8 bytes represented by three-digit octal groups.</p>"
+  },
+  "ascii-codec": {
+    "title": "ascii codec",
+    "description": "Supports ASCII code points 0–127.",
+    "accept": "",
+    "hint": "Paste or type text.",
+    "options": "<label class=\"field-label\" for=\"ascii-mode\">Operation</label><select id=\"ascii-mode\" class=\"field-control\"><option value=\"encode\">Text to ASCII</option><option value=\"decode\">ASCII to text</option></select><p class=\"field-help\">Supports ASCII code points 0–127.</p>"
+  },
+  "markdown-html": {
+    "title": "markdown html",
+    "description": "Supports headings, paragraphs, emphasis, inline code, links, quotes and unordered lists.",
+    "accept": "",
+    "hint": "Paste or type text.",
+    "options": "<label class=\"field-label\" for=\"markdown-unused\">Output</label><select id=\"markdown-unused\" class=\"field-control\"><option value=\"html\">HTML</option></select><p class=\"field-help\">Supports headings, paragraphs, emphasis, inline code, links, quotes and unordered lists.</p>"
+  },
+  "xml-json": {
+    "title": "XML to JSON",
+    "description": "XML to JSON",
+    "accept": "",
+    "hint": "Paste or type source content.",
+    "options": "<p class=\"field-help\">Convert an XML document to JSON.</p>"
+  },
+  "json-xml": {
+    "title": "JSON to XML",
+    "description": "JSON to XML",
+    "accept": "",
+    "hint": "Paste or type source content.",
+    "options": "<p class=\"field-help\">JSON must contain one root object property, e.g. {\"root\":{\"item\":\"value\"}}.</p>"
+  },
+  "csv-xml": {
+    "title": "CSV to XML",
+    "description": "CSV to XML",
+    "accept": "",
+    "hint": "Paste or type source content.",
+    "options": "<p class=\"field-help\">The first row is used for element names. Other rows become repeated row elements.</p>"
+  },
+  "bbcode-html": {
+    "title": "BBCode to HTML",
+    "description": "BBCode to HTML",
+    "accept": "",
+    "hint": "Paste or type source content.",
+    "options": "<p class=\"field-help\">Converts common formatting tags, links, quotes, code, images, colour and size tags.</p>"
+  },
+  "html-text": {
+    "title": "HTML to Text",
+    "description": "HTML to Text",
+    "accept": "",
+    "hint": "Paste or type source content.",
+    "options": "<p class=\"field-help\">Script and style content is discarded; visible text and basic line breaks are retained.</p>"
+  },
+  "csv-to-excel": {
+    "title": "CSV to Excel",
+    "description": "Convert CSV rows into an XLSX spreadsheet.",
+    "accept": "",
+    "hint": "Paste or type source data.",
+    "options": "<p class=\"field-help\">CSV rows are parsed with quoted fields supported. Values are exported as text in one worksheet.</p>"
+  },
+  "file-hash-md5": {
+    "title": "File Hash Generator (MD5)",
+    "description": "Calculate MD5 checksums for uploaded files.",
+    "accept": "",
+    "hint": "Paste or type source data.",
+    "options": "<p class=\"field-help\">Select files to calculate a checksum over their original bytes. MD5 is not suitable for security-sensitive integrity verification.</p>"
+  },
+  "file-hash-sha256": {
+    "title": "File Hash Generator (SHA-256)",
+    "description": "Calculate SHA-256 checksums for uploaded files.",
+    "accept": "",
+    "hint": "Paste or type source data.",
+    "options": "<p class=\"field-help\">Select files to calculate a SHA-256 checksum over their original bytes.</p>"
+  },
+  "md5-hash": {
+    "title": "MD5 hash generator",
+    "description": "Generate an MD5 digest from text.",
+    "accept": "",
+    "hint": "Paste or type source data.",
+    "options": "<p class=\"field-help\">MD5 is provided for compatibility checks, not for passwords or security-sensitive uses.</p>"
+  },
+  "sha1-hash": {
+    "title": "SHA1 hash generator",
+    "description": "Generate a SHA-1 digest from text.",
+    "accept": "",
+    "hint": "Paste or type source data.",
+    "options": ""
+  },
+  "sha256-hash": {
+    "title": "SHA256 hash generator",
+    "description": "Generate a SHA-256 digest from text.",
+    "accept": "",
+    "hint": "Paste or type source data.",
+    "options": ""
+  },
+  "csv-to-json": {
+    "title": "CSV to JSON",
+    "description": "Convert a CSV table with a header row into JSON records.",
+    "accept": "",
+    "hint": "Paste or type source data.",
+    "options": ""
+  },
+  "sql-to-csv": {
+    "title": "SQL to CSV",
+    "description": "Convert standard SQL INSERT statements to CSV.",
+    "accept": "",
+    "hint": "Paste or type source data.",
+    "options": ""
+  },
+  "sql-to-json": {
+    "title": "SQL to JSON",
+    "description": "Convert standard SQL INSERT statements to JSON records.",
+    "accept": "",
+    "hint": "Paste or type source data.",
+    "options": ""
+  },
+  "uuid-generator": {
+    "title": "UUID generator",
+    "description": "Generate random UUID version 4 values.",
+    "accept": "",
+    "hint": "Enter the desired count (optional).",
+    "options": "<label class=\"field-label\" for=\"uuid-count\">Number of UUIDs (1–100)</label><input id=\"uuid-count\" class=\"field-control\" type=\"number\" min=\"1\" max=\"100\" value=\"1\"><p class=\"field-help\">Uses cryptographically secure browser randomness.</p>"
+  },
+  "markdown-viewer": {
+    "title": "Markdown viewer",
+    "description": "Render Markdown as a downloadable HTML preview.",
+    "accept": "",
+    "hint": "Paste or type source data.",
+    "options": ""
+  },
+  "json-viewer": {
+    "title": "JSON viewer",
+    "description": "Validate and pretty-print a JSON document.",
+    "accept": "",
+    "hint": "Paste or type source data.",
+    "options": ""
+  },
+  "xml-viewer": {
+    "title": "XML viewer",
+    "description": "Validate and format an XML document.",
+    "accept": "",
+    "hint": "Paste or type source data.",
+    "options": ""
+  },
+  "xml-format": {
+    "title": "XML formatter",
+    "description": "Format and validate XML input.",
+    "accept": "",
+    "hint": "Paste or type source data.",
+    "options": ""
+  },
+  "yaml-json": {
+    "title": "YAML to JSON",
+    "description": "Convert YAML documents into JSON.",
+    "accept": "",
+    "hint": "Paste or type source data.",
+    "options": ""
+  },
+  "yaml-xml": {
+    "title": "YAML to XML",
+    "description": "Convert YAML documents into XML.",
+    "accept": "",
+    "hint": "Paste or type source data.",
+    "options": ""
+  },
+  "slug-generator": {
+    "title": "Slug generator",
+    "description": "Convert text to a URL-friendly slug.",
+    "accept": "",
+    "hint": "Type or paste a title or phrase.",
+    "options": "<p class=\"field-help\">Unicode accents are normalised, whitespace becomes hyphens, and punctuation is removed.</p>"
+  },
+  "cron-generator": {
+    "title": "Cron expression generator",
+    "description": "Build and validate a standard five-field cron expression.",
+    "accept": "",
+    "hint": "Use the fields to define a schedule.",
+    "options": "<div class=\"field-row\"><div><label class=\"field-label\" for=\"cron-minute\">Minute</label><input id=\"cron-minute\" class=\"field-control\" value=\"*\" placeholder=\"*\"></div><div><label class=\"field-label\" for=\"cron-hour\">Hour</label><input id=\"cron-hour\" class=\"field-control\" value=\"*\" placeholder=\"*\"></div></div><div class=\"field-row\"><div><label class=\"field-label\" for=\"cron-day\">Day of month</label><input id=\"cron-day\" class=\"field-control\" value=\"*\" placeholder=\"*\"></div><div><label class=\"field-label\" for=\"cron-month\">Month</label><input id=\"cron-month\" class=\"field-control\" value=\"*\" placeholder=\"*\"></div></div><label class=\"field-label\" for=\"cron-weekday\">Day of week (0–7, Sunday 0/7)</label><input id=\"cron-weekday\" class=\"field-control\" value=\"*\" placeholder=\"*\"><p class=\"field-help\">Standard five-field cron format. Review the expression against your scheduler's dialect.</p>"
+  },
+  "regex-tester": {
+    "title": "Regex tester",
+    "description": "Test a JavaScript regular expression against sample text.",
+    "accept": "",
+    "hint": "Paste sample text into the workspace.",
+    "options": "<label class=\"field-label\" for=\"regex-pattern\">Regular expression</label><input id=\"regex-pattern\" class=\"field-control\" type=\"text\" placeholder=\"\\b\\w+\\b\"><label class=\"field-label\" for=\"regex-flags\">Flags</label><input id=\"regex-flags\" class=\"field-control\" type=\"text\" value=\"g\"><p class=\"field-help\">Runs against text locally. Global mode returns up to 1,000 matches. Avoid complex patterns on very large inputs.</p>"
+  },
+  "htaccess-generator": {
+    "title": "HTACCESS generator",
+    "description": "Generate common Apache .htaccess directives.",
+    "accept": "",
+    "hint": "Paste or type source data.",
+    "options": "<label class=\"field-label\" for=\"htaccess-mode\">Template</label><select id=\"htaccess-mode\" class=\"field-control\"><option value=\"https\">Force HTTPS</option><option value=\"www\">Force www host</option><option value=\"non-www\">Remove www host</option><option value=\"deny\">Deny IP address</option></select><label class=\"field-label\" for=\"htaccess-domain\">Domain / IP (as applicable)</label><input id=\"htaccess-domain\" class=\"field-control\" type=\"text\" placeholder=\"example.com or 192.0.2.1\">"
+  },
+  "chmod-calculator": {
+    "title": "Chmod calculator",
+    "description": "Show symbolic and decimal permissions for an octal mode.",
+    "accept": "",
+    "hint": "Enter permissions such as 755 or 0644.",
+    "options": "<p class=\"field-help\">Enter a three- or four-digit octal mode. The result shows the standard user/group/other rwx permissions.</p>"
+  },
+  "csv-viewer": {
+    "title": "CSV viewer",
+    "description": "Parse and preview CSV data as a table.",
+    "accept": "",
+    "hint": "Paste or type source data.",
+    "options": ""
+  },
+  "sql-highlighter": {
+    "title": "SQL syntax highlighter",
+    "description": "Format SQL keywords for a readable query layout.",
+    "accept": "",
+    "hint": "Paste SQL to format.",
+    "options": "<p class=\"field-help\">Adds line breaks before common SQL clauses. This is formatting only; it does not parse or execute SQL.</p>"
+  },
+  "font-converter": {
+    "title": "Font converter",
+    "description": "Convert TTF, OTF, WOFF and WOFF2 fonts locally in your browser.",
+    "accept": ".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2",
+    "hint": "Choose one TTF, OTF, WOFF or WOFF2 font file.",
+    "options": "<label class=\"field-label\" for=\"font-output-format\">Output format</label><select id=\"font-output-format\" class=\"field-control\"><option value=\"ttf\">TTF</option><option value=\"woff\">WOFF</option><option value=\"woff2\">WOFF2</option></select><p class=\"field-help\">Supports TTF, OTF, WOFF and WOFF2 input. Output supports TTF, WOFF and WOFF2. OTF output is not supported by the conversion engine.</p>"
   }
 }

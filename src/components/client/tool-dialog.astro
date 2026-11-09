@@ -6,9 +6,11 @@
       const { formatBytes, downloadBlob, safeBaseName, updateProgress, parsePageSelection, parsePageOrder } = window.iLoveMyFilesModules['file-utils'];
       const { convertImage, compressImage, resizeImage, rotateImage, cropImage, watermarkImage, readImageDimensions, getImageInfo } = window.iLoveMyFilesModules['image-tools'];
       const sessionStore = window.iLoveMyFilesModules['session-store'];
-      const { imagesToPdf, mergePdfs, mergePdfPages, splitPdf, deletePdfPages, rotatePdfPages, addPageNumbers, addPdfWatermark, loadWatermarkFont, organizePdfPages, pdfToImages, compressPdf, resizePdfPages, normalizeAngle, COMPRESSION_LEVELS, PDF_PAGE_SIZES } = window.iLoveMyFilesModules['pdf-tools'];
+      const { imagesToPdf, mergePdfs, mergePdfPages, splitPdf, deletePdfPages, rotatePdfPages, addPageNumbers, addPdfPageLabels, addPdfWatermark, loadWatermarkFont, organizePdfPages, pdfToImages, compressPdf, resizePdfPages, normalizeAngle, COMPRESSION_LEVELS, PDF_PAGE_SIZES } = window.iLoveMyFilesModules['pdf-tools'];
       const { inspectPdfMetadata, removePdfMetadata } = window.iLoveMyFilesModules['metadata-tools'];
-      const { formatJson, base64Convert, hashText, hashFiles, countTextReport, jsonToCsv, csvToJson, convertUnits } = window.iLoveMyFilesModules['data-tools'];
+      const { unlockPdf, protectPdf, signPdf, redactPdf, comparePdfs } = window.iLoveMyFilesModules['pdf-security'];
+      const { wordToPdf, powerpointToPdf, excelToPdf, htmlToPdf, jpgToPdf, pdfToJpg, pdfToWord, pdfToExcel, pdfToPowerpoint, pdfToPdfa } = window.iLoveMyFilesModules['pdf-convert'];
+      const { formatJson, formatXml, htmlEntities, jsonYaml, compareText, csvJsonl, extractImagePalette, decodeJwt, optimizeSvg, generateSeoMeta, validateRobotsTxt, validateSitemapXml, checkPromptSecurity, generateTsZod, estimateTokenCost, decodeUuid, generateLorem, base64Convert, hashText, hashFiles, countTextReport, jsonToCsv, csvToJson, convertUnits, convertUrl, textToBinary, binaryToText, textToHex, hexToText, convertTextCase, reverseText, deduplicateLines, sortLines, addLineNumbers, removeEmptyLines, replaceText, calculatePercentage, calculateAge, dateDifference, convertNumberBase, generateUuid, morseEncode, morseDecode, base64UrlConvert, textToOctal, octalToText, convertAscii, convertBase32, csvToXml, xmlToJson, jsonToXml, markdownToHtml, htmlToText, bbcodeToHtml, csvToExcelFile, parseSqlInserts, sqlInsertToCsv, generateSlug, makeCron, regexMatches, chmodDetails, formatSql, makeHtaccess, convertFont } = window.iLoveMyFilesModules['data-tools'];
       const { generateQr, generateBarcode } = window.iLoveMyFilesModules['generator-tools'];
       const { ocrFile } = window.iLoveMyFilesModules['ocr'];
       const { makeSearchablePdf, flattenPdf } = window.iLoveMyFilesModules['pdf-textlayer'];
@@ -22,6 +24,10 @@
   const title = $('#dialog-title');
   const description = $('#dialog-description');
   const dropZone = $('#drop-zone');
+  const dropZoneThumb = $('#drop-zone-thumb');
+  const dropZoneText = $('#drop-zone-text');
+  const dropZoneAdd = $('#drop-zone-add');
+  const comparePdfPreviews = $('#compare-pdf-previews');
   const input = $('#file-input');
   const selected = $('#selected-files');
   const optionsBox = $('#tool-options');
@@ -62,6 +68,11 @@
   const confirmClose = $('#confirm-close');
   const textWorkspace = $('#text-workspace');
   const utilityInput = $('#utility-input');
+  const dataViewer = $('#data-viewer');
+  const viewerContent = $('#viewer-content');
+  const viewerTitle = $('#viewer-title');
+  const viewerMeta = $('#viewer-meta');
+  const viewerCopyJson = $('#viewer-copy-json');
   const utilityResults = $('#utility-results');
   const utilityOutput = $('#utility-output');
   const utilityImage = $('#utility-image');
@@ -94,6 +105,10 @@
   let imageCompressSettings = createItemSettingsStore(() => imageCompressDefaultSettings);
   let imageResizeDefaultSettings = { width: '1200', height: '1200', keepRatio: true, format: 'image/webp', margin: 0 };
   let imageResizeSettings = createItemSettingsStore(() => imageResizeDefaultSettings);
+  let imageResizeKbDefaultSettings = { format: 'image/webp', targetKb: '100', margin: 0 };
+  let imageResizeKbSettings = createItemSettingsStore(() => imageResizeKbDefaultSettings);
+  let dsssbPhotoDefaultSettings = { width: '300', height: '400', targetKb: '100', format: 'image/jpeg', margin: 0 };
+  let dsssbPhotoSettings = createItemSettingsStore(() => dsssbPhotoDefaultSettings);
   let imageRotateDefaultSettings = { rotation: 0, flipH: false, flipV: false, format: 'image/png', margin: 0 };
   let imageRotateSettings = createItemSettingsStore(() => imageRotateDefaultSettings);
   let imageCropDefaultSettings = { format: 'image/png', margin: 0 };
@@ -108,11 +123,15 @@
   let lastTrigger = null;
   let previewUrl = null;
   let selectedUrls = new Map();
+  let pdfThumbUrls = new Map();
+  let pdfThumbPromises = new Map();
+  let pdfThumbPageCounts = new Map();
   let cropEditor = null;
   let mergeBoard = null;
   let toolConfig = null;
   let utilityUrl = null;
   let utilityBlob = null;
+  let lastViewerJson = '';
   const previewHost = $('#preview-workspace');
   const cropWorkspace = $('#crop-workspace');
   const mergeHost = $('#merge-workspace');
@@ -195,23 +214,49 @@
   
   const previewTools = new Set([
     'pdf-compress', 'pdf-rotate-pages', 'pdf-delete-pages', 'pdf-organize', 'pdf-watermark', 'pdf-page-numbers',
-    'pdf-to-images', 'pdf-remove-metadata', 'pdf-split', 'pdf-merge', 'pdf-ocr', 'pdf-flatten', 'ocr', 'pdf-resize-pages',
-    'image-convert', 'image-resize', 'image-compress', 'image-rotate', 'image-watermark', 'images-pdf'
+    'pdf-to-images', 'pdf-to-jpg', 'pdf-remove-metadata', 'pdf-split', 'pdf-merge', 'pdf-ocr', 'pdf-flatten', 'ocr', 'pdf-resize-pages',
+    'image-convert', 'image-resize', 'image-compress', 'image-resize-kb', 'dsssb-photo-resizer', 'image-rotate', 'image-watermark', 'images-pdf'
   ]);
-  const selectableInputs = { 'pdf-delete-pages': 'delete-pages', 'pdf-to-images': 'pti-pages' };
-  const imagePreviewTools = new Set(['image-convert', 'image-resize', 'image-compress', 'image-rotate', 'image-watermark']);
+  const selectableInputs = { 'pdf-delete-pages': 'delete-pages', 'pdf-to-images': 'pti-pages', 'pdf-to-jpg': 'ptj-pages' };
+  const imagePreviewTools = new Set(['image-convert', 'image-resize', 'image-compress', 'image-resize-kb', 'dsssb-photo-resizer', 'image-rotate', 'image-watermark']);
   
-  const imageTools = new Set(['image-convert', 'image-compress', 'image-resize', 'image-rotate', 'image-watermark', 'images-pdf']);
-  const multiImageTools = new Set(['image-convert', 'image-compress', 'image-resize', 'image-rotate', 'image-watermark', 'images-pdf']);
+  const imageTools = new Set(['image-convert', 'image-compress', 'image-resize', 'image-resize-kb', 'dsssb-photo-resizer', 'image-rotate', 'image-watermark', 'images-pdf']);
+  const multiImageTools = new Set(['image-convert', 'image-compress', 'image-resize', 'image-resize-kb', 'dsssb-photo-resizer', 'image-rotate', 'image-watermark', 'images-pdf']);
   const rotateTools = new Set(['image-rotate', 'pdf-rotate-pages']);
-  const singleFileTools = new Set(['image-crop', 'pdf-delete-pages', 'pdf-rotate-pages', 'pdf-page-numbers', 'pdf-watermark', 'pdf-remove-metadata', 'pdf-to-images', 'pdf-organize', 'pdf-compress', 'ocr', 'pdf-ocr', 'pdf-flatten', 'pdf-resize-pages']);
-  const textTools = new Set(['data-json', 'data-base64', 'data-wordcount', 'data-json-csv', 'data-units', 'qr-code', 'barcode']);
+  const singleFileTools = new Set(['image-crop', 'image-palette', 'youtube-thumbnail', 'svg-optimizer', 'pdf-delete-pages', 'pdf-rotate-pages', 'pdf-page-numbers', 'pdf-page-labels', 'pdf-watermark', 'pdf-remove-metadata', 'pdf-to-images', 'pdf-to-jpg', 'pdf-organize', 'pdf-compress', 'ocr', 'pdf-ocr', 'pdf-flatten', 'pdf-resize-pages', 'pdf-unlock', 'pdf-protect', 'pdf-sign', 'pdf-redact', 'word-to-pdf', 'powerpoint-to-pdf', 'excel-to-pdf', 'html-to-pdf', 'pdf-to-word', 'pdf-to-powerpoint', 'pdf-to-excel', 'pdf-to-pdfa', 'font-converter']);
+  const pairFileTools = new Set(['pdf-compare']);
+  const textTools = new Set(['data-json', 'data-base64', 'data-wordcount', 'data-json-csv', 'data-units', 'qr-code', 'barcode', 'url-codec', 'text-binary', 'text-hex', 'text-case', 'text-reverse', 'text-dedupe', 'text-sort', 'text-line-numbers', 'text-remove-empty', 'text-replace', 'percentage-calculator', 'age-calculator', 'date-difference', 'number-base', 'morse-code', 'base32-codec', 'url-base64', 'text-octal', 'ascii-codec', 'xml-json', 'json-xml', 'csv-xml', 'markdown-html', 'bbcode-html', 'html-text', 'csv-to-excel', 'xml-format', 'yaml-json', 'yaml-xml', 'md5-hash', 'sha1-hash', 'sha256-hash', 'csv-to-json', 'sql-to-csv', 'sql-to-json', 'uuid-generator', 'markdown-viewer', 'json-viewer', 'xml-viewer', 'csv-viewer', 'slug-generator', 'cron-generator', 'regex-tester', 'chmod-calculator', 'sql-highlighter', 'htaccess-generator', 'html-entities', 'json-yaml', 'text-diff', 'csv-jsonl', 'uuid-decode', 'lorem-ipsum', 'jwt-decoder', 'seo-meta-generator', 'robots-sitemap-validator', 'prompt-security-checker']);
+  const viewerTools = new Set(['csv-viewer', 'json-viewer', 'xml-viewer', 'markdown-viewer']);
+  const fileOutputTools = new Set(['font-converter']);
+  const fileOnlyTools = new Set(['file-hash-md5', 'file-hash-sha256']);
   
   const TEXT_HANDLERS = {
     'data-json': async text => ({
       output: formatJson(text, { minify: $('#json-mode').value === 'minify', indent: $('#json-indent').value }),
       filename: 'formatted.json', message: 'Valid JSON. Copy or download the result.'
     }),
+    'html-entities': async text => ({ output: htmlEntities(text, { mode: $('#entities-mode').value }), filename: 'html-entities.txt' }),
+    'json-yaml': async text => {
+      const direction = $('#jsonyaml-mode').value;
+      return { output: await jsonYaml(text, { direction }), filename: direction === 'yaml-to-json' ? 'converted.json' : 'converted.yaml' };
+    },
+    'text-diff': async text => ({ output: compareText(text, $('#diff-reference').value), filename: 'text-diff.txt' }),
+    'uuid-decode': async text => ({ output: decodeUuid(text), filename: 'uuid-details.txt' }),
+    'lorem-ipsum': async () => ({ output: generateLorem({ paragraphs: $('#lorem-paragraphs').value, words: $('#lorem-words').value, startWithLorem: $('#lorem-start').checked }), filename: 'lorem-ipsum.txt' }),
+    'jwt-decoder': async () => ({ decoded: decodeJwt($('#jwt-input').value), message: 'Decoded locally. Signature not verified.' }),
+    'seo-meta-generator': async () => ({ meta: generateSeoMeta({ title: $('#meta-title-input').value, description: $('#meta-description-input').value, url: $('#meta-url-input').value, image: $('#meta-image-input').value }) }),
+    'robots-sitemap-validator': async text => ({ output: ($('#validator-mode')?.value || 'robots') === 'robots' ? validateRobotsTxt(text) : validateSitemapXml(text), filename: 'validation-report.txt' }),
+    'robots-txt-validator': async text => ({ output: validateRobotsTxt(text), filename: 'robots-validation-report.txt' }),
+    'sitemap-validator': async text => ({ output: validateSitemapXml(text), filename: 'sitemap-validation-report.txt' }),
+    'prompt-security-checker': async text => ({ output: checkPromptSecurity(text), filename: 'prompt-security-report.txt', message: 'Heuristic scan complete. Review findings; this cannot guarantee safety.' }),
+    'json-typescript': async text => ({ schemas: generateTsZod(text, { rootName: $('#schema-root-name').value, optional: $('#schema-optional').checked }) }),
+    'ai-token-cost': async text => ({ output: estimateTokenCost(text, { model: $('#ai-pricing-model').value, outputTokens: $('#ai-output-tokens').value }), filename: 'ai-token-estimate.txt' }),
+    'svg-optimizer': async text => {
+      const source = $('#svg-source');
+      const raw = files[0] ? await files[0].text() : source?.value || text;
+      const output = optimizeSvg(raw);
+      return { output, filename: 'optimized.svg', message: `Optimized SVG: ${new TextEncoder().encode(raw).length} → ${new TextEncoder().encode(output).length} bytes. Scripts and external references were removed.` };
+    },
     'data-base64': async text => {
       const decode = $('#base64-mode').value === 'decode';
       return { output: base64Convert(text, { mode: decode ? 'decode' : 'encode' }), filename: decode ? 'decoded.txt' : 'encoded.txt' };
@@ -227,8 +272,69 @@
     },
     'data-units': async text => ({ output: convertUnits(text, $('#units-category').value), filename: 'conversion.txt' }),
     'qr-code': async text => ({ image: await generateQr(text, { level: $('#qr-level').value, size: $('#qr-size').value }), message: 'QR code generated - download the PNG below.' }),
-    'barcode': async text => ({ image: await generateBarcode(text, { format: $('#barcode-format').value, width: $('#barcode-width').value, height: $('#barcode-height').value }), message: 'Barcode generated - download the PNG below.' })
+    'barcode': async text => ({ image: await generateBarcode(text, { format: $('#barcode-format').value, width: $('#barcode-width').value, height: $('#barcode-height').value }), message: 'Barcode generated - download the PNG below.' }),
+    'url-codec': async text => ({ output: convertUrl(text, { mode: $('#url-mode').value }), filename: 'url-converted.txt' }),
+    'text-binary': async text => ({ output: $('#binary-mode').value === 'decode' ? binaryToText(text) : textToBinary(text), filename: 'binary-converted.txt' }),
+    'text-hex': async text => ({ output: $('#hex-mode').value === 'decode' ? hexToText(text) : textToHex(text), filename: 'hex-converted.txt' }),
+    'text-case': async text => ({ output: convertTextCase(text, $('#case-mode').value), filename: 'case-converted.txt' }),
+    'text-reverse': async text => ({ output: reverseText(text), filename: 'reversed.txt' }),
+    'text-dedupe': async text => ({ output: deduplicateLines(text), filename: 'deduplicated.txt' }),
+    'text-sort': async text => ({ output: sortLines(text, { descending: $('#sort-mode').value === 'descending' }), filename: 'sorted.txt' }),
+    'text-line-numbers': async text => ({ output: addLineNumbers(text), filename: 'numbered.txt' }),
+    'text-remove-empty': async text => ({ output: removeEmptyLines(text), filename: 'cleaned-lines.txt' }),
+    'text-replace': async text => ({ output: replaceText(text, { search: $('#replace-search').value, replacement: $('#replace-with').value, all: $('#replace-all').checked }), filename: 'replaced.txt' }),
+    'percentage-calculator': async text => ({ output: calculatePercentage(text, $('#percentage-mode').value), filename: 'percentage.txt' }),
+    'age-calculator': async text => ({ output: calculateAge(text), filename: 'age.txt' }),
+    'date-difference': async text => ({ output: dateDifference(text), filename: 'date-difference.txt' }),
+    'number-base': async text => ({ output: convertNumberBase(text, { from: $('#base-from').value, to: $('#base-to').value }), filename: 'number-converted.txt' }),
+    'morse-code': async text => ({ output: $('#morse-mode').value === 'decode' ? morseDecode(text) : morseEncode(text), filename: 'morse-converted.txt' }),
+    'base32-codec': async text => ({ output: convertBase32(text, { mode: $('#base32-mode').value }), filename: 'base32.txt' }),
+    'url-base64': async text => ({ output: base64UrlConvert(text, { mode: $('#urlb64-mode').value }), filename: 'url-safe-base64.txt' }),
+    'text-octal': async text => ({ output: $('#octal-mode').value === 'decode' ? octalToText(text) : textToOctal(text), filename: 'octal.txt' }),
+    'ascii-codec': async text => ({ output: convertAscii(text, { mode: $('#ascii-mode').value }), filename: 'ascii.txt' }),
+    'xml-json': async text => ({ output: xmlToJson(text), filename: 'converted.json' }),
+    'json-xml': async text => ({ output: jsonToXml(text), filename: 'converted.xml' }),
+    'yaml-json': async text => {
+      const { parse } = await import('yaml');
+      return { output: JSON.stringify(parse(text), null, 2), filename: 'converted.json' };
+    },
+    'yaml-xml': async text => {
+      const { parse } = await import('yaml');
+      return { output: jsonToXml(JSON.stringify({ root: parse(text) })), filename: 'converted.xml' };
+    },
+    'csv-xml': async text => ({ output: csvToXml(text), filename: 'converted.xml' }),
+    'markdown-html': async text => ({ output: markdownToHtml(text), filename: 'converted.html' }),
+    'bbcode-html': async text => ({ output: bbcodeToHtml(text), filename: 'converted.html' }),
+    'html-text': async text => ({ output: htmlToText(text), filename: 'extracted.txt' }),
+    'csv-to-excel': async text => {
+      const XLSX = await import('xlsx');
+      const worksheet = XLSX.utils.aoa_to_sheet(csvToExcelFile(text));
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+      const bytes = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      return { file: { blob: new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), name: 'converted.xlsx', details: 'CSV converted to a one-sheet Excel workbook.' } };
+    },
+    'uuid-generator': async text => ({ output: Array.from({ length: Math.max(1, Math.min(100, Number($('#uuid-count')?.value) || 1)) }, generateUuid).join('\n'), filename: 'uuids.txt' }),
+    'csv-viewer': async text => ({ viewer: { kind: 'csv', rows: csvToExcelFile(text) }, output: JSON.stringify(csvToExcelFile(text), null, 2), filename: 'csv-preview.json' }),
+    'markdown-viewer': async text => ({ viewer: { kind: 'markdown', html: markdownToHtml(text) }, output: markdownToHtml(text), filename: 'markdown-preview.html' }),
+    'json-viewer': async text => ({ viewer: { kind: 'json', value: JSON.parse(text) }, output: formatJson(text), filename: 'json-view.json' }),
+    'xml-viewer': async text => ({ viewer: { kind: 'xml', text: await formatXml(text) }, output: text, filename: 'document.xml' }),
+    'slug-generator': async text => ({ output: generateSlug(text), filename: 'slug.txt' }),
+    'cron-generator': async text => ({ output: makeCron({ minute: $('#cron-minute').value, hour: $('#cron-hour').value, day: $('#cron-day').value, month: $('#cron-month').value, weekday: $('#cron-weekday').value }), filename: 'cron.txt' }),
+    'regex-tester': async text => ({ output: JSON.stringify(regexMatches($('#regex-pattern').value, $('#regex-flags').value, text), null, 2), filename: 'regex-matches.json' }),
+    'chmod-calculator': async text => ({ output: chmodDetails(text), filename: 'chmod.txt' }),
+    'sql-highlighter': async text => ({ output: formatSql(text), filename: 'formatted.sql' }),
+    'htaccess-generator': async text => ({ output: makeHtaccess($('#htaccess-mode').value, $('#htaccess-domain').value), filename: '.htaccess' }),
+    'font-converter': async () => ({ file: await convertFont(files[0], $('#font-output-format').value) }),
+    'xml-format': async text => ({ output: await formatXml(text), filename: 'formatted.xml' }),
+    'csv-to-json': async text => ({ output: csvToJson(text), filename: 'converted.json' }),
+    'sql-to-csv': async text => ({ output: sqlInsertToCsv(text), filename: 'converted.csv' }),
+    'sql-to-json': async text => ({ output: JSON.stringify(parseSqlInserts(text), null, 2), filename: 'converted.json' })
   };
+
+  // A small set of tools need only text input and an optional result. Keep
+  // their handlers in the same pipeline as the existing utilities.
+  const DATE_INPUT_TOOLS = new Set(['age-calculator']);
   
   const RECENT_TOOLS_KEY = 'ilovemyfiles-recent-tools';
   const RECENT_TOOLS_LIMIT = 6;
@@ -275,6 +381,8 @@
       imageConvert: imageConvertDefaultSettings,
       imageCompress: imageCompressDefaultSettings,
       imageResize: imageResizeDefaultSettings,
+      imageResizeKb: imageResizeKbDefaultSettings,
+      dsssbPhoto: dsssbPhotoDefaultSettings,
       imageRotate: imageRotateDefaultSettings,
       imageCrop: imageCropDefaultSettings,
       imageWatermark: imageWatermarkDefaultSettings
@@ -292,6 +400,8 @@
         imageConvert: serializeMap(imageConvertSettings),
         imageCompress: serializeMap(imageCompressSettings),
         imageResize: serializeMap(imageResizeSettings),
+        imageResizeKb: serializeMap(imageResizeKbSettings),
+        dsssbPhoto: serializeMap(dsssbPhotoSettings),
         imageRotate: serializeMap(imageRotateSettings),
         imageCrop: serializeMap(imageCropSettings),
         imageWatermark: serializeMap(imageWatermarkSettings)
@@ -398,6 +508,8 @@
       restoreMap(imageConvertSettings, session.settings?.imageConvert, defaults.imageConvert);
       restoreMap(imageCompressSettings, session.settings?.imageCompress, defaults.imageCompress);
       restoreMap(imageResizeSettings, session.settings?.imageResize, defaults.imageResize);
+      restoreMap(imageResizeKbSettings, session.settings?.imageResizeKb, defaults.imageResizeKb);
+      restoreMap(dsssbPhotoSettings, session.settings?.dsssbPhoto, defaults.dsssbPhoto);
       restoreMap(imageRotateSettings, session.settings?.imageRotate, defaults.imageRotate);
       restoreMap(imageCropSettings, session.settings?.imageCrop, defaults.imageCrop);
       restoreMap(imageWatermarkSettings, session.settings?.imageWatermark, defaults.imageWatermark);
@@ -425,7 +537,7 @@
       files.forEach(updateSelectedRowMeta);
       updateImageInfo();
       runButton.disabled = !canRun();
-      setRunButtonLabel(files.length || utilityInput.value.trim() ? 'Process files →' : 'Choose files to start →');
+      setRunButtonLabel(DATE_INPUT_TOOLS.has(activeTool) ? 'Calculate →' : fileOutputTools.has(activeTool) ? 'Convert font →' : textTools.has(activeTool) || activeTool === 'data-hash' ? 'Run tool →' : files.length ? 'Process files →' : 'Choose files to start →');
       if (activeTool === 'pdf-merge' && files.length) {
         await refreshMergePreview();
         mergeBoard?.restoreState?.(session.merge);
@@ -436,6 +548,8 @@
         if (sizeEl) sizeEl.value = mergeSettings.size || 'original';
         if (orientEl) orientEl.value = mergeSettings.orientation || 'auto';
         if (marginEl) { marginEl.value = mergeSettings.margin ?? 0; syncMarginPresets(marginEl); }
+      } else if (fileOutputTools.has(activeTool) && files.length) {
+        showStatus(`${files[0].name} selected. Choose an output format, then convert.`, 'info');
       } else {
         if (activeTool === 'pdf-resize-pages' || activeTool === 'pdf-rotate-pages') {
           await refreshPreview({ reload: true });
@@ -475,8 +589,41 @@
     toolConfig = config;
     if (closeButton) closeButton.addEventListener('click', () => { if (!busy) closeWorkspace(); });
     dropZone.addEventListener('click', () => { input.value = ''; input.click(); });
+    dropZoneAdd?.addEventListener('click', event => { event.stopPropagation(); input.value = ''; input.click(); });
     dropZone.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); input.value = ''; input.click(); } });
     input.addEventListener('change', () => addFiles([...input.files]));
+    $('#svg-source')?.addEventListener('input', () => {
+      if (activeTool === 'svg-optimizer') {
+        runButton.disabled = !canRun();
+        updateSvgPreview();
+      }
+    });
+    for (const id of ['thumbnail-quality', 'thumbnail-target-kb']) {
+      $('#' + id)?.addEventListener('input', () => refreshThumbnailPreview(files[0]));
+      $('#' + id)?.addEventListener('change', () => refreshThumbnailPreview(files[0]));
+    }
+    $('#jwt-input')?.addEventListener('input', () => {
+      if (activeTool === 'jwt-decoder') runButton.disabled = !canRun();
+    });
+    for (const id of ['meta-title-input', 'meta-description-input', 'meta-url-input', 'meta-image-input']) {
+      $('#' + id)?.addEventListener('input', () => { if (activeTool === 'seo-meta-generator') runButton.disabled = !canRun(); });
+    }
+    for (const id of ['schema-root-name', 'ai-output-tokens']) {
+      $('#' + id)?.addEventListener('input', () => { if (activeTool === 'json-typescript' || activeTool === 'ai-token-cost') runButton.disabled = !canRun(); });
+    }
+    $('#schema-copy')?.addEventListener('click', async () => {
+      const source = `TypeScript\n${$('#typescript-output')?.value ?? ''}\n\nZod\n${$('#zod-output')?.value ?? ''}`;
+      try { await navigator.clipboard.writeText(source); showStatus('TypeScript and Zod output copied.', 'success'); }
+      catch { showStatus('Could not copy the generated schemas.', 'error'); }
+    });
+    $('#meta-copy')?.addEventListener('click', async () => {
+      const html = utilityOutput.value;
+      try { await navigator.clipboard.writeText(html); showStatus('Generated meta tags copied.', 'success'); }
+      catch { showStatus('Could not copy generated tags. Use the result below instead.', 'error'); }
+    });
+    for (const id of ['thumbnail-quality', 'thumbnail-target-kb']) {
+      $('#' + id)?.addEventListener('input', () => { if (activeTool === 'youtube-thumbnail') runButton.disabled = !canRun(); });
+    }
     ['dragenter', 'dragover'].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.add('dragging'); }));
     ['dragleave', 'drop'].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.remove('dragging'); }));
     dropZone.addEventListener('drop', event => addFiles([...event.dataTransfer.files]));
@@ -484,6 +631,9 @@
     ['dragleave', 'drop'].forEach(type => stage.addEventListener(type, event => { event.preventDefault(); stage.classList.remove('dragging-over'); }));
     stage.addEventListener('drop', event => addFiles([...event.dataTransfer.files]));
     runButton.addEventListener('click', runTool);
+    optionsBox.addEventListener('change', event => {
+      if (fileOutputTools.has(activeTool) && event.target.id === 'font-output-format') runButton.disabled = !canRun();
+    });
     document.addEventListener('paste', handlePaste);
     document.addEventListener('keydown', handlePreviewArrowKeys);
     previewClose.addEventListener('click', () => previewDialog.close());
@@ -492,6 +642,36 @@
     utilityInput.addEventListener('input', () => {
       if (textTools.has(activeTool) || activeTool === 'data-hash') runButton.disabled = !canRun();
       schedulePersist();
+    });
+    $('#diff-reference')?.addEventListener('input', () => {
+      if (activeTool === 'text-diff') runButton.disabled = !canRun();
+      schedulePersist();
+    });
+    optionsBox.addEventListener('change', event => {
+      if (activeTool === 'font-converter' && event.target.id === 'font-output-format') runButton.disabled = !canRun();
+    });
+    viewerCopyJson?.addEventListener('click', async () => {
+      if (!lastViewerJson) return;
+      try { await navigator.clipboard.writeText(lastViewerJson); showStatus('Structured JSON copied.', 'success'); }
+      catch { showStatus('Could not copy the structured JSON.', 'error'); }
+    });
+    optionsBox.addEventListener('input', event => {
+      if (DATE_INPUT_TOOLS.has(activeTool) && event.target.id === 'age-date') runButton.disabled = !canRun();
+    });
+    optionsBox.addEventListener('change', event => {
+      if (DATE_INPUT_TOOLS.has(activeTool) && event.target.id === 'age-date') runButton.disabled = !canRun();
+    });
+    optionsBox.addEventListener('input', event => {
+      if (['percentage-calculator', 'date-difference', 'text-replace', 'csv-jsonl'].includes(activeTool)) runButton.disabled = !canRun();
+    });
+    optionsBox.addEventListener('change', event => {
+      if (['percentage-calculator', 'date-difference', 'text-replace', 'csv-jsonl'].includes(activeTool)) runButton.disabled = !canRun();
+    });
+    optionsBox.addEventListener('input', event => {
+      if (activeTool === 'text-replace' && event.target.id === 'replace-search') runButton.disabled = !canRun();
+    });
+    optionsBox.addEventListener('change', event => {
+      if (activeTool === 'text-replace' && event.target.id === 'replace-search') runButton.disabled = !canRun();
     });
     utilityCopy.addEventListener('click', copyUtilityOutput);
     utilityDownload.addEventListener('click', () => {
@@ -539,6 +719,12 @@
         if (activeTool === 'image-compress' && files[previewIndex]) saveCompressSettings(files[previewIndex]);
       }
       if (event.target.id === 'resize-format' && activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]);
+      if (event.target.id === 'kb-format' && activeTool === 'image-resize-kb' && files[previewIndex]) saveResizeKbSettings(files[previewIndex]);
+      if (event.target.id === 'target-kb' && activeTool === 'image-resize-kb' && files[previewIndex]) saveResizeKbSettings(files[previewIndex]);
+      if (event.target.id === 'dsssb-preset' && activeTool === 'dsssb-photo-resizer' && files[previewIndex]) { applyDsssbPreset(files[previewIndex]); saveDsssbSettings(files[previewIndex]); }
+      if (event.target.id === 'dsssb-width' || event.target.id === 'dsssb-height') { if (activeTool === 'dsssb-photo-resizer' && files[previewIndex]) saveDsssbSettings(files[previewIndex]); }
+      if (event.target.id === 'dsssb-target-kb' && activeTool === 'dsssb-photo-resizer' && files[previewIndex]) saveDsssbSettings(files[previewIndex]);
+      if (event.target.id === 'dsssb-format' && activeTool === 'dsssb-photo-resizer' && files[previewIndex]) saveDsssbSettings(files[previewIndex]);
       if (event.target.id === 'rotate-format' && activeTool === 'image-rotate' && files[previewIndex]) saveRotateSettings(files[previewIndex]);
       if (event.target.id === 'crop-format' && activeTool === 'image-crop' && files[previewIndex]) saveCropSettings(files[previewIndex]);
       if (event.target.id === 'wm-format' && activeTool === 'image-watermark' && files[previewIndex]) saveWatermarkSettings(files[previewIndex]);
@@ -601,6 +787,10 @@
       if (event.target.id === 'target-kb' && activeTool === 'image-compress' && files[previewIndex]) saveCompressSettings(files[previewIndex]);
       if (event.target.id === 'resize-width' || event.target.id === 'resize-height') { updateResizeDimension(event.target.id); if (activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]); }
       if (event.target.id === 'resize-format' && activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]);
+      if (event.target.id === 'target-kb' && activeTool === 'image-resize-kb' && files[previewIndex]) saveResizeKbSettings(files[previewIndex]);
+      if (event.target.id === 'dsssb-width' || event.target.id === 'dsssb-height') { if (activeTool === 'dsssb-photo-resizer' && files[previewIndex]) saveDsssbSettings(files[previewIndex]); }
+      if (event.target.id === 'dsssb-target-kb' && activeTool === 'dsssb-photo-resizer' && files[previewIndex]) saveDsssbSettings(files[previewIndex]);
+      if (event.target.id === 'dsssb-format' && activeTool === 'dsssb-photo-resizer' && files[previewIndex]) saveDsssbSettings(files[previewIndex]);
       if (event.target.id === 'keep-ratio' && activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]);
       if (event.target.id === 'image-resize-margin' && activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]);
       if (event.target.id === 'rotate-format' && activeTool === 'image-rotate' && files[previewIndex]) saveRotateSettings(files[previewIndex]);
@@ -766,7 +956,7 @@
       dropZone.hidden = true;
       if (previewHost) previewHost.hidden = true;
       stage?.classList.remove('previewing');
-    } else if (!textTools.has(activeTool)) {
+    } else if (!textTools.has(activeTool) || fileOutputTools.has(activeTool)) {
       dropZone.hidden = false;
     }
   }
@@ -778,6 +968,8 @@
     if (active) {
       dropZone.hidden = true;
       if (previewHost) previewHost.hidden = true;
+      stage?.classList.add('previewing');
+    } else if (activeTool !== 'pdf-merge') {
       stage?.classList.remove('previewing');
     }
   }
@@ -922,6 +1114,8 @@
     imageConvertSettings.delete(key);
     imageCompressSettings.delete(key);
     imageResizeSettings.delete(key);
+    imageResizeKbSettings.delete(key);
+    dsssbPhotoSettings.delete(key);
     imageRotateSettings.delete(key);
     imageCropSettings.delete(key);
     imageWatermarkSettings.delete(key);
@@ -936,6 +1130,8 @@
     if (activeTool === 'image-convert') syncConvertSettings(file);
     if (activeTool === 'image-compress') syncCompressSettings(file);
     if (activeTool === 'image-resize') syncResizeSettings(file);
+    if (activeTool === 'image-resize-kb') syncResizeKbSettings(file);
+    if (activeTool === 'dsssb-photo-resizer') syncDsssbSettings(file);
     if (activeTool === 'image-rotate') syncRotateSettings(file);
     if (activeTool === 'image-crop') syncCropSettings(file);
     if (activeTool === 'image-watermark') syncWatermarkSettings(file);
@@ -1006,6 +1202,8 @@
     if (activeTool === 'image-convert') return imageConvertSettings.get(key) || imageConvertDefaultSettings;
     if (activeTool === 'image-compress') return imageCompressSettings.get(key) || imageCompressDefaultSettings;
     if (activeTool === 'image-resize') return imageResizeSettings.get(key) || imageResizeDefaultSettings;
+    if (activeTool === 'image-resize-kb') return imageResizeKbSettings.get(key) || imageResizeKbDefaultSettings;
+    if (activeTool === 'dsssb-photo-resizer') return dsssbPhotoSettings.get(key) || dsssbPhotoDefaultSettings;
     if (activeTool === 'image-rotate') return imageRotateSettings.get(key) || imageRotateDefaultSettings;
     if (activeTool === 'image-crop') return imageCropSettings.get(key) || imageCropDefaultSettings;
     if (activeTool === 'image-watermark') return imageWatermarkSettings.get(key) || imageWatermarkDefaultSettings;
@@ -1028,6 +1226,13 @@
         plan.dimensions = `${Math.max(1, Math.round(meta.width * ratio))} × ${Math.max(1, Math.round(meta.height * ratio))} px (fitted)`;
       } else if (width > 0 && height > 0) plan.dimensions = `${width} × ${height} px`;
       if (settings.margin) plan.note = `Margin ${settings.margin}px`;
+    } else if (activeTool === 'image-resize-kb') {
+      plan.format = formatLabel(settings.format);
+      plan.note = `Target ~${settings.targetKb} KB`;
+    } else if (activeTool === 'dsssb-photo-resizer') {
+      plan.format = formatLabel(settings.format);
+      plan.dimensions = `${settings.width} × ${settings.height} px`;
+      plan.note = `Target ~${settings.targetKb} KB`;
     } else if (activeTool === 'image-compress') {
       plan.format = formatLabel(settings.format);
       plan.note = settings.mode === 'target' ? `Target ~${settings.targetKb} KB` : `Quality ${settings.quality}%`;
@@ -1254,7 +1459,7 @@
         ws.refresh();
         return;
       case 'ocr':
-        ws.setNote(`OCR will read the text from this document (${$('#ocr-lang')?.value || 'eng'}). The pages are unchanged.`);
+        ws.setNote(`OCR will read the text from this document (${$('#ocr-lang')?.value || 'eng'}). PDF pages render at ${$('#ocr-dpi')?.value || 200} DPI. The pages are unchanged.`);
         ws.refresh();
         return;
       default:
@@ -1815,12 +2020,22 @@
         const key = fileKey(file);
         const s = imageConvertSettings.get(key) || imageConvertDefaultSettings;
         result = await convertImage(file, s.format, s.margin, s.ext || null);
-      } else if (activeTool === 'image-resize') {
+      }       else if (activeTool === 'image-resize') {
         const width = Number($('#resize-width').value), height = Number($('#resize-height').value);
         if (!(width > 0 && height > 0)) { ws.setNote('Enter a width and height to preview the resized result.'); return; }
         const key = fileKey(file);
         const s = imageResizeSettings.get(key) || imageResizeDefaultSettings;
         result = await resizeImage(file, width, height, $('#keep-ratio').checked, s.format, s.margin, s.ext);
+      }
+      else if (activeTool === 'image-resize-kb') {
+        const key = fileKey(file);
+        const s = imageResizeKbSettings.get(key) || imageResizeKbDefaultSettings;
+        result = await compressImage(file, { type: s.format, mode: 'target', quality: '78', targetKb: s.targetKb, ext: null });
+      }
+      else if (activeTool === 'dsssb-photo-resizer') {
+        const key = fileKey(file);
+        const s = dsssbPhotoSettings.get(key) || dsssbPhotoDefaultSettings;
+        result = await resizeImage(file, Number(s.width), Number(s.height), true, s.format, s.margin, null);
       }
       else if (activeTool === 'image-compress') {
         const key = fileKey(file);
@@ -1919,12 +2134,16 @@
     sessionFilesDirty = false;
     clearTimeout(sessionSaveTimer);
     selectedUrls.forEach(URL.revokeObjectURL); selectedUrls.clear();
+    pdfThumbUrls.forEach(URL.revokeObjectURL); pdfThumbUrls.clear();
+    pdfThumbPromises.clear();
+    pdfThumbPageCounts.clear();
     clearPreview();
     hideSessionBanner();
     metadataInspection = null; metadataSeq++; clearTimeout(metadataTimer);
     if (previewDialog.open) previewDialog.close();
     const settings = config[tool];
-    const textMode = settings.mode === 'text' || textTools.has(tool);
+    const textMode = (settings.mode === 'text' || textTools.has(tool)) && !fileOnlyTools.has(tool) && !fileOutputTools.has(tool);
+    stage.classList.toggle('text-mode', textMode);
     title.textContent = settings.title; description.textContent = settings.description;
     $('#file-hint').textContent = settings.hint || '';
     input.accept = settings.accept || '';
@@ -1933,12 +2152,16 @@
     mergeBoard?.destroy(); mergeBoard = null;
     if (mergeHost) mergeHost.hidden = true;
     activateToolOptions(tool);
+    dataViewer.hidden = true; viewerContent.replaceChildren(); lastViewerJson = '';
+    utilityResults.hidden = true; utilityOutput.value = '';
     syncRotateControls();
     cropWorkspace.hidden = true;
     if (tool === 'images-pdf') { imagePdfSettings.clear(); imagePdfDefaultSettings = { pageSize: 'fit', orientation: 'portrait', margin: 0 }; }
     if (tool === 'image-convert') { imageConvertSettings.clear(); imageConvertDefaultSettings = { format: 'image/png', margin: 0 }; }
     if (tool === 'image-compress') { imageCompressSettings.clear(); imageCompressDefaultSettings = { format: 'image/webp', mode: 'quality', quality: '78', targetKb: '200' }; }
     if (tool === 'image-resize') { imageResizeSettings.clear(); imageResizeDefaultSettings = { width: '1200', height: '1200', keepRatio: true, format: 'image/webp', margin: 0 }; }
+    if (tool === 'image-resize-kb') { imageResizeKbSettings.clear(); imageResizeKbDefaultSettings = { format: 'image/webp', targetKb: '100', margin: 0 }; }
+    if (tool === 'dsssb-photo-resizer') { dsssbPhotoSettings.clear(); dsssbPhotoDefaultSettings = { width: '300', height: '400', targetKb: '100', format: 'image/jpeg', margin: 0 }; }
     if (tool === 'image-rotate') { imageRotateSettings.clear(); imageRotateDefaultSettings = { rotation: 0, flipH: false, flipV: false, format: 'image/png', margin: 0 }; }
     if (tool === 'image-crop') { imageCropSettings.clear(); imageCropDefaultSettings = { format: 'image/png', margin: 0 }; }
     if (tool === 'image-watermark') { imageWatermarkSettings.clear(); imageWatermarkDefaultSettings = { text: '© iLoveMyFiles', position: 'bottom-right', color: '#ffffff', opacity: '0.6', size: '6', format: 'image/png' }; }
@@ -1983,8 +2206,75 @@
     status.hidden = true; progressWrap.hidden = true;
     dropZone.hidden = textMode;
     dropZone.classList.remove('compact');
+    updateDropZoneState();
     textWorkspace.hidden = !textMode;
+    const jwtInput = $('#jwt-input');
+    const jwtLabel = dialog?.querySelector('label[for="jwt-input"]');
+    if (jwtInput) { jwtInput.hidden = tool !== 'jwt-decoder'; jwtInput.value = ''; }
+    if (jwtLabel) jwtLabel.hidden = tool !== 'jwt-decoder';
+    const specializedLabel = dialog?.querySelector('.field-label[for="utility-input"]');
+    if (specializedLabel) specializedLabel.hidden = !['robots-sitemap-validator', 'robots-txt-validator', 'sitemap-validator', 'prompt-security-checker', 'ai-token-cost', 'json-typescript'].includes(tool);
+    if (utilityInput) {
+      const specializedTextInput = ['robots-sitemap-validator', 'robots-txt-validator', 'sitemap-validator', 'prompt-security-checker', 'ai-token-cost', 'json-typescript'].includes(tool);
+      utilityInput.hidden = specializedTextInput;
+      if (specializedTextInput) utilityInput.value = '';
+    }
+    const svgSource = $('#svg-source');
+    const svgWorkbench = $('#svg-workbench');
+    const thumbnailWorkbench = $('#thumbnail-workbench');
+    const jwtWorkbench = $('#jwt-workbench');
+    const seoMetaWorkbench = $('#seo-meta-workbench');
+    const validatorWorkbench = $('#validator-workbench');
+    const schemaWorkbench = $('#schema-workbench');
+    const imageFileInput = $('#file-input');
+    if (svgSource) { svgSource.hidden = tool !== 'svg-optimizer'; svgSource.value = ''; }
+    if (svgWorkbench) svgWorkbench.hidden = tool !== 'svg-optimizer';
+    if (validatorWorkbench) validatorWorkbench.hidden = !['robots-sitemap-validator', 'robots-txt-validator', 'sitemap-validator'].includes(tool);
+    if (thumbnailWorkbench) thumbnailWorkbench.hidden = tool !== 'youtube-thumbnail';
+    if (schemaWorkbench) schemaWorkbench.hidden = tool !== 'json-typescript';
+    if (jwtWorkbench) jwtWorkbench.hidden = tool !== 'jwt-decoder';
+    if (seoMetaWorkbench) seoMetaWorkbench.hidden = tool !== 'seo-meta-generator';
+    for (const id of ['meta-title-input', 'meta-description-input', 'meta-url-input', 'meta-image-input', 'schema-root-name', 'ai-output-tokens']) { const control = $('#' + id); if (control) control.value = control.defaultValue; }
+    const aiModelSelect = $('#ai-pricing-model');
+    if (aiModelSelect) aiModelSelect.selectedIndex = 0;
+    if (tool === 'youtube-thumbnail' && imageFileInput) imageFileInput.accept = 'image/jpeg,image/png,image/webp';
+    else if (imageFileInput) imageFileInput.accept = settings.accept || '';
+    const diffReference = $('#diff-reference');
+    const diffLabel = $('.diff-reference-label');
+    if (diffReference) {
+      diffReference.hidden = tool !== 'text-diff';
+      diffReference.value = '';
+    }
+    if (diffLabel) diffLabel.hidden = tool !== 'text-diff';
+    const validatorMode = $('#validator-mode');
+    if (validatorMode) validatorMode.value = tool === 'sitemap-validator' ? 'sitemap' : 'robots';
+    for (const id of ['thumbnail-quality', 'thumbnail-target-kb']) { const field = $('#' + id); if (field) field.value = field.defaultValue; }
+    const primaryInput = $('#utility-input');
+    if (primaryInput) {
+      primaryInput.setAttribute('aria-label', tool === 'text-diff' ? 'Updated text' : 'Input');
+      primaryInput.placeholder = tool === 'text-diff' ? 'Paste the updated text here…'
+        : tool === 'json-typescript' ? 'Paste a representative JSON object or array…'
+        : tool === 'ai-token-cost' ? 'Paste prompt text here…'
+        : tool === 'robots-txt-validator' ? 'Paste robots.txt content here…'
+        : tool === 'sitemap-validator' ? 'Paste XML sitemap here…'
+        : tool === 'prompt-security-checker' ? 'Paste prompt text you are authorized to inspect…'
+        : 'Paste or type your text or data here…';
+    }
+    if (textMode) {
+      // Text-first tools need their editor immediately visible, not pushed to
+      // the bottom of a tall empty file workspace. Move it into the left stage
+      // so the input starts at the top and fills the available working area.
+      const stageInner = stage?.querySelector('.wb-stage-inner');
+      if (stageInner && textWorkspace.parentElement !== stageInner) stageInner.prepend(textWorkspace);
+    } else {
+      // Restore the original layout on file tools so preview/drop-zone ordering
+      // and their existing workspace behaviour remain unchanged.
+      const sideScroll = dialog?.querySelector('.wb-side-scroll');
+      const options = dialog?.querySelector('#tool-options');
+      if (sideScroll && options && textWorkspace.parentElement !== sideScroll) sideScroll.insertBefore(textWorkspace, options);
+    }
     utilityInput.value = ''; utilityOutput.value = ''; utilityResults.hidden = true;
+    dataViewer.hidden = true; viewerContent.replaceChildren(); lastViewerJson = '';
     if (utilityUrl) { URL.revokeObjectURL(utilityUrl); utilityUrl = null; }
     utilityBlob = null;
     if (utilityImage) { utilityImage.hidden = true; utilityImage.removeAttribute('src'); }
@@ -1992,7 +2282,16 @@
     const pasteHint = $('#drop-paste');
     if (pasteHint) pasteHint.hidden = textMode || !imageTools.has(tool);
     runButton.disabled = true;
-    setRunButtonLabel(textMode ? 'Run tool →' : 'Choose files to start →');
+      setRunButtonLabel(DATE_INPUT_TOOLS.has(tool) || fileOnlyTools.has(tool) ? 'Choose files to start →' : textMode ? 'Run tool →' : 'Choose files to start →');
+      if (fileOutputTools.has(tool)) setRunButtonLabel('Choose a font file →');
+      if (tool === 'file-hash-md5' || tool === 'file-hash-sha256') {
+        setRunButtonLabel('Choose files to start →');
+      }
+      if (tool === 'age-calculator') {
+        $('#age-date').value = '';
+        const today = new Date().toISOString().slice(0, 10);
+        $('#age-date').max = today;
+      }
     if (workspace?.infoEl) workspace.infoEl.hidden = true;
     pageOpen = true;
     dialog.classList.add('is-active');
@@ -2002,16 +2301,32 @@
   function addFiles(incoming) {
     if (busy || !incoming.length) return;
     const accept = toolConfig?.[activeTool]?.accept || '';
-    const acceptsPdf = accept.includes('pdf');
-    const acceptsImage = accept.includes('image');
+    const tokens = accept.split(',').map(token => token.trim().toLowerCase()).filter(Boolean);
     const valid = incoming.filter(file => {
-      if (activeTool === 'data-hash') return true;
-      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-      if (isPdf) return acceptsPdf;
-      return acceptsImage && file.type.startsWith('image/');
+      if (activeTool === 'data-hash' || fileOnlyTools.has(activeTool)) return true;
+      if (!tokens.length) return true;
+      const name = file.name.toLowerCase();
+      const extension = name.includes('.') ? name.slice(name.lastIndexOf('.')) : '';
+      const type = (file.type || '').toLowerCase();
+      return tokens.some(token => {
+        if (token.startsWith('.')) return extension === token;
+        if (token.endsWith('/*')) return type.startsWith(token.slice(0, -1));
+        return type === token;
+      });
     });
-    if (!valid.length) return showStatus('Choose files in a supported format.', 'error');
+    if (!valid.length) {
+      const message = 'Choose files in a supported format.';
+      showStatus(message, 'error');
+      const hint = $('#file-hint');
+      if (hint) hint.textContent = message;
+      dropZone.classList.add('file-error');
+      return;
+    }
     if (singleFileTools.has(activeTool)) files = [valid[0]];
+    else if (pairFileTools.has(activeTool)) {
+      const seen = new Set(files.map(file => fileKey(file)));
+      files = [...files, ...valid.filter(file => { const key = fileKey(file); if (seen.has(key)) return false; seen.add(key); return true; })].slice(-2);
+    }
     else {
       const seen = new Set(files.map(file => fileKey(file)));
       files.push(...valid.filter(file => { const key = fileKey(file); if (seen.has(key)) return false; seen.add(key); return true; }));
@@ -2051,6 +2366,20 @@
       });
       if (files.length) syncResizeSettings(files[previewIndex]);
     }
+    if (activeTool === 'image-resize-kb') {
+      valid.forEach(file => {
+        const key = fileKey(file);
+        if (!imageResizeKbSettings.has(key)) imageResizeKbSettings.set(key, { ...imageResizeKbDefaultSettings });
+      });
+      if (files.length) syncResizeKbSettings(files[previewIndex]);
+    }
+    if (activeTool === 'dsssb-photo-resizer') {
+      valid.forEach(file => {
+        const key = fileKey(file);
+        if (!dsssbPhotoSettings.has(key)) dsssbPhotoSettings.set(key, { ...dsssbPhotoDefaultSettings });
+      });
+      if (files.length) syncDsssbSettings(files[previewIndex]);
+    }
     if (activeTool === 'image-rotate') {
       valid.forEach(file => {
         const key = fileKey(file);
@@ -2073,6 +2402,7 @@
       if (files.length) syncWatermarkSettings(files[previewIndex]);
     }
     if (activeTool === 'pdf-merge' && files.length < 2) showStatus('Add at least two PDF files to merge.', 'info');
+    else if (activeTool === 'pdf-compare' && files.length < 2) showStatus('Add two PDF files to compare. The most recently added two are kept.', 'info');
     else status.hidden = true;
     if (activeTool === 'image-resize') {
       valid.forEach(async file => {
@@ -2094,6 +2424,8 @@
     schedulePersist({ blobs: true });
     if (activeTool === 'image-compress' && files.length) syncSelectFormat('compress-format', files[0]);
     if (activeTool === 'image-resize' && files.length) syncSelectFormat('resize-format', files[0]);
+    if (activeTool === 'image-resize-kb' && files.length) syncSelectFormat('kb-format', files[0]);
+    if (activeTool === 'dsssb-photo-resizer' && files.length) syncSelectFormat('dsssb-format', files[0]);
     if (activeTool === 'image-rotate' && files.length) syncSelectFormat('rotate-format', files[0]);
     if (activeTool === 'image-crop' && files.length) syncSelectFormat('crop-format', files[0]);
     if (activeTool === 'image-watermark' && files.length) syncSelectFormat('wm-format', files[0]);
@@ -2118,20 +2450,28 @@
     closePreview();
     previewStage.replaceChildren();
     previewTitle.textContent = name;
-    previewUrl = URL.createObjectURL(blob);
     const isPdf = blob.type === 'application/pdf' || name.toLowerCase().endsWith('.pdf');
-    if (isPdf) {
+    const isText = blob.type.startsWith('text/') || /\.(txt|html?|csv|json|md)$/i.test(name);
+    if (isPdf || isText) {
+      previewUrl = URL.createObjectURL(blob);
       const frame = document.createElement('iframe');
       frame.className = 'preview-frame';
       frame.title = `Preview of ${name}`;
       frame.src = previewUrl;
       previewStage.append(frame);
-    } else {
+    } else if (blob.type.startsWith('image/')) {
+      previewUrl = URL.createObjectURL(blob);
       const image = document.createElement('img');
       image.className = 'preview-image';
       image.alt = name;
       image.src = previewUrl;
       previewStage.append(image);
+    } else {
+      const note = document.createElement('p');
+      note.className = 'preview-note';
+      note.textContent = 'This file type cannot be previewed here. Download it to open it in its own app.';
+      note.style.cssText = 'margin:auto;color:#5c6178;font-size:14px;padding:24px;text-align:center;';
+      previewStage.append(note);
     }
     if (!previewDialog.open) previewDialog.showModal();
   }
@@ -2142,13 +2482,51 @@
   }
   
   function canRun() {
-    if (activeTool === 'data-hash') return files.length > 0 || utilityInput.value.trim().length > 0;
+    if (activeTool === 'font-converter') return files.length === 1;
+    if (activeTool === 'image-palette') return files.length === 1;
+    if (activeTool === 'youtube-thumbnail') return files.length === 1 && Number($('#thumbnail-quality')?.value) >= 40 && Number($('#thumbnail-quality')?.value) <= 96 && Number($('#thumbnail-target-kb')?.value) >= 64;
+    if (activeTool === 'svg-optimizer') return files.length === 1 || Boolean($('#svg-source')?.value.trim());
+    if (activeTool === 'jwt-decoder') return Boolean($('#jwt-input')?.value.trim());
+    if (activeTool === 'seo-meta-generator') return Boolean($('#meta-title-input')?.value.trim() && $('#meta-description-input')?.value.trim());
+    if (['robots-sitemap-validator', 'robots-txt-validator', 'sitemap-validator', 'prompt-security-checker', 'ai-token-cost', 'json-typescript'].includes(activeTool)) return Boolean(utilityInput.value.trim());
+    if (activeTool === 'youtube-thumbnail') return files.length === 1;
+    if (activeTool === 'svg-optimizer') return files.length === 1 || Boolean($('#svg-source')?.value.trim());
+    if (activeTool === 'jwt-decoder') return Boolean($('#jwt-input')?.value.trim());
+    if (activeTool === 'seo-meta-generator') return Boolean($('#meta-title-input')?.value.trim() && $('#meta-description-input')?.value.trim());
+    if (['robots-sitemap-validator', 'robots-txt-validator', 'sitemap-validator', 'prompt-security-checker', 'ai-token-cost', 'json-typescript'].includes(activeTool)) return Boolean(utilityInput.value.trim());
+    if (activeTool === 'pdf-page-labels') return files.length === 1;
+    if (activeTool === 'text-diff') return utilityInput.value.length > 0 && ($('#diff-reference')?.value.length ?? 0) > 0;
+    if (activeTool === 'data-hash' || fileOnlyTools.has(activeTool)) return files.length > 0 || (activeTool === 'data-hash' && utilityInput.value.trim().length > 0);
     if (activeTool === 'data-wordcount') return true;
+    if (activeTool === 'age-calculator') return Boolean($('#age-date')?.value);
+    if (activeTool === 'percentage-calculator') return utilityInput.value.trim().split(/[\s,;]+/).filter(Boolean).length === 2;
+    if (activeTool === 'date-difference') return utilityInput.value.trim().split(/\r?\n|\s*,\s*/).filter(Boolean).length === 2;
+    if (activeTool === 'text-replace') return utilityInput.value.length > 0 && Boolean($('#replace-search')?.value);
     if (textTools.has(activeTool)) return utilityInput.value.trim().length > 0;
     if (!files.length) return false;
     if (activeTool === 'pdf-merge') return files.length >= 2;
+    if (activeTool === 'pdf-compare') return files.length === 2;
     if (singleFileTools.has(activeTool)) return files.length === 1;
     return true;
+  }
+
+  async function runSvgOptimizer() {
+    const raw = files[0] ? await files[0].text() : ($('#svg-source')?.value ?? '');
+    const output = optimizeSvg(raw);
+    const inputBytes = new TextEncoder().encode(raw).byteLength;
+    const outputBytes = new TextEncoder().encode(output).byteLength;
+    const escaped = output.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const preview = $('#svg-preview');
+    if (preview) preview.srcdoc = `<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:"><body style="margin:0;display:grid;place-items:center;min-height:100vh;background:#f3f4f8"><img alt="Sanitized SVG preview" style="max-width:100%;max-height:90vh" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(output)}"></body>`;
+    const size = $('#svg-size-comparison');
+    if (size) size.textContent = `${inputBytes.toLocaleString()} → ${outputBytes.toLocaleString()} bytes`;
+    return { output, filename: 'optimized.svg', message: `SVG sanitized and minified (${inputBytes.toLocaleString()} → ${outputBytes.toLocaleString()} bytes).` };
+  }
+
+  function updateSvgPreview() {
+    if (activeTool !== 'svg-optimizer') return;
+    try { runSvgOptimizer().catch(error => showStatus(error.message, 'error')); }
+    catch (error) { showStatus(error.message, 'error'); }
   }
   
   function moveFile(from, to) {
@@ -2168,6 +2546,154 @@
     return button;
   }
   
+  function updateDropZoneState() {
+    const title = dropZone.querySelector('b');
+    const icon = dropZone.querySelector('.upload-icon');
+    const hint = $('#file-hint');
+    if (icon) icon.textContent = files.length ? '✓' : '↑';
+    if (title) {
+      if (files.length === 1) {
+        title.textContent = `✓ ${files[0].name}`;
+      } else if (files.length > 1) {
+        title.textContent = `✓ ${files.length} files selected`;
+      } else {
+        title.innerHTML = 'Drop files here, or <span>browse</span>';
+      }
+    }
+    if (hint) {
+      hint.textContent = files.length
+        ? (files.length === 1 ? 'File selected · click to replace it' : 'Files selected · click to add or replace')
+        : (toolConfig?.[activeTool]?.hint || 'Choose files from your device');
+    }
+    dropZone.classList.toggle('has-files', files.length > 0);
+    if (files.length) dropZone.classList.remove('file-error');
+    const first = files[0];
+    const compareMode = activeTool === 'pdf-compare';
+    if (dropZoneThumb) {
+      const isImage = first && first.type?.startsWith('image/');
+      const isPdf = first && (first.type === 'application/pdf' || first.name.toLowerCase().endsWith('.pdf'));
+      if (compareMode) {
+        dropZoneThumb.hidden = true;
+        dropZoneThumb.removeAttribute('src');
+      } else if (isImage) {
+        let url = selectedUrls.get(first);
+        if (!url) { url = URL.createObjectURL(first); selectedUrls.set(first, url); }
+        dropZoneThumb.src = url;
+        dropZoneThumb.hidden = false;
+      } else if (isPdf) {
+        const pageCount = pdfThumbPageCounts.get(fileKey(first));
+        if (hint) {
+          hint.textContent = files.length > 1
+            ? `${files.length} PDFs selected · add more or replace files`
+            : (pageCount
+              ? `${pageCount} page${pageCount === 1 ? '' : 's'} · ${formatBytes(first.size)} · click to replace`
+              : 'PDF selected · creating first-page preview…');
+        }
+        const cachedUrl = pdfThumbUrls.get(fileKey(first));
+        if (cachedUrl) dropZoneThumb.src = cachedUrl;
+        else dropZoneThumb.removeAttribute('src');
+        loadDropZonePdfThumb(first);
+        dropZoneThumb.hidden = false;
+      } else {
+        dropZoneThumb.hidden = true;
+        dropZoneThumb.removeAttribute('src');
+      }
+    } else if (dropZoneThumb) {
+      dropZoneThumb.hidden = true;
+      dropZoneThumb.removeAttribute('src');
+    }
+    if (dropZoneAdd) {
+      const canAddFiles = multiImageTools.has(activeTool) || !singleFileTools.has(activeTool);
+      dropZoneAdd.hidden = !(files.length > 0 && canAddFiles);
+      dropZoneAdd.textContent = activeTool === 'pdf-compare' && files.length >= 2
+        ? 'Add / replace PDFs'
+        : (activeTool === 'pdf-merge' || activeTool === 'pdf-compare' ? '+ Add another PDF' : '+ Add more files');
+      dropZoneAdd.setAttribute('aria-label', dropZoneAdd.textContent.replace(/^\+\s*/, ''));
+    }
+    if (dropZoneText) dropZoneText.hidden = false;
+    if (icon) icon.hidden = files.length > 0;
+    renderComparePdfPreviews();
+  }
+
+  function renderComparePdfPreviews() {
+    if (!comparePdfPreviews) return;
+    comparePdfPreviews.replaceChildren();
+    const compareFiles = activeTool === 'pdf-compare' ? files.slice(0, 2) : [];
+    comparePdfPreviews.hidden = compareFiles.length === 0;
+    comparePdfPreviews.setAttribute('aria-label', `${compareFiles.length} PDF${compareFiles.length === 1 ? '' : 's'} selected for comparison`);
+    compareFiles.forEach((file, index) => {
+      const card = document.createElement('figure');
+      card.className = 'compare-pdf-card';
+      const image = document.createElement('img');
+      image.className = 'compare-pdf-thumb';
+      image.alt = `First page of ${file.name}`;
+      image.loading = 'lazy';
+      const caption = document.createElement('figcaption');
+      const name = document.createElement('b');
+      name.textContent = file.name;
+      name.title = file.name;
+      const meta = document.createElement('small');
+      meta.textContent = `PDF ${index + 1} · ${formatBytes(file.size)}`;
+      caption.append(name, meta);
+      card.append(image, caption);
+      comparePdfPreviews.append(card);
+      getPdfThumbnail(file).then(result => {
+        if (!result || !image.isConnected || !files.includes(file) || activeTool !== 'pdf-compare') return;
+        image.src = result.url;
+        meta.textContent = `PDF ${index + 1} · ${result.pageCount} page${result.pageCount === 1 ? '' : 's'} · ${formatBytes(file.size)}`;
+      });
+    });
+  }
+
+  function getPdfThumbnail(file) {
+    const key = fileKey(file);
+    const cachedUrl = pdfThumbUrls.get(key);
+    if (cachedUrl) return Promise.resolve({ url: cachedUrl, pageCount: pdfThumbPageCounts.get(key) });
+    const existing = pdfThumbPromises.get(key);
+    if (existing) return existing;
+
+    const promise = (async () => {
+      const { loadPdfDocument, renderThumbnail } = await Promise.resolve(window.iLoveMyFilesModules['pdf-render']);
+      const doc = await loadPdfDocument(file);
+      try {
+        const page = await doc.getPage(1);
+        const rendered = await renderThumbnail(page, 96, 0.45);
+        const pageCount = doc.numPages;
+        if (!files.some(item => fileKey(item) === key)) return null;
+        const url = URL.createObjectURL(rendered.blob);
+        pdfThumbUrls.set(key, url);
+        pdfThumbPageCounts.set(key, pageCount);
+        return { url, pageCount };
+      } finally {
+        await doc.destroy?.();
+      }
+    })().catch(error => {
+      if (files.some(item => fileKey(item) === key)) {
+        const message = error instanceof Error ? error.message : String(error);
+        showStatus(`The PDF is selected, but its page preview could not be created: ${message}`, 'info');
+      }
+      return null;
+    }).finally(() => {
+      if (pdfThumbPromises.get(key) === promise) pdfThumbPromises.delete(key);
+    });
+    pdfThumbPromises.set(key, promise);
+    return promise;
+  }
+
+  function loadDropZonePdfThumb(file) {
+    getPdfThumbnail(file).then(result => {
+      if (!result || files[0] !== file || !dropZoneThumb?.isConnected) return;
+      dropZoneThumb.src = result.url;
+      dropZoneThumb.hidden = false;
+      const hint = $('#file-hint');
+      if (hint) {
+        hint.textContent = files.length > 1
+          ? `${files.length} PDFs selected · add more or replace files`
+          : `${result.pageCount} page${result.pageCount === 1 ? '' : 's'} · ${formatBytes(file.size)} · click to replace`;
+      }
+    });
+  }
+
   function renderSelected() {
     const currentFiles = new Set(files);
     for (const [file, url] of selectedUrls) {
@@ -2175,7 +2701,29 @@
       URL.revokeObjectURL(url);
       selectedUrls.delete(file);
     }
+    for (const [key, url] of pdfThumbUrls) {
+      if (files.some(file => fileKey(file) === key)) continue;
+      URL.revokeObjectURL(url);
+      pdfThumbUrls.delete(key);
+      pdfThumbPageCounts.delete(key);
+      pdfThumbPromises.delete(key);
+    }
+    for (const [key, promise] of pdfThumbPromises) {
+      if (files.some(file => fileKey(file) === key)) continue;
+      promise.catch(() => {});
+      pdfThumbPromises.delete(key);
+    }
     dropZone.classList.toggle('compact', files.length > 0);
+    updateDropZoneState();
+      if (activeTool === 'youtube-thumbnail' && files[0]) {
+        const original = $('#thumbnail-original');
+        if (original) {
+        if (original.dataset.previewUrl) URL.revokeObjectURL(original.dataset.previewUrl);
+        original.dataset.previewUrl = URL.createObjectURL(files[0]);
+        original.src = original.dataset.previewUrl;
+      }
+      refreshThumbnailPreview(files[0]);
+    }
     if (previewIndex > files.length - 1) previewIndex = Math.max(0, files.length - 1);
     const multiple = files.length > 1 && previewTools.has(activeTool) && !textTools.has(activeTool);
     selected.classList.toggle('multi', multiple);
@@ -2211,19 +2759,39 @@
       const thumb = document.createElement('button');
       thumb.type = 'button'; thumb.className = 'file-mini-icon file-thumb-btn';
       thumb.setAttribute('aria-label', `Preview ${file.name}`);
-      if (pdf) thumb.textContent = 'PDF';
-      else {
+      let pdfThumbnailPromise = null;
+      let pdfThumbnailImage = null;
+      if (pdf) {
+        const key = fileKey(file);
+        const image = document.createElement('img');
+        image.className = 'file-thumb'; image.alt = ''; image.loading = 'lazy';
+        thumb.classList.add('has-thumb', 'pdf-thumb'); thumb.append(image);
+        pdfThumbnailImage = image;
+        pdfThumbnailPromise = getPdfThumbnail(file);
+        const url = pdfThumbUrls.get(key);
+        if (url) image.src = url;
+      } else if (file.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|bmp|svg|tiff?)$/i.test(file.name)) {
         let url = selectedUrls.get(file);
         if (!url) { url = URL.createObjectURL(file); selectedUrls.set(file, url); }
         const image = document.createElement('img');
         image.className = 'file-thumb'; image.alt = ''; image.loading = 'lazy'; image.src = url;
         thumb.classList.add('has-thumb'); thumb.append(image);
+      } else {
+        const extension = file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.') + 1) : 'FILE';
+        thumb.textContent = extension.slice(0, 4).toUpperCase();
       }
       thumb.addEventListener('click', () => openPreview({ name: file.name, blob: file }));
       const details = document.createElement('span'); details.className = 'selected-file-info';
       const name = document.createElement('b'); name.textContent = file.name; name.title = file.name;
       const meta = document.createElement('small'); meta.className = 'selected-file-meta'; meta.textContent = formatBytes(file.size);
       details.append(name, meta);
+      if (pdfThumbnailPromise) {
+        pdfThumbnailPromise.then(result => {
+          if (!result) return;
+          if (pdfThumbnailImage?.isConnected) pdfThumbnailImage.src = result.url;
+          if (meta.isConnected) meta.textContent = `${result.pageCount} page${result.pageCount === 1 ? '' : 's'} · ${formatBytes(file.size)}`;
+        });
+      }
       if (file.type.startsWith('image/')) ensureImageMeta(file);
       const controls = document.createElement('span'); controls.className = 'file-controls';
       if (files.length > 1) {
@@ -2392,8 +2960,9 @@
       if (chip) {
         chips.forEach(node => node.classList.toggle('active', node === chip));
         hidden.value = chip.dataset.format;
+        }
+        refreshThumbnailPreview(files[0]);
       }
-    }
     if (marginInput) { marginInput.value = String(settings.margin ?? 0); syncMarginPresets(marginInput); }
     schedulePreviewUpdate();
   }
@@ -2495,6 +3064,77 @@
     schedulePersist();
   }
 
+  function syncResizeKbSettings(file) {
+    if (activeTool !== 'image-resize-kb' || !file) return;
+    const key = fileKey(file);
+    const s = imageResizeKbSettings.get(key) || imageResizeKbDefaultSettings;
+    const formatSelect = $('#kb-format');
+    const targetInput = $('#target-kb');
+    if (formatSelect) {
+      for (const opt of formatSelect.options) opt.selected = opt.value === s.format;
+    }
+    if (targetInput) targetInput.value = s.targetKb || '100';
+    schedulePreviewUpdate();
+  }
+
+  function saveResizeKbSettings(file) {
+    if (activeTool !== 'image-resize-kb' || !file) return;
+    const key = fileKey(file);
+    const formatSelect = $('#kb-format');
+    const opt = formatSelect?.options[formatSelect?.selectedIndex || 0];
+    imageResizeKbSettings.set(key, {
+      format: formatSelect?.value || 'image/webp',
+      ext: opt?.dataset.ext || null,
+      targetKb: $('#target-kb')?.value || '100',
+      margin: 0
+    });
+    imageOutput.delete(key);
+    updateImageInfo();
+    schedulePersist();
+  }
+
+  function syncDsssbSettings(file) {
+    if (activeTool !== 'dsssb-photo-resizer' || !file) return;
+    const key = fileKey(file);
+    const s = dsssbPhotoSettings.get(key) || dsssbPhotoDefaultSettings;
+    const widthInput = $('#dsssb-width');
+    const heightInput = $('#dsssb-height');
+    const targetInput = $('#dsssb-target-kb');
+    const formatSelect = $('#dsssb-format');
+    const presetSelect = $('#dsssb-preset');
+    if (widthInput) widthInput.value = s.width || '300';
+    if (heightInput) heightInput.value = s.height || '400';
+    if (targetInput) targetInput.value = s.targetKb || '100';
+    if (presetSelect) presetSelect.value = s.preset || 'custom';
+    if (formatSelect) {
+      for (const opt of formatSelect.options) {
+        const matchExt = s.ext ? (opt.dataset.ext || '') === s.ext : true;
+        opt.selected = opt.value === s.format && matchExt;
+      }
+    }
+    schedulePreviewUpdate();
+  }
+
+  function saveDsssbSettings(file) {
+    if (activeTool !== 'dsssb-photo-resizer' || !file) return;
+    const key = fileKey(file);
+    const formatSelect = $('#dsssb-format');
+    const opt = formatSelect?.options[formatSelect?.selectedIndex || 0];
+    const presetSelect = $('#dsssb-preset');
+    dsssbPhotoSettings.set(key, {
+      width: $('#dsssb-width')?.value || '300',
+      height: $('#dsssb-height')?.value || '400',
+      targetKb: $('#dsssb-target-kb')?.value || '100',
+      format: formatSelect?.value || 'image/jpeg',
+      ext: opt?.dataset.ext || null,
+      preset: presetSelect?.value || 'custom',
+      margin: 0
+    });
+    imageOutput.delete(key);
+    updateImageInfo();
+    schedulePersist();
+  }
+
   function pdfResizeKey(file, page) {
     return `${fileKey(file)}:${Number(page) || 1}`;
   }
@@ -2554,6 +3194,8 @@
       case 'image-convert': return imageConvertSettings;
       case 'image-compress': return imageCompressSettings;
       case 'image-resize': return imageResizeSettings;
+      case 'image-resize-kb': return imageResizeKbSettings;
+      case 'dsssb-photo-resizer': return dsssbPhotoSettings;
       case 'image-rotate': return imageRotateSettings;
       case 'image-watermark': return imageWatermarkSettings;
       case 'image-crop': return imageCropSettings;
@@ -2777,6 +3419,25 @@
     return option ? (option.dataset.ext || null) : null;
   }
   
+  function applyDsssbPreset(file) {
+    if (activeTool !== 'dsssb-photo-resizer' || !file) return;
+    const preset = $('#dsssb-preset')?.value || 'custom';
+    const widths = { '35x45': '350', '2x2': '400', custom: null };
+    const heights = { '35x45': '450', '2x2': '400', custom: null };
+    const width = widths[preset];
+    const height = heights[preset];
+    if (width) $('#dsssb-width').value = width;
+    if (height) $('#dsssb-height').value = height;
+    if (file && width && height) {
+      const key = fileKey(file);
+      const s = dsssbPhotoSettings.get(key) || dsssbPhotoDefaultSettings;
+      dsssbPhotoSettings.set(key, { ...s, width, height });
+      imageOutput.delete(fileKey(file));
+      updateImageInfo();
+      schedulePreviewUpdate(0);
+    }
+  }
+
   function updateResizeDimension(changed) {
     if (!$('#keep-ratio')?.checked || !files.length) return;
     const file = files[previewIndex];
@@ -3119,7 +3780,7 @@
   
   function setBusy(value) {
     busy = value; runButton.disabled = value || !canRun(); if (closeButton) closeButton.disabled = value;
-    const idle = textTools.has(activeTool) ? 'Run tool →' : 'Process files →';
+    const idle = DATE_INPUT_TOOLS.has(activeTool) ? 'Calculate →' : fileOutputTools.has(activeTool) ? 'Convert font →' : textTools.has(activeTool) ? 'Run tool →' : 'Process files →';
     setRunButtonLabel(value ? 'Working…' : idle);
   }
   
@@ -3129,19 +3790,245 @@
     catch { utilityOutput.select(); document.execCommand?.('copy'); }
     showStatus('Copied to clipboard.', 'success');
   }
+
+  function renderDataViewer(view) {
+    if (!dataViewer || !viewerContent) return;
+    viewerContent.replaceChildren();
+    dataViewer.hidden = false;
+    utilityResults.hidden = true;
+    viewerTitle.textContent = ({ csv: 'CSV table', json: 'JSON tree', xml: 'XML document', markdown: 'Markdown preview' })[view.kind] || 'Preview';
+    viewerMeta.textContent = '';
+    viewerCopyJson.hidden = true;
+    lastViewerJson = '';
+    if (view.kind === 'csv') {
+      const rows = view.rows || [];
+      const table = document.createElement('table'); table.className = 'viewer-table';
+      const thead = document.createElement('thead'), header = document.createElement('tr');
+      for (const value of rows[0] || []) { const th = document.createElement('th'); th.textContent = value; header.append(th); }
+      thead.append(header); table.append(thead);
+      const body = document.createElement('tbody');
+      for (const row of rows.slice(1)) {
+        const tr = document.createElement('tr');
+        for (let index = 0; index < (rows[0] || []).length; index++) { const td = document.createElement('td'); td.textContent = row[index] ?? ''; tr.append(td); }
+        body.append(tr);
+      }
+      table.append(body); viewerContent.append(table);
+      viewerMeta.textContent = `${Math.max(0, rows.length - 1)} rows · ${(rows[0] || []).length} columns`;
+      lastViewerJson = JSON.stringify(rows.map(row => Object.fromEntries((rows[0] || []).map((key, i) => [key, row[i] ?? '']))).slice(1), null, 2);
+      viewerCopyJson.hidden = false;
+    } else if (view.kind === 'json') {
+      lastViewerJson = JSON.stringify(view.value, null, 2);
+      const tree = document.createElement('ul'); tree.className = 'viewer-tree'; tree.append(renderJsonTree(view.value, 'root'));
+      viewerContent.append(tree);
+      viewerMeta.textContent = 'Click a node to collapse or expand it.';
+      viewerCopyJson.hidden = false;
+    } else if (view.kind === 'xml') {
+      const pre = document.createElement('pre'); pre.className = 'viewer-tree'; pre.textContent = view.text;
+      viewerContent.append(pre);
+      viewerMeta.textContent = 'Valid XML';
+    } else if (view.kind === 'markdown') {
+      const preview = document.createElement('article'); preview.className = 'viewer-markdown';
+      const parser = new DOMParser().parseFromString(view.html, 'text/html');
+      // Markdown has been escaped by the converter; only reconstructed, known
+      // block/inline tags are moved into the visible preview.
+      preview.replaceChildren(...[...parser.body.childNodes].map(node => document.importNode(node, true)));
+      for (const link of preview.querySelectorAll('a')) { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+      for (const image of preview.querySelectorAll('img')) image.removeAttribute('src');
+      viewerContent.append(preview);
+      viewerMeta.textContent = 'Rendered locally from Markdown';
+    }
+  }
+
+  function renderJsonTree(value, key, depth = 0) {
+    const li = document.createElement('li');
+    const isContainer = value !== null && typeof value === 'object';
+    const keyLabel = document.createElement('span'); keyLabel.className = 'viewer-key'; keyLabel.textContent = key === 'root' ? '' : `${key}: `;
+    const node = document.createElement(isContainer ? 'button' : 'span');
+    if (isContainer) {
+      node.type = 'button'; node.className = 'viewer-node';
+      const entries = Array.isArray(value) ? value.map((item, index) => [String(index), item]) : Object.entries(value);
+      node.textContent = `${Array.isArray(value) ? 'Array' : 'Object'} (${entries.length})`;
+      li.append(keyLabel, node);
+      if (entries.length && depth < 32) {
+        const ul = document.createElement('ul');
+        for (const [childKey, childValue] of entries) ul.append(renderJsonTree(childValue, childKey, depth + 1));
+        li.append(ul);
+        node.setAttribute('aria-expanded', 'true');
+        node.addEventListener('click', () => { ul.hidden = !ul.hidden; node.setAttribute('aria-expanded', String(!ul.hidden)); });
+      }
+    } else {
+      node.className = value === null ? 'viewer-null' : typeof value === 'string' ? 'viewer-string' : typeof value === 'number' ? 'viewer-number' : 'viewer-boolean';
+      node.textContent = value === null ? 'null' : typeof value === 'string' ? JSON.stringify(value) : String(value);
+      li.append(keyLabel, node);
+    }
+    return li;
+  }
   
   async function runTextTool() {
     setBusy(true); status.hidden = true; utilityResults.hidden = true;
     try {
-      const result = (activeTool === 'data-hash' && files.length)
+      const result = activeTool === 'pdf-page-labels'
+        ? { file: await addPdfPageLabels(files[0], { prefix: $('#label-prefix').value, start: $('#label-start').value, style: $('#label-style').value }) }
+        : activeTool === 'youtube-thumbnail'
+        ? { specialResult: 'youtube-thumbnail', file: await makeYoutubeThumbnail(files[0], { quality: $('#thumbnail-quality').value, targetKb: $('#thumbnail-target-kb').value }) }
+        : activeTool === 'svg-optimizer'
+        ? { optimizedSvg: await runSvgOptimizer() }
+        : activeTool === 'json-typescript'
+        ? { schemas: await generateTsZod(utilityInput.value, { rootName: $('#schema-root-name').value, optional: $('#schema-optional').checked }) }
+        : activeTool === 'ai-token-cost'
+        ? { output: estimateTokenCost(utilityInput.value, { model: $('#ai-pricing-model').value, outputTokens: $('#ai-output-tokens').value }), filename: 'ai-token-estimate.txt' }
+        : activeTool === 'uuid-decode'
+        ? await TEXT_HANDLERS[activeTool]()
+        : activeTool === 'lorem-ipsum'
+        ? await TEXT_HANDLERS[activeTool]()
+        : activeTool === 'image-palette'
+        ? await TEXT_HANDLERS[activeTool]()
+        : activeTool === 'font-converter'
+        ? await TEXT_HANDLERS[activeTool]()
+        : ((activeTool === 'data-hash' || fileOnlyTools.has(activeTool)) && files.length)
         ? await (async () => {
-            const algorithm = $('#hash-algorithm').value;
+            const algorithm = fileOnlyTools.has(activeTool) ? activeTool === 'file-hash-md5' ? 'MD5' : 'SHA-256' : $('#hash-algorithm').value;
             const output = await hashFiles(files, algorithm);
             return { output, filename: `${algorithm.toLowerCase()}-hashes.txt`, message: `${files.length} file${files.length === 1 ? '' : 's'} hashed with ${algorithm}.` };
           })()
-        : await TEXT_HANDLERS[activeTool](utilityInput.value);
+        : await TEXT_HANDLERS[activeTool](DATE_INPUT_TOOLS.has(activeTool) ? $('#age-date').value : utilityInput.value);
+      if (result.optimizedSvg) {
+        utilityOutput.value = result.optimizedSvg.output;
+        utilityOutput.hidden = false;
+        utilityImage.hidden = true;
+        utilityCopy.hidden = false;
+        utilityDownload.dataset.filename = result.optimizedSvg.filename;
+        utilityBlob = new Blob([result.optimizedSvg.output], { type: 'image/svg+xml;charset=utf-8' });
+        showStatus(result.optimizedSvg.message, 'success');
+        utilityResults.hidden = false;
+        schedulePersist();
+        return;
+      }
+    if (result.schemas) {
+        $('#typescript-output').value = result.schemas.typescript;
+        $('#zod-output').value = result.schemas.zod;
+        utilityOutput.value = 'TypeScript and Zod code generated. Use Copy both outputs or download TypeScript.';
+        utilityOutput.hidden = false;
+        utilityImage.hidden = true;
+        utilityCopy.hidden = true;
+        utilityDownload.dataset.filename = 'generated-types.ts';
+        utilityBlob = new Blob([result.schemas.typescript], { type: 'text/typescript;charset=utf-8' });
+        schemaWorkbench.hidden = false;
+        utilityResults.hidden = false;
+        showStatus('Generated from the supplied sample. Review inferred optional and mixed-type fields.', 'success');
+        schedulePersist();
+        return;
+      }
+      if (result.decoded) {
+        const preview = $('#jwt-preview');
+        if (preview) preview.textContent = result.decoded;
+        utilityOutput.value = result.decoded;
+        utilityBlob = new Blob([result.decoded], { type: 'text/plain;charset=utf-8' });
+        utilityOutput.hidden = true;
+        utilityImage.hidden = true;
+        utilityCopy.hidden = false;
+        utilityDownload.dataset.filename = 'jwt-inspection.txt';
+        jwtWorkbench.hidden = false;
+        utilityResults.hidden = false;
+        showStatus('Decoded locally. Signature not verified.', 'info');
+        schedulePersist();
+        return;
+      }
+      if (activeTool === 'robots-txt-validator' || activeTool === 'sitemap-validator' || activeTool === 'robots-sitemap-validator') {
+        const report = $('#status-message');
+        validatorWorkbench.hidden = false;
+        utilityOutput.value = result.output;
+        utilityBlob = new Blob([result.output], { type: 'text/plain;charset=utf-8' });
+        utilityOutput.hidden = false;
+        utilityImage.hidden = true;
+        utilityCopy.hidden = false;
+        utilityDownload.dataset.filename = result.filename;
+        utilityResults.hidden = false;
+        if (report) { report.textContent = result.output; report.className = 'status-message status-info'; report.hidden = false; }
+        schedulePersist();
+        return;
+      }
+    if (result.meta) {
+        utilityOutput.value = result.meta;
+        utilityBlob = new Blob([result.meta], { type: 'text/html;charset=utf-8' });
+        utilityOutput.hidden = false;
+        utilityImage.hidden = true;
+        utilityCopy.hidden = false;
+        utilityDownload.dataset.filename = 'meta-tags.html';
+        seoMetaWorkbench.hidden = false;
+        const titleValue = $('#meta-title-input').value.trim();
+        const descriptionValue = $('#meta-description-input').value.trim();
+        const canonicalValue = $('#meta-url-input').value.trim();
+        const domain = (() => { try { return canonicalValue ? new URL(canonicalValue).hostname : 'example.com'; } catch { return 'example.com'; } })();
+        $('#serp-title').textContent = titleValue;
+        $('#serp-description').textContent = descriptionValue;
+        $('#serp-url').textContent = canonicalValue || domain;
+        $('#social-title').textContent = titleValue;
+        $('#social-description').textContent = descriptionValue;
+        $('#social-domain').textContent = domain;
+        const image = $('#serp-social-image');
+        image.hidden = !$('#meta-image-input').value.trim();
+        if (!image.hidden) image.src = $('#meta-image-input').value.trim();
+        utilityResults.hidden = false;
+        showStatus('Meta tags generated. Review URLs and source content before publishing.', 'success');
+        schedulePersist();
+        return;
+      }
+      if (result.schemas) {
+        $('#typescript-output').value = result.schemas.typescript;
+        $('#zod-output').value = result.schemas.zod;
+        utilityOutput.value = 'TypeScript and Zod code generated. Use Copy both outputs or download TypeScript.';
+        utilityOutput.hidden = false;
+        utilityImage.hidden = true;
+        utilityCopy.hidden = true;
+        utilityDownload.dataset.filename = 'generated-types.ts';
+        utilityBlob = new Blob([result.schemas.typescript], { type: 'text/typescript;charset=utf-8' });
+        schemaWorkbench.hidden = false;
+        utilityResults.hidden = false;
+        showStatus('Generated from the supplied sample. Review inferred optional and mixed-type fields.', 'success');
+        schedulePersist();
+        return;
+      }
       if (utilityUrl) { URL.revokeObjectURL(utilityUrl); utilityUrl = null; }
-      if (result.image) {
+      if (result.specialResult === 'youtube-thumbnail' && result.file) {
+        const original = $('#thumbnail-original');
+        const resultPreview = $('#thumbnail-result');
+        const resultUrl = URL.createObjectURL(result.file.blob);
+        if (resultPreview?.dataset.previewUrl) URL.revokeObjectURL(resultPreview.dataset.previewUrl);
+        if (resultPreview) { resultPreview.src = resultUrl; resultPreview.dataset.previewUrl = resultUrl; }
+        const comparison = $('#thumbnail-comparison');
+        if (comparison) comparison.textContent = `${(files[0].size / 1024).toFixed(1)} KB → ${(result.file.blob.size / 1024).toFixed(1)} KB`;
+        utilityBlob = result.file.blob;
+        utilityOutput.value = result.file.details;
+        utilityOutput.hidden = false;
+        utilityImage.hidden = true;
+        utilityCopy.hidden = true;
+        utilityDownload.dataset.filename = result.file.name;
+        thumbnailWorkbench.hidden = false;
+        utilityResults.hidden = false;
+        showStatus(result.file.details, 'success');
+        schedulePersist();
+        return;
+      }
+      if (result.file) {
+        utilityBlob = result.file.blob;
+        utilityOutput.value = result.file.details || 'Workbook ready.';
+        utilityOutput.hidden = false;
+        utilityImage.hidden = true;
+        utilityCopy.hidden = true;
+        utilityDownload.dataset.filename = result.file.name || 'converted.xlsx';
+        if (fileOutputTools.has(activeTool)) utilityOutput.value = result.file.details || 'Converted font ready.';
+      } else if (result.viewer) {
+        const viewerMime = result.filename?.endsWith('.html') ? 'text/html' : result.filename?.endsWith('.xml') ? 'application/xml' : 'application/json';
+        utilityBlob = new Blob([result.output || ''], { type: viewerMime });
+        utilityOutput.value = result.output || '';
+        utilityDownload.dataset.filename = result.filename || 'viewer-data.json';
+        utilityOutput.hidden = true;
+        utilityImage.hidden = true;
+        utilityCopy.hidden = true;
+        utilityResults.hidden = false;
+        renderDataViewer(result.viewer);
+      } else if (result.image) {
         utilityBlob = result.image.blob;
         utilityUrl = URL.createObjectURL(result.image.blob);
         utilityImage.src = utilityUrl;
@@ -3155,7 +4042,7 @@
         utilityOutput.hidden = false;
         utilityImage.hidden = true;
         utilityCopy.hidden = false;
-        utilityDownload.dataset.filename = result.filename || 'ilovemyfiles-output.txt';
+      utilityDownload.dataset.filename = result.filename || 'ilovemyfiles-output.txt';
       }
       utilityResults.hidden = false;
       showStatus(result.message || 'Done. Copy or download the result.', 'success');
@@ -3164,10 +4051,23 @@
       showStatus(error?.message || 'Could not process the input.', 'error');
     } finally { setBusy(false); }
   }
+
+  async function refreshThumbnailPreview(file) {
+    if (activeTool !== 'youtube-thumbnail' || !file || busy) return;
+    try {
+      const { blob } = await makeYoutubeThumbnail(file, { quality: $('#thumbnail-quality')?.value, targetKb: $('#thumbnail-target-kb')?.value });
+      const url = URL.createObjectURL(blob);
+      const img = $('#thumbnail-result');
+      if (img?.dataset.previewUrl) URL.revokeObjectURL(img.dataset.previewUrl);
+      if (img) { img.src = url; img.dataset.previewUrl = url; }
+      const comparison = $('#thumbnail-comparison');
+      if (comparison) comparison.textContent = `${(file.size / 1024).toFixed(1)} KB → ${(blob.size / 1024).toFixed(1)} KB preview`;
+    } catch (error) { showStatus(error.message, 'error'); }
+  }
   
   async function runTool() {
     if (!canRun() || busy) return;
-    if (activeTool === 'data-hash' || textTools.has(activeTool)) return runTextTool();
+    if (activeTool === 'font-converter' || activeTool === 'data-hash' || fileOnlyTools.has(activeTool) || textTools.has(activeTool)) return runTextTool();
     if (activeTool === 'pdf-remove-metadata') return runMetadataTool();
     setBusy(true); status.hidden = true; results.hidden = true; results.replaceChildren();
     progressWrap.hidden = false; setProgress({ percent: 0, label: 'Preparing…' });
@@ -3190,6 +4090,18 @@
           const key = fileKey(file);
           const s = imageResizeSettings.get(key) || imageResizeDefaultSettings;
           return resizeImage(file, Number(s.width), Number(s.height), s.keepRatio, s.format, s.margin, s.ext);
+        });
+      } else if (activeTool === 'image-resize-kb') {
+        outputs = await processMany(file => {
+          const key = fileKey(file);
+          const s = imageResizeKbSettings.get(key) || imageResizeKbDefaultSettings;
+          return compressImage(file, { type: s.format, mode: 'target', quality: '78', targetKb: s.targetKb, ext: null });
+        });
+      } else if (activeTool === 'dsssb-photo-resizer') {
+        outputs = await processMany(file => {
+          const key = fileKey(file);
+          const s = dsssbPhotoSettings.get(key) || dsssbPhotoDefaultSettings;
+          return resizeImage(file, Number(s.width), Number(s.height), true, s.format, s.margin, null);
         });
       } else if (activeTool === 'image-rotate') {
         outputs = await processMany(file => {
@@ -3285,11 +4197,75 @@ const fontKey = WM_FONTS[selectedFont]?.googleFamily
         const level = activeOption('input[name="compress-level"]:checked')?.value || 'recommended';
         outputs = [await compressPdf(files[0], { level }, setProgress)];
       } else if (activeTool === 'ocr') {
-        outputs = [await ocrFile(files[0], { lang: $('#ocr-lang').value }, setProgress)];
+        outputs = [await ocrFile(files[0], { lang: $('#ocr-lang').value, dpi: $('#ocr-dpi').value }, setProgress)];
       } else if (activeTool === 'pdf-ocr') {
         outputs = [await makeSearchablePdf(files[0], { lang: $('#pdf-ocr-lang').value, dpi: $('#pdf-ocr-dpi').value, quality: $('#pdf-ocr-quality').value }, setProgress)];
       } else if (activeTool === 'pdf-flatten') {
         outputs = [await flattenPdf(files[0], { dpi: $('#flatten-dpi').value, quality: $('#flatten-quality').value }, setProgress)];
+      } else if (activeTool === 'pdf-unlock') {
+        outputs = [await unlockPdf(files[0], { password: $('#unlock-password')?.value || '' }, setProgress)];
+      } else if (activeTool === 'pdf-protect') {
+        outputs = [await protectPdf(files[0], {
+          userPassword: $('#protect-password')?.value || '',
+          ownerPassword: $('#protect-owner-password')?.value || '',
+          allowPrinting: !!$('#protect-print')?.checked,
+          allowCopying: !!$('#protect-copy')?.checked,
+          allowModifying: !!$('#protect-modify')?.checked,
+          allowAnnotating: !!$('#protect-annotate')?.checked
+        }, setProgress)];
+      } else if (activeTool === 'pdf-sign') {
+        outputs = [await signPdf(files[0], {
+          text: $('#sign-text')?.value || '',
+          page: $('#sign-page')?.value || 1,
+          allPages: !!$('#sign-all')?.checked,
+          position: $('#sign-position')?.value || 'bottom-right',
+          font: $('#sign-font')?.value || 'signature',
+          size: $('#sign-size')?.value || 26,
+          color: $('#sign-color')?.value || '#23293f',
+          showDate: !!$('#sign-date')?.checked,
+          margin: $('#sign-margin')?.value || 40
+        }, setProgress)];
+      } else if (activeTool === 'pdf-redact') {
+        outputs = [await redactPdf(files[0], {
+          terms: $('#redact-terms')?.value || '',
+          matchCase: !!$('#redact-match-case')?.checked,
+          pages: $('#redact-pages')?.value || '',
+          dpi: $('#redact-dpi')?.value || 150
+        }, setProgress)];
+      } else if (activeTool === 'pdf-compare') {
+        outputs = [await comparePdfs(files, {
+          ignoreCase: !!$('#compare-ignore-case')?.checked,
+          ignoreWhitespace: !!$('#compare-ignore-space')?.checked,
+          showUnchanged: !!$('#compare-show-unchanged')?.checked
+        }, setProgress)];
+      } else if (activeTool === 'jpg-to-pdf') {
+        outputs = [await jpgToPdf(files, {
+          pageSize: $('#jpg-page-size')?.value || 'fit',
+          orientation: $('#jpg-orientation')?.value || 'portrait',
+          margin: $('#jpg-margin')?.value || 0
+        }, setProgress)];
+      } else if (activeTool === 'word-to-pdf') {
+        outputs = [await wordToPdf(files[0], {}, setProgress)];
+      } else if (activeTool === 'powerpoint-to-pdf') {
+        outputs = [await powerpointToPdf(files[0], {}, setProgress)];
+      } else if (activeTool === 'excel-to-pdf') {
+        outputs = [await excelToPdf(files[0], {}, setProgress)];
+      } else if (activeTool === 'html-to-pdf') {
+        outputs = [await htmlToPdf(files[0], {}, setProgress)];
+      } else if (activeTool === 'pdf-to-jpg') {
+        outputs = await pdfToJpg(files[0], { dpi: $('#ptj-dpi')?.value || 150, pages: $('#ptj-pages')?.value || '' }, setProgress);
+      } else if (activeTool === 'pdf-to-word') {
+        outputs = [await pdfToWord(files[0], {}, setProgress)];
+      } else if (activeTool === 'pdf-to-powerpoint') {
+        outputs = [await pdfToPowerpoint(files[0], { dpi: $('#ptp-dpi')?.value || 150 }, setProgress)];
+      } else if (activeTool === 'pdf-to-excel') {
+        outputs = [await pdfToExcel(files[0], {}, setProgress)];
+      } else if (activeTool === 'pdf-to-pdfa') {
+        outputs = [await pdfToPdfa(files[0], {
+          conformance: $('#pdfa-conformance')?.value || '2B',
+          flatten: !!$('#pdfa-flatten')?.checked,
+          password: $('#pdfa-password')?.value || ''
+        }, setProgress)];
       }
       setProgress({ percent: 100, label: 'Done' });
       renderResults(outputs);
@@ -3333,7 +4309,7 @@ const fontKey = WM_FONTS[selectedFont]?.googleFamily
       const name = document.createElement('b'); name.textContent = output.name;
       const meta = document.createElement('small'); meta.textContent = output.details || formatBytes(output.blob.size);
       info.append(name, meta);
-      const previewable = output.blob.type.startsWith('image/') || output.blob.type === 'application/pdf';
+      const previewable = output.blob.type.startsWith('image/') || output.blob.type === 'application/pdf' || output.blob.type.startsWith('text/');
       const download = document.createElement('button'); download.className = 'button button-small'; download.type = 'button'; download.textContent = 'Download';
       download.addEventListener('click', () => downloadBlob(output.blob, output.name));
       const actions = document.createElement('span'); actions.className = 'result-actions';
@@ -3346,7 +4322,8 @@ const fontKey = WM_FONTS[selectedFont]?.googleFamily
       row.append(icon, info, actions); results.append(row);
       if (output.text) {
         const details = document.createElement('details'); details.className = 'result-text';
-        const summary = document.createElement('summary'); summary.textContent = 'Recognized text';
+        details.open = output.textOpen === true;
+        const summary = document.createElement('summary'); summary.textContent = output.textLabel || 'Recognized text';
         const pre = document.createElement('pre'); pre.textContent = output.text || '(no text found)';
         const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'button button-small'; copy.textContent = 'Copy text';
         copy.addEventListener('click', async () => {

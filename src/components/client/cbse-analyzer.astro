@@ -104,6 +104,8 @@
 
   function show(step) {
     state.step = step;
+    const uploadMore = $('.cbse-upload-button');
+    if (uploadMore) uploadMore.hidden = state.datasets.length === 0;
     for (const name of ['review', 'dashboard']) {
       const node = $(`#cbse-${name}`);
       if (node) node.hidden = name !== step;
@@ -1699,6 +1701,8 @@
     $('#cbse-review').hidden = true;
     $('#cbse-dashboard').hidden = true;
     $('#cbse-upload-step').hidden = false;
+    const uploadMore = $('.cbse-upload-button');
+    if (uploadMore) uploadMore.hidden = true;
     const input = $('#cbse-file');
     if (input) input.value = '';
     setStatus('Everything was cleared. The uploaded gazette is no longer held in this tab.', 'info');

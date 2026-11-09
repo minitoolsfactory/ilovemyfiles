@@ -395,6 +395,22 @@
     return { blob: new Blob([bytes], { type: 'application/pdf' }), name: `${safeBaseName(file.name)}-numbered.pdf`, details: `${pdf.getPageCount()} page(s) numbered` };
   }
 
+  async function addPdfPageLabels(file, options, progress) {
+    const { PDFDocument } = await getPdfLib();
+    const pdf = await PDFDocument.load(await file.arrayBuffer());
+    const count = pdf.getPageCount();
+    if (!count) throw new Error('This PDF has no pages.');
+    const prefix = String(options.prefix ?? 'Page ').slice(0, 40);
+    const start = Math.max(0, Math.min(999999, Number.parseInt(options.start, 10) || 0));
+    const style = ['D', 'r', 'R', 'a', 'A'].includes(options.style) ? options.style : 'D';
+    progress?.({ percent: 80, label: 'Applying page labels…' });
+    pdf.catalog.set(PDFDocument.PDFName.of('PageLabels'), pdf.context.obj({
+     Nums: [0, pdf.context.obj({ S: PDFDocument.PDFName.of(style), St: start || 1, P: prefix })]
+    }));
+    const bytes = await pdf.save();
+    return { blob: new Blob([bytes], { type: 'application/pdf' }), name: `${safeBaseName(file.name)}-labeled.pdf`, details: `${count} page(s) · ${style} numbering · prefix “${prefix}”` };
+  }
+
   async function addPdfWatermark(file, options, progress) {
     const { PDFDocument, StandardFonts, rgb, degrees } = await getPdfLib();
     const FONT_KEYS = {
@@ -596,6 +612,6 @@
     const blob = await zip.generateAsync({ type: 'blob' });
     return [{ blob, name: `${safeBaseName(file.name)}-pages.zip`, details: `${pageCount} PDF files in ZIP` }];
   }
-      window.iLoveMyFilesModules['pdf-tools'] = { PDF_PAGE_SIZES, imagesToPdf, mergePdfs, mergePdfPages, deletePdfPages, normalizeAngle, rotatePdfPages, resizePdfPages, addPageNumbers, addPdfWatermark, loadWatermarkFont, organizePdfPages, COMPRESSION_LEVELS, compressPdf, pdfToImages, splitPdf };
+      window.iLoveMyFilesModules['pdf-tools'] = { PDF_PAGE_SIZES, imagesToPdf, mergePdfs, mergePdfPages, deletePdfPages, normalizeAngle, rotatePdfPages, resizePdfPages, addPageNumbers, addPdfPageLabels, addPdfWatermark, loadWatermarkFont, organizePdfPages, COMPRESSION_LEVELS, compressPdf, pdfToImages, splitPdf };
   });
 </script>
