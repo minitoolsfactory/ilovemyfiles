@@ -47,12 +47,18 @@ const faqData = post?.faq?.length ? {'@context':'https://schema.org','@type':'FA
         <h1>{post.title}</h1>
         <p class="article-description">{post.description}</p>
         <div class="article-byline"><span>iLoveMyFiles Editorial</span><span aria-hidden="true">·</span><time datetime={post.date}>{new Date(`${post.date}T12:00:00Z`).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'})}</time><span aria-hidden="true">·</span><span>{post.readTime}</span></div>
+        <div class="article-audio-controls" role="group" aria-label="Listen to this article">
+          <button type="button" class="article-listen-button" data-audio-play aria-pressed="false"><span class="audio-play-icon" aria-hidden="true">▶</span><span data-audio-label>Listen to article</span></button>
+          <button type="button" class="article-audio-stop" data-audio-stop disabled>Stop</button>
+          <label class="article-voice-label">Voice <select data-audio-voice aria-label="Reading voice"><option value="">System default</option></select></label>
+          <span class="article-audio-status" data-audio-status role="status" aria-live="polite">Audio is read aloud by your browser.</span>
+        </div>
       </header>
       <div class="article-layout">
         <div class="article-body">
-          <p class="article-lead">{post.intro}</p>
-          {post.sections.map(section => <section class="article-section"><h2>{section.heading}</h2>{section.paragraphs.map(paragraph => <p set:html={paragraph} />)}</section>)}
-          {post.faq?.length > 0 && <section class="article-faq"><h2>Frequently asked questions</h2>{post.faq.map(item => <details><summary>{item.question}</summary><p>{item.answer}</p></details>)}</section>}
+          <p class="article-lead" data-audio-content>{post.intro}</p>
+          {post.sections.map(section => <section class="article-section" data-audio-content><h2>{section.heading}</h2>{section.paragraphs.map(paragraph => <p set:html={paragraph} />)}</section>)}
+          {post.faq?.length > 0 && <section class="article-faq" data-audio-content><h2>Frequently asked questions</h2>{post.faq.map(item => <details><summary>{item.question}</summary><p>{item.answer}</p></details>)}</section>}
           <p class="article-disclaimer">Tool behavior and supported formats can change. Check the linked tool page for current options, limits and processing details. Keep an original copy of important files.</p>
         </div>
         <aside class="article-related"><h2>Related tools</h2><p>Continue with a tool for this task.</p><div>{relatedTools.map(tool => <a href={pathFor(tool)}><span class={`tool-icon icon-${tool.icon}`} aria-hidden="true"><svg viewBox="0 0 24 24" set:html={tool.svg}></svg></span><span><b>{tool.cardTitle}</b><small>{tool.cardText}</small></span><i aria-hidden="true">↗</i></a>)}</div><a class="all-guides-link" href="/blog/">More guides →</a></aside>
@@ -68,6 +74,10 @@ const faqData = post?.faq?.length ? {'@context':'https://schema.org','@type':'FA
     .article-header h1{margin:16px 0 12px;color:var(--color-text-primary);font-size:clamp(34px,4.5vw,50px);line-height:1.1;letter-spacing:-1.7px}
     .article-description{margin:0 auto;color:var(--color-text-secondary);font-size:17px;line-height:1.55}
     .article-byline{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px;margin-top:18px;color:var(--color-text-muted);font-size:11px}
+    .article-audio-controls{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:9px;margin:20px auto 0;padding:10px 12px;width:max-content;max-width:100%;border:1px solid var(--color-border);border-radius:12px;background:var(--color-surface)}
+    .article-listen-button,.article-audio-stop{min-height:36px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 12px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface);color:var(--color-text-primary);font:600 12px/1 ui-sans-serif,system-ui,sans-serif;cursor:pointer}
+    .article-listen-button{border-color:#2563eb;background:#2563eb;color:#fff}.article-listen-button:hover{background:#1d4ed8}.article-audio-stop:hover:not(:disabled){border-color:#cbd5e1;background:var(--color-surface-soft)}.article-audio-stop:disabled{opacity:.48;cursor:not-allowed}
+    .audio-play-icon{font-size:10px}.article-voice-label{display:flex;align-items:center;gap:6px;color:var(--color-text-muted);font-size:11px}.article-voice-label select{max-width:150px;min-height:34px;padding:0 24px 0 8px;border:1px solid var(--color-border);border-radius:7px;background:var(--color-surface);color:var(--color-text-primary);font:inherit}.article-audio-status{flex-basis:100%;color:var(--color-text-muted);font-size:10px;text-align:center}
     .article-layout{display:grid;grid-template-columns:minmax(0,740px) 270px;justify-content:center;align-items:start;gap:46px}
     .article-body{min-width:0;color:var(--color-text-primary);font-size:16px;line-height:1.8}
     .article-lead{margin:0 0 30px;color:var(--color-text-secondary);font-size:18px;line-height:1.75}
@@ -79,7 +89,55 @@ const faqData = post?.faq?.length ? {'@context':'https://schema.org','@type':'FA
     .article-related>div>a{display:grid;grid-template-columns:34px minmax(0,1fr) 12px;align-items:center;gap:9px;padding:9px;border:1px solid var(--color-border);border-radius:9px;color:var(--color-text-primary);text-decoration:none}.article-related>div>a:hover{border-color:#bfd0f5;background:var(--color-surface-soft)}.article-related .tool-icon{width:32px;height:32px;flex-basis:32px;border-radius:8px}.article-related .tool-icon svg{width:18px;height:18px}.article-related>div>a b,.article-related>div>a small{display:block}.article-related>div>a b{font-size:11px;line-height:1.35}.article-related>div>a small{margin-top:3px;color:var(--color-text-muted);font-size:9px;line-height:1.35}.article-related>div>a i{color:#315fc2;font-style:normal}.all-guides-link{display:block;margin-top:14px;color:#2563eb;font-size:12px;font-weight:650;text-decoration:none}
     .article-missing{min-height:45vh;text-align:center;padding-top:100px}.article-missing p{color:var(--color-text-secondary)}.article-missing>a{color:#2563eb}
     [data-theme="dark"] .article-category{background:#202b4a;color:#bfdbfe}
+    [data-theme="dark"] .article-listen-button{color:#fff}
+    [data-theme="dark"] .article-audio-controls{background:var(--color-surface)}
     @media(max-width:850px){.article-layout{grid-template-columns:minmax(0,740px);gap:24px}.article-related{position:static;grid-row:1}.article-related>div{grid-template-columns:1fr 1fr}}
     @media(max-width:600px){.article-page{padding:22px 16px 52px}.article-breadcrumb{margin-bottom:26px}.article-header{margin-bottom:28px}.article-header h1{font-size:34px;letter-spacing:-1px}.article-description{font-size:15px}.article-layout{gap:22px}.article-related>div{grid-template-columns:1fr}.article-body{font-size:15px}.article-lead{font-size:16px}.article-section h2,.article-faq h2{font-size:21px}}
   </style>
+  <script>
+    const root = document.querySelector('.article-page');
+    const playButton = root?.querySelector('[data-audio-play]');
+    const stopButton = root?.querySelector('[data-audio-stop]');
+    const voiceSelect = root?.querySelector('[data-audio-voice]');
+    const status = root?.querySelector('[data-audio-status]');
+    const label = root?.querySelector('[data-audio-label]');
+    const synth = window.speechSynthesis;
+    let utterance = null;
+    let voices = [];
+    const readText = () => [...root.querySelectorAll('[data-audio-content]')].map(section => section.innerText.trim()).filter(Boolean).join('. ');
+    const setState = (playing, text) => {
+      playButton?.setAttribute('aria-pressed', String(playing));
+      if (label) label.textContent = playing ? 'Pause reading' : 'Listen to article';
+      if (playButton?.querySelector('.audio-play-icon')) playButton.querySelector('.audio-play-icon').textContent = playing ? 'Ⅱ' : '▶';
+      if (stopButton) stopButton.disabled = !playing && !synth?.paused;
+      if (status && text) status.textContent = text;
+    };
+    const loadVoices = () => {
+      if (!voiceSelect || !synth) return;
+      voices = synth.getVoices();
+      const selected = voiceSelect.value;
+      voiceSelect.replaceChildren(new Option('System default',''));
+      voices.forEach((voice,index) => voiceSelect.add(new Option(`${voice.name} (${voice.lang})`,String(index))));
+      if (selected && voices[Number(selected)]) voiceSelect.value = selected;
+    };
+    loadVoices();
+    if (synth) synth.addEventListener?.('voiceschanged',loadVoices);
+    playButton?.addEventListener('click',() => {
+      if (!synth) { if(status)status.textContent='Read-aloud is not supported in this browser.'; return; }
+      if (synth.speaking && !synth.paused) { synth.pause(); setState(false,'Reading paused.'); return; }
+      if (synth.paused) { synth.resume(); setState(true,'Reading article aloud.'); return; }
+      const text = readText();
+      if (!text) { if(status)status.textContent='There is no article text available to read.'; return; }
+      utterance = new SpeechSynthesisUtterance(text);
+      const voice = voices[Number(voiceSelect?.value)];
+      if (voice) { utterance.voice = voice; utterance.lang = voice.lang; }
+      utterance.onstart = () => setState(true,'Reading article aloud.');
+      utterance.onend = () => { utterance=null; setState(false,'Finished reading.'); };
+      utterance.onerror = () => { utterance=null; setState(false,'Audio could not be played. Try another browser voice.'); };
+      synth.cancel(); synth.speak(utterance);
+      setState(true,'Starting read-aloud…');
+    });
+    stopButton?.addEventListener('click',() => { synth?.cancel(); utterance=null; setState(false,'Reading stopped.'); });
+    window.addEventListener('pagehide',() => synth?.cancel(),{once:true});
+  </script>
 </BaseLayout>

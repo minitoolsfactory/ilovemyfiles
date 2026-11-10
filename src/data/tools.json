@@ -707,8 +707,8 @@
       "slug": "dsssb-photo-resizer",
       "category": "image",
       "cardTitle": "DSSSB Photo Resizer",
-      "cardText": "Resize a photo to the exact size DSSSB forms require.",
-      "tag": "DSSSB PHOTO SIZE",
+      "cardText": "Prepare a DSSSB photo, signature or thumb image using the current notice's specifications.",
+      "tag": "PHOTO · SIGNATURE · THUMB",
       "icon": "orange",
       "svg": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"/><circle cx=\"8.5\" cy=\"9\" r=\"1.5\"/><path d=\"m4 17 5-5 3 3 3-4 5 6\"/>",
       "keywords": [
@@ -721,26 +721,34 @@
         "dsssb photo size in kb"
       ],
       "seo": {
-        "title": "DSSSB Photo Resizer - Resize Photo for DSSSB Application Form | iLoveMyFiles",
-        "description": "Resize your photograph to the exact dimensions and file size required for DSSSB application forms. Process locally in your browser - no upload, no sign-up.",
-        "intro": "Resize a photo for a DSSSB application form. Choose the required dimensions and target file size in KB, then download a correctly sized photograph.",
+        "title": "DSSSB Photo, Signature & Thumb Image Resizer | iLoveMyFiles",
+        "description": "Prepare DSSSB photo, signature or thumb-impression images by entering the dimensions and file-size limit from your current notice. Verify requirements before uploading.",
+        "intro": "Resize one DSSSB photo, signature or thumb-impression image at a time. Choose its role, enter the dimensions and maximum KB from your current official notice, then review the downloaded image. Presets are guidance, not official DSSSB requirements.",
         "steps": [
-          "Add your photograph.",
-          "Choose the required width and height (or a DSSSB preset).",
-          "Set the target file size in KB and process, then download the photo."
+          "Select whether the image is a photograph, signature or thumb impression.",
+          "For a photo, you may use the supplied 480 × 672 px reference preset. For signature/thumb images, enter the dimensions and maximum KB from your current official notice.",
+          "Choose one image, process it, then verify the saved dimensions, file size and format before uploading. Repeat separately for each required image."
         ],
         "faqs": [
           [
             "What size does a DSSSB photo need?",
-            "DSSSB usually asks for a specific photograph dimension and a maximum file size in KB. Check your form notice and set the width, height and target KB here before processing."
+            "The supplied third-party reference lists 480 × 672 px and 50–300 KB for a postcard-style photo, but requirements can vary. Check the current official notice and portal before using a preset."
           ],
           [
             "Can I set an exact file size?",
             "The tool aims for your target KB. Small targets may lower quality or shrink the photo to stay close to the limit."
           ],
           [
+            "Can I resize a signature or thumb impression too?",
+            "Yes, one image per run. Select Signature or Thumb Impression, then enter the current notice's own dimensions and maximum KB. The photo preset does not apply to these files."
+          ],
+          [
+            "Can I download the photo, signature and both thumb impressions together?",
+            "Not currently. Process and download each image separately, using the relevant role and settings for each upload."
+          ],
+          [
             "Which format should I use?",
-            "JPG is usually required for application forms and keeps the file small."
+            "Use the format accepted by your current DSSSB notice or portal. The supplied reference lists JPEG/JPG; confirm before submitting."
           ],
           [
             "Is my photo uploaded?",

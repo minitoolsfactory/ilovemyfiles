@@ -39,10 +39,10 @@ const clientConfig = { [tool.id]: Object.fromEntries(Object.entries(toolConfig[t
               <input id="file-input" type="file" multiple hidden>
               <div class="upload-icon" aria-hidden="true">↥</div>
               <img id="drop-zone-thumb" class="drop-zone-thumb" alt="Selected file preview" hidden>
-              <div id="drop-zone-text">
-                <b id="drop-zone-title">Drop files here, or <span>browse</span></b>
-                <p id="file-hint">Choose files from your device</p>
-              </div>
+            <div id="drop-zone-text">
+              <b id="drop-zone-title">Drop files here, or <span>browse</span></b>
+              <p id="file-hint">Choose files from your device</p>
+            </div>
               <p class="drop-paste" id="drop-paste" hidden>Tip: paste an image with ⌘/Ctrl + V</p>
             </div>
             <button type="button" class="drop-zone-add" id="drop-zone-add" hidden aria-label="Add more files">+ Add more</button>
@@ -73,6 +73,17 @@ const clientConfig = { [tool.id]: Object.fromEntries(Object.entries(toolConfig[t
         </div>
       </section>
       <aside class="wb-side">
+        <section id="dsssb-upload-roles" class="dsssb-upload-roles" hidden aria-labelledby="dsssb-upload-roles-title">
+          <h2 id="dsssb-upload-roles-title">DSSSB upload type</h2>
+          <label for="dsssb-upload-role">This file is for</label>
+          <select id="dsssb-upload-role" class="field-control">
+            <option value="photo">Photograph</option>
+            <option value="signature">Signature</option>
+            <option value="thumb">Thumb impression</option>
+          </select>
+          <div id="dsssb-role-size-summary" class="dsssb-role-size-summary" aria-live="polite"></div>
+          <p id="dsssb-role-help">Photo preset is based on supplied guidance. Verify all values against the current official DSSSB notice.</p>
+        </section>
         <div class="wb-side-scroll">
           <div class="text-workspace" id="text-workspace" hidden>
             <label class="field-label" for="utility-input" hidden>Tool input</label>

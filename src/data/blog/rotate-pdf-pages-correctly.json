@@ -1,0 +1,21 @@
+{
+  "slug": "rotate-pdf-pages-correctly",
+  "title": "How to Rotate PDF Pages and Check the Saved Result",
+  "description": "Fix sideways or upside-down PDF pages, rotate only the pages that need it and verify orientation after exporting.",
+  "date": "2026-11-10",
+  "category": "PDF guides",
+  "readTime": "5 min read",
+  "intro": "A PDF can contain pages with different orientations, especially after combining scans or documents from several sources. Rotate only the affected pages, then reopen the saved file to confirm the change stuck.",
+  "sections": [
+    {"heading":"Identify the pages that need rotation","paragraphs":["Use page thumbnails to locate sideways or upside-down pages. The page's stored rotation and the orientation of the content can differ, so judge by how the page appears in a reader.","If the PDF has mixed portrait and landscape pages, avoid rotating the entire file unless every page needs the same change. Make a note of the page numbers before editing."]},
+    {"heading":"Rotate and inspect the output","paragraphs":["Open <a href=\"/rotate-pdf/\">Rotate PDF</a>, select the pages and apply the needed rotation. Export a separate copy, then close and reopen it in a PDF reader to verify orientation and page order.","If the rotation control is part of a larger page-management task, <a href=\"/organize-pdf-pages/\">Organize PDF Pages</a> can help you review thumbnails while reordering, duplicating or removing pages."]},
+    {"heading":"Check more than the preview","paragraphs":["Check printing orientation, page dimensions, annotations and any forms or signatures you rely on. PDF readers can display rotation differently, so verify the saved output in a second compatible viewer if the result is important.","Keep an unchanged original until you are satisfied. If a page is an image scan, rotating it changes its display orientation but does not make its text searchable; OCR is a separate task."]}
+  ],
+  "faq": [
+    {"question":"Can I rotate only one page in a PDF?","answer":"Yes. Select the specific page or pages that need rotation, then inspect the exported file."},
+    {"question":"Why does a page look rotated in one viewer but not another?","answer":"PDF readers can interpret page rotation and display preferences differently. Reopen the saved file and verify in a compatible viewer."},
+    {"question":"Does rotating a scanned PDF make it searchable?","answer":"No. Rotation changes orientation. A scan needs OCR to add a searchable text layer."},
+    {"question":"Will rotation alter the original file?","answer":"The tool creates an output copy. Keep the original as a backup until you've checked the result."}
+  ],
+  "relatedTools": ["pdf-rotate", "pdf-organize", "pdf-searchable", "pdf-split"]
+}

@@ -1,0 +1,21 @@
+{
+  "slug": "split-pdf-by-page-range",
+  "title": "How to Split a PDF by Page Range",
+  "description": "Plan page ranges, split a long PDF into smaller documents and verify the output files without losing important pages.",
+  "date": "2026-11-10",
+  "category": "PDF guides",
+  "readTime": "5 min read",
+  "intro": "Splitting a PDF is useful when you need to send only selected chapters, separate a form from its instructions or divide a large document into smaller parts. Plan the ranges before processing and confirm each exported file.",
+  "sections": [
+    {"heading":"Map the pages you need","paragraphs":["Write down the ranges using the page numbering shown by the PDF reader, then check whether the document has a cover or unnumbered pages. Printed page labels inside the document can differ from the reader's page index.","Decide whether you want one file per page, several ranges or a selected set. Give each output a descriptive filename so it is clear what it contains."]},
+    {"heading":"Split and inspect each output","paragraphs":["Use <a href=\"/split-pdf/\">Split PDF</a> to create smaller documents from the source. Open every output and check its first and last page, order and page count. This catches off-by-one range errors before you share the files.","If you only need to remove a few pages or reorder a document, the <a href=\"/organize-pdf-pages/\">Organize PDF Pages</a> tool may be a better fit than making multiple files."]},
+    {"heading":"Keep the original and review document features","paragraphs":["Retain an unchanged source until all split files are checked. Bookmarks, forms, links, annotations or signatures may behave differently after PDF operations, so verify any features that matter to your workflow.","If a split file is still too large, make a separate compressed copy and check readability before sending it."]}
+  ],
+  "faq": [
+    {"question":"Can I split a PDF into one file per page?","answer":"The split tool offers supported splitting modes; choose the mode that matches your page plan and verify the outputs."},
+    {"question":"Do page ranges use printed page numbers?","answer":"Usually range controls refer to PDF page positions. Check documents with covers, inserted pages or printed numbering that differs from the viewer."},
+    {"question":"Will splitting reduce total file size?","answer":"It divides a document into files; it does not necessarily reduce the combined size of all pages. Compression is a separate operation."},
+    {"question":"Can I undo a split?","answer":"Keep the original PDF. You can also combine output files again with Merge PDF, though review the new order and features."}
+  ],
+  "relatedTools": ["pdf-split", "pdf-merge", "pdf-organize", "pdf-compress"]
+}

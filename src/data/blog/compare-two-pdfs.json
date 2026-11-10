@@ -1,0 +1,21 @@
+{
+  "slug": "compare-two-pdfs",
+  "title": "How to Compare Two PDF Files Before Approving a Revision",
+  "description": "A careful review process for two PDF versions, including page alignment, text differences, visual changes and comparison limitations.",
+  "date": "2026-11-10",
+  "category": "PDF guides",
+  "readTime": "6 min read",
+  "intro": "Comparing two PDF versions can help reviewers find changes before approval or distribution. Automated comparisons are aids, not proof that every meaningful change has been caught.",
+  "sections": [
+    {"heading":"Prepare comparable copies","paragraphs":["Use the intended earlier and later versions, and confirm that they cover the same document. Page additions, removals, reordering or different scan quality can make comparisons harder to interpret.","If one PDF is scanned and the other contains selectable text, OCR or text extraction may affect what a comparison can detect. Preserve the original files and note which version is authoritative."]},
+    {"heading":"Run the comparison and review findings","paragraphs":["Use <a href=\"/compare-pdf/\">Compare PDF</a> to inspect differences between two files. Review the reported pages and changes in context: a shifted layout can appear different even when wording is unchanged, while a small number change can be important.","For plain text drafts, the <a href=\"/text-diff-checker/\">Text Diff Checker</a> can show line-level additions and removals, but it does not compare PDF layout, images or annotations."]},
+    {"heading":"Do a human pass on high-impact details","paragraphs":["Check names, dates, amounts, clauses, footnotes, page references and signature blocks manually. Confirm that the comparison includes every page and that no content was obscured or lost during conversion.","Record which versions were compared and keep both source PDFs. A comparison result is not a legal review, authenticity check or guarantee that no differences were missed."]}
+  ],
+  "faq": [
+    {"question":"Can a PDF comparison guarantee that no changes were missed?","answer":"No. Automated comparison can miss or misclassify changes, especially with scans, layout shifts, images or complex documents. Review important content yourself."},
+    {"question":"Can it compare scanned documents?","answer":"Detection may be limited when content is image-based. OCR can help extract text, but recognition errors are possible."},
+    {"question":"What if pages have been reordered?","answer":"Reordering can make matching pages harder. Check page sequence and compare sections in context."},
+    {"question":"Is comparing PDFs the same as verifying a signature?","answer":"No. Visual or content comparison does not authenticate a digital signature or verify who created a file."}
+  ],
+  "relatedTools": ["pdf-compare", "text-diff", "pdf-organize", "pdf-searchable"]
+}

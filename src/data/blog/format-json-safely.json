@@ -1,0 +1,21 @@
+{
+  "slug": "format-json-safely",
+  "title": "How to Format and Validate JSON",
+  "description": "Learn common JSON syntax rules, how to spot parser errors and how to format a copy without mistaking valid syntax for valid data.",
+  "date": "2026-11-10",
+  "category": "Developer guides",
+  "readTime": "5 min read",
+  "intro": "JSON is a text format for structured data. Formatting makes nested objects easier to read, while validation checks whether the text follows JSON syntax. A successful parse does not prove the data is correct for your application.",
+  "sections": [
+    {"heading":"Check common JSON syntax rules","paragraphs":["JSON strings and property names use double quotes. Objects use braces, arrays use brackets, commas separate entries, and JSON does not support comments or trailing commas in the standard syntax.","Values can be strings, numbers, booleans, null, arrays or objects. If a parser reports an error, inspect the indicated line and nearby brackets, quotes and commas; the actual mistake can be just before the reported position."]},
+    {"heading":"Format and validate a local copy","paragraphs":["Paste the data into <a href=\"/json-formatter/\">JSON Formatter</a> to format or minify it and check syntax. Keep a source copy before editing, especially if the JSON is configuration or production data.","Formatting changes whitespace, not the intended values. After manual edits, compare keys and values or run the data through the consuming application’s own validation too."]},
+    {"heading":"Syntax validity is not schema validity","paragraphs":["A JSON document can parse correctly but still omit required fields, use the wrong types or contain values outside your application's allowed range. Syntax validation answers “is this JSON parseable?”, not “will my service accept it?”", "When needed, validate against the application's documented schema and test with representative data. Do not paste credentials, customer data or other sensitive content into a tool unless you are permitted to do so."]}
+  ],
+  "faq": [
+    {"question":"Why does JSON require double quotes?","answer":"Standard JSON string values and property names use double quotes. Single-quoted strings are not valid JSON syntax."},
+    {"question":"Can JSON contain comments?","answer":"Standard JSON does not include comments. Some application-specific formats extend JSON, but check what your parser accepts."},
+    {"question":"Does a valid JSON result guarantee my API will accept it?","answer":"No. The document can be syntactically valid but fail the API's schema, required fields, types or business rules."},
+    {"question":"Does formatting change my data values?","answer":"A formatter should change whitespace and indentation, not values. Compare important data after editing and keep a copy of the input."}
+  ],
+  "relatedTools": ["data-json", "json-yaml", "json-csv", "jwt-decoder"]
+}

@@ -1,0 +1,21 @@
+{
+  "slug": "pdf-to-excel-tables",
+  "title": "How to Convert a PDF Table to Excel and Check the Data",
+  "description": "A careful workflow for extracting PDF tables into Excel, with checks for columns, numbers, dates and scanned pages.",
+  "date": "2026-11-10",
+  "category": "PDF guides",
+  "readTime": "7 min read",
+  "intro": "PDFs are designed to display consistently, not necessarily to store spreadsheet data as a clean table. Converting a PDF to Excel can save retyping, but always verify the extracted rows and values before using them.",
+  "sections": [
+    {"heading":"Check what kind of PDF you have","paragraphs":["A text-based PDF may contain selectable characters that a converter can map into rows and columns. A scanned PDF is made of page images and may need OCR before data can be extracted. Neither route guarantees a perfectly structured spreadsheet.","Tables with merged cells, multi-line headings, footnotes or repeated page headers are especially likely to need cleanup."]},
+    {"heading":"Convert, then inspect the workbook","paragraphs":["Use <a href=\"/pdf-to-excel/\">PDF to Excel</a> to create a spreadsheet copy. Compare row and column counts with the source. Check decimal separators, minus signs, dates, percentages, totals and identifiers with leading zeros.","Look for content shifted into neighboring columns, headers repeated in the middle of data, blank cells and values split across rows. A spreadsheet that opens successfully is not necessarily an accurate extraction."]},
+    {"heading":"Validate before calculating or sharing","paragraphs":["Reconcile key totals against the PDF and sample records from different pages. If the spreadsheet will drive decisions, have a person verify the extracted figures against the source document.","Keep the original PDF alongside the workbook so reviewers can trace values back to the source. Avoid treating conversion as an audit or as proof that every value was recognized correctly."]}
+  ],
+  "faq": [
+    {"question":"Can PDF-to-Excel preserve every table exactly?","answer":"No. Complex layouts, scans and merged cells can be interpreted differently. Review the workbook against the source."},
+    {"question":"What if my PDF is scanned?","answer":"Scanned pages may need OCR before extraction. OCR and table recognition can make mistakes, so verify the results carefully."},
+    {"question":"Why did leading zeros disappear?","answer":"Spreadsheet software may interpret a value as a number and remove leading zeros. Check identifiers and set appropriate cell formats when needed."},
+    {"question":"Can I use converted figures without checking them?","answer":"No. Validate important values and totals against the PDF before using or distributing the workbook."}
+  ],
+  "relatedTools": ["pdf-to-excel", "excel-to-pdf", "pdf-to-word", "csv-excel"]
+}

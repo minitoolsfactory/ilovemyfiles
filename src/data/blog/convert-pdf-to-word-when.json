@@ -1,0 +1,21 @@
+{
+  "slug": "convert-pdf-to-word-when",
+  "title": "When to Convert a PDF to Word-and What to Check Afterward",
+  "description": "Understand when PDF-to-Word conversion is useful, why layouts can shift and how to verify text, tables and formatting in the result.",
+  "date": "2026-11-10",
+  "category": "PDF guides",
+  "readTime": "7 min read",
+  "intro": "Converting a PDF to Word can make a document easier to edit, but a PDF is a fixed-layout format and a Word file is reflowable. Conversion reconstructs editable elements, so complex layouts may not match the original exactly.",
+  "sections": [
+    {"heading":"Choose conversion when editing is the goal","paragraphs":["PDF-to-Word is useful when you need to revise text, reuse paragraphs or work with a document in a word processor. It may be less suitable when the PDF is a complex form, a designed brochure, a multi-column page or a scan with no text layer.","For image-only scans, use OCR first if the workflow supports it. Recognition is imperfect, so proofread names, figures, punctuation and tables before relying on the result."]},
+    {"heading":"Expect layout differences","paragraphs":["Fonts may be substituted; line breaks, tables, columns and page breaks can shift. Headers, footers, footnotes and positioned images may also move. The more design-heavy the source PDF, the more carefully the converted file needs review.","If layout fidelity is more important than editing, keep the PDF as the source of truth and consider annotating or editing it with an appropriate PDF workflow instead."]},
+    {"heading":"Review the converted document","paragraphs":["Use <a href=\"/pdf-to-word/\">PDF to Word</a> to create an editable document in your browser. Compare page by page with the source, inspect tables and special characters, then save and reopen the Word file in the application your recipient will use.","Do not assume conversion verifies facts, formulas or reading order. Check any important totals, references and accessibility structure manually. Keep the original PDF until the edited file is approved."]}
+  ],
+  "faq": [
+    {"question":"Will a converted Word file look exactly like the PDF?","answer":"Not necessarily. PDF-to-Word reconstructs editable content, and fonts, page breaks, tables and positioning may change."},
+    {"question":"Can I edit a scanned PDF in Word?","answer":"A scan is an image unless it has recognized text. OCR may create editable text, but recognition needs proofreading."},
+    {"question":"Should I send the converted Word file or the original PDF?","answer":"Use the format required by the recipient. If visual layout must remain fixed, the PDF is often preferable; if edits are needed, provide a reviewed editable copy."},
+    {"question":"Does conversion preserve signatures and forms?","answer":"Interactive or document-level features may not transfer. Check the converted output and retain the original if those features matter."}
+  ],
+  "relatedTools": ["pdf-to-word", "word-to-pdf", "pdf-to-jpg", "pdf-searchable"]
+}

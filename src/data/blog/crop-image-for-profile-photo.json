@@ -1,0 +1,21 @@
+{
+  "slug": "crop-image-for-profile-photo",
+  "title": "How to Crop a Profile Photo Without Stretching It",
+  "description": "Choose a profile-photo crop, preserve proportions and export to the dimensions and format required by the destination.",
+  "date": "2026-11-10",
+  "category": "Image guides",
+  "readTime": "5 min read",
+  "intro": "A profile photo may appear in a circle or square even when the original is a rectangle. Cropping selects the part of the image to keep; stretching changes proportions and can distort faces. Start with the destination's shape and size requirements.",
+  "sections": [
+    {"heading":"Choose the crop before export dimensions","paragraphs":["Check whether the destination uses a square, portrait or circular crop and whether it publishes pixel dimensions. Leave enough space around the subject because the destination may apply its own preview crop.","Position the face or subject intentionally and keep important details away from the edges. If the image must meet a non-matching aspect ratio, crop rather than squeezing the width or height."]},
+    {"heading":"Crop, then resize if required","paragraphs":["Use <a href=\"/crop-image/\">Crop Image</a> to select the area to retain. Then use <a href=\"/resize-image/\">Image Resizer</a> to set required output dimensions while keeping proportions. Do not upscale a small source expecting it to gain detail.","If the destination also imposes a KB limit, use <a href=\"/kb-resizer-image-converter-in-kb/\">Image Resizer in KB</a> or the <a href=\"/compress-image/\">Image Compressor</a> after meeting the crop and dimensions."]},
+    {"heading":"Preview the saved file","paragraphs":["Open the exported image and check the crop, proportions, dimensions, format and file size. If the destination applies a circular mask, preview the image in that service when possible; corners that are visible in a square may be hidden in a circle.","Keep the source image so you can make a different crop later. A crop permanently excludes pixels from the exported copy, so a separate original is useful for other layouts."]}
+  ],
+  "faq": [
+    {"question":"Should I crop or stretch a profile photo?","answer":"Crop to the required shape. Stretching distorts proportions and can make a face or object look unnaturally wide or narrow."},
+    {"question":"What dimensions should a profile photo use?","answer":"Follow the current destination's specification. Requirements vary between services and may change."},
+    {"question":"Can I make a cropped image smaller in KB too?","answer":"Yes. First meet the crop and pixel requirements, then compress the exported copy and verify it remains clear."},
+    {"question":"Can I recover the cropped edges?","answer":"Only if you retained the original image. The cropped output no longer includes the removed pixels."}
+  ],
+  "relatedTools": ["image-crop", "image-resize", "image-resize-kb", "image-compress"]
+}

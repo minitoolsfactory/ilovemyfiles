@@ -187,18 +187,29 @@
     const base = drawImage(image, width, height, type);
     const canvas = padCanvas(base, margin, type);
     const encoder = ENCODERS[type];
-    const blob = encoder ? await encoder(canvas) : await canvasToBlob(canvas, type, quality);
+    let blob;
+    try {
+      blob = encoder ? await encoder(canvas) : await canvasToBlob(canvas, type, quality);
+    } catch (error) {
+      if (type === 'image/jpeg' || type === 'image/jpg') {
+        blob = await canvasToBlob(canvas, 'image/png');
+        type = 'image/png';
+      } else {
+        throw error;
+      }
+    }
     if (canvas !== base) { canvas.width = 1; canvas.height = 1; }
     base.width = 1; base.height = 1;
-    return blob;
+    return { blob, type };
   }
   
   async function convertImage(file, type, margin = 0, ext = null) {
     const image = await loadImage(file);
-    const blob = await encodeImage(image, image.naturalWidth, image.naturalHeight, type, 0.9, margin);
+    const result = await encodeImage(image, image.naturalWidth, image.naturalHeight, type, 0.9, margin);
+    const blob = result.blob; const actualType = result.type;
     const m = Math.max(0, Math.round(Number(margin) || 0));
     const width = image.naturalWidth + m * 2, height = image.naturalHeight + m * 2;
-    return { blob, name: `${safeBaseName(file.name)}.${ext || extensionFor(type)}`, details: `${width} × ${height} · ${formatBytes(blob.size)}`, width, height, sizeBytes: blob.size, mimeType: blob.type || type };
+    return { blob, name: `${safeBaseName(file.name)}.${ext || extensionFor(actualType)}`, details: `${width} × ${height} · ${formatBytes(blob.size)}`, width, height, sizeBytes: blob.size, mimeType: blob.type || actualType };
   }
   
   async function resizeImage(file, width, height, keepRatio, type, margin = 0, ext = null) {
@@ -208,9 +219,10 @@
       width = Math.max(1, Math.round(image.naturalWidth * ratio));
       height = Math.max(1, Math.round(image.naturalHeight * ratio));
     }
-    const blob = await encodeImage(image, width, height, type, 0.9, margin);
+    const result = await encodeImage(image, width, height, type, 0.9, margin);
+    const blob = result.blob; const actualType = result.type;
     const m = Math.max(0, Math.round(Number(margin) || 0));
-    return { blob, name: `${safeBaseName(file.name)}-${width + m * 2}x${height + m * 2}.${ext || extensionFor(type)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}`, width: width + m * 2, height: height + m * 2, sizeBytes: blob.size, mimeType: blob.type || type };
+    return { blob, name: `${safeBaseName(file.name)}-${width + m * 2}x${height + m * 2}.${ext || extensionFor(actualType)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}`, width: width + m * 2, height: height + m * 2, sizeBytes: blob.size, mimeType: blob.type || actualType };
   }
 
   async function makeYoutubeThumbnail(file, { quality = 86, targetKb = 2048 } = {}) {
@@ -260,9 +272,10 @@
   async function compressImage(file, options) {
     const image = await loadImage(file);
     let width = image.naturalWidth, height = image.naturalHeight;
-    const { type, mode, ext } = options;
+    let { type, mode, ext } = options;
     if (mode === 'quality') {
-      const blob = await encodeImage(image, width, height, type, Number(options.quality) / 100);
+      const result = await encodeImage(image, width, height, type, Number(options.quality) / 100);
+      const blob = result.blob; type = result.type;
       return { blob, name: `${safeBaseName(file.name)}-compressed.${ext || extensionFor(type)}`, details: `${width} × ${height} · ${formatBytes(blob.size)}`, width, height, sizeBytes: blob.size, mimeType: blob.type || type };
     }
     const target = Number(options.targetKb) * 1024;
@@ -270,7 +283,8 @@
     let low = 0.12, high = 0.95, best = null, bestWidth = width, bestHeight = height;
     for (let i = 0; i < 7; i++) {
       const quality = (low + high) / 2;
-      const blob = await encodeImage(image, width, height, type, quality);
+      const result = await encodeImage(image, width, height, type, quality);
+      const blob = result.blob; type = result.type;
       if (!best || Math.abs(blob.size - target) < Math.abs(best.size - target)) {
         best = blob;
         bestWidth = width;
@@ -283,7 +297,8 @@
     for (let i = 0; best.size > target && i < 8; i++, scale *= 0.82) {
       const w = Math.max(1, Math.round(image.naturalWidth * scale));
       const h = Math.max(1, Math.round(image.naturalHeight * scale));
-      const blob = await encodeImage(image, w, h, type, 0.72);
+      const result = await encodeImage(image, w, h, type, 0.72);
+      const blob = result.blob; type = result.type;
       if (Math.abs(blob.size - target) < Math.abs(best.size - target)) {
         best = blob;
         bestWidth = w;

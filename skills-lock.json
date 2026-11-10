@@ -7,6 +7,18 @@
       "skillPath": "skills/canvas-design/SKILL.md",
       "computedHash": "3fa7ea60170023ad8268bf9fd734ea75dd404279a2ef8ddf5abaa1102ad8e5f4"
     },
+    "seo": {
+      "source": "Nmor/the-council",
+      "sourceType": "github",
+      "skillPath": "skills/seo/SKILL.md",
+      "computedHash": "7d07be6801d5c2e80c2059401e66852b512d84c1ec124b7f130b0bbd9473f5a6"
+    },
+    "serp-analysis": {
+      "source": "nicepkg/ai-workflow",
+      "sourceType": "github",
+      "skillPath": "workflows/marketing-pro-workflow/.claude/skills/serp-analysis/SKILL.md",
+      "computedHash": "3ee276667a9412fb2b5536f1832a64271fd30666fb881419b471b4f831438aac"
+    },
     "ui-ux-pro-max": {
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",
       "sourceType": "github",

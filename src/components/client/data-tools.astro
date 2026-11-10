@@ -500,7 +500,7 @@ const { aiPricing } = Astro.props;
     const outputCount = Math.max(0, Math.min(1_000_000, Number.parseInt(outputTokens, 10) || 0));
     const inputCost = inputCount * selected.inputPerMillion / 1_000_000;
     const outputCost = outputCount * selected.outputPerMillion / 1_000_000;
-    return `AI token and cost estimate (rough)\nModel: ${selected.name} (${selected.id})\nEstimated input tokens: ~${inputCount.toLocaleString()}\nEstimated output tokens: ${outputCount.toLocaleString()}\nInput rate: $${selected.inputPerMillion} / 1M tokens\nOutput rate: $${selected.outputPerMillion} / 1M tokens\nEstimated total: $${(inputCost + outputCost).toFixed(6)} USD\n\nToken method: ${aiPricing.method}\nPricing source: ${aiPricing.sourceName} — ${aiPricing.sourceUrl}\nPricing reviewed: ${aiPricing.reviewed}\nVerify current provider pricing before budgeting; actual tokenization, cached tokens, tool calls, taxes and other charges may differ.`;
+    return `AI token and cost estimate (rough)\nModel: ${selected.name} (${selected.id})\nEstimated input tokens: ~${inputCount.toLocaleString()}\nEstimated output tokens: ${outputCount.toLocaleString()}\nInput rate: $${selected.inputPerMillion} / 1M tokens\nOutput rate: $${selected.outputPerMillion} / 1M tokens\nEstimated total: $${(inputCost + outputCost).toFixed(6)} USD\n\nToken method: ${aiPricing.method}\nPricing source: ${aiPricing.sourceName} - ${aiPricing.sourceUrl}\nPricing reviewed: ${aiPricing.reviewed}\nVerify current provider pricing before budgeting; actual tokenization, cached tokens, tool calls, taxes and other charges may differ.`;
   }
 
   function optimizeSvg(text, { maxBytes = 2_000_000 } = {}) {

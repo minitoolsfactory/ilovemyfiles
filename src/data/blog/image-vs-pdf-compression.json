@@ -1,0 +1,21 @@
+{
+  "slug": "image-vs-pdf-compression",
+  "title": "Image Compression vs PDF Compression: Which Should You Use?",
+  "description": "Learn whether to compress source images or the finished PDF, how each affects quality and why the best order depends on the document.",
+  "date": "2026-11-10",
+  "category": "File workflow guides",
+  "readTime": "6 min read",
+  "intro": "If a PDF is too large, should you compress the images first or compress the PDF afterward? The answer depends on where most of the bytes are and whether you still need the original images separately.",
+  "sections": [
+    {"heading":"Compress images before making the PDF when…","paragraphs":["You are assembling a PDF from photos or scans and the source images are much larger than their eventual page display. Resizing those images to a sensible pixel dimension before creating the document can avoid embedding unnecessary pixels.","This approach gives you control over each image's format and quality. Keep the originals, use copies for the document, and make sure text in screenshots or diagrams remains readable. Use the <a href=\"/compress-image/\">Image Compressor</a> or <a href=\"/resize-image/\">Image Resizer</a> for image preparation, then create the document with <a href=\"/jpg-to-pdf/\">JPG to PDF</a> or <a href=\"/image-to-pdf/\">Images to PDF</a>."]},
+    {"heading":"Compress the PDF after creation when…","paragraphs":["You already have a finished PDF and need a smaller copy. A PDF compressor can optimize embedded images and other resources without requiring you to rebuild the document from individual source files.","Use the <a href=\"/compress-pdf/\">PDF Compressor</a> with a moderate setting first. It may save little on a text-only document, while scans and photo-heavy files may shrink more. Review fine print, signatures, annotations, forms and other features after export."]},
+    {"heading":"Avoid compressing the same content repeatedly","paragraphs":["Repeated lossy compression can accumulate visible artifacts. If you still have the original source images or PDF, produce a fresh output from those instead of repeatedly compressing a previously compressed copy.","Compare the output size and the parts people need to read. Choose the workflow that meets the destination's size limit without compromising essential details. Exact output sizes cannot be guaranteed for every file."]}
+  ],
+  "faq": [
+    {"question":"Which method makes a PDF smaller?","answer":"It depends on the file. Resizing oversized source images can help before PDF creation; compressing an existing photo-heavy PDF can help afterward. Measure the actual output."},
+    {"question":"Does compressing the images always reduce PDF size?","answer":"Not always. The PDF creation process may re-encode images, and text, fonts or other resources may account for much of the file."},
+    {"question":"Will compression damage text?","answer":"Selectable text is usually different from scanned text stored as an image. Scans and fine image detail can lose clarity, so inspect them after compression."},
+    {"question":"Can I reach an exact KB target?","answer":"Not reliably. File contents and encoder settings affect the result. Aim below the maximum and verify the finished file."}
+  ],
+  "relatedTools": ["image-compress", "image-resize", "images-pdf", "jpg-to-pdf", "pdf-compress"]
+}

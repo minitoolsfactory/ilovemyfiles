@@ -1,0 +1,21 @@
+{
+  "slug": "redact-pdf-text-safely",
+  "title": "How to Redact Sensitive Text in a PDF Safely",
+  "description": "Understand true PDF redaction, why drawing over text is not enough, and how to verify sensitive information is no longer present.",
+  "date": "2026-11-10",
+  "category": "PDF guides",
+  "readTime": "7 min read",
+  "intro": "Redaction is meant to remove sensitive content, not merely hide it visually. A black rectangle placed over text can leave the underlying words selectable or recoverable. Use a true redaction workflow and inspect the exported file.",
+  "sections": [
+    {"heading":"Marking up is not the same as redacting","paragraphs":["A shape or highlight drawn over a page may cover text in one viewer while leaving the original text layer underneath. The covered content can sometimes be selected, copied, searched or exposed in another rendering.","A true redaction operation removes the selected underlying content from the output where the PDF engine supports it. Tool capabilities vary, so read the instructions and limitations for the specific workflow."]},
+    {"heading":"Review the document beyond visible page text","paragraphs":["Sensitive information may also appear in metadata, comments, annotations, attachments, form fields, hidden layers or repeated headers. Search the entire document and inspect those areas, not only the visible paragraph.","Keep an unchanged source in a controlled location before editing. Create a separate redacted copy and restrict access to the original according to your organization's policy."]},
+    {"heading":"Redact and verify the exported copy","paragraphs":["Use <a href=\"/redact-pdf/\">Redact PDF</a> to mark and process supported content. After saving, reopen the output, search for the redacted terms, try selecting or copying text near the area, and inspect page images and document properties.","These checks reduce risk but are not a formal security certification. For high-risk disclosure, follow an approved document-handling process and have a qualified reviewer verify the file before release."]}
+  ],
+  "faq": [
+    {"question":"Is drawing a black box over text enough?","answer":"No. It may only cover the text visually. Use a true redaction process that removes underlying content, then verify the output."},
+    {"question":"Can redaction remove metadata too?","answer":"Not necessarily. Metadata and visible page content are separate. Inspect and clean document properties as a separate step if needed."},
+    {"question":"How can I check that text was removed?","answer":"Reopen the exported file, search for the terms, try selecting/copying nearby text and inspect relevant annotations or layers. For sensitive disclosures, follow a formal review process."},
+    {"question":"Does a clean check guarantee a PDF is safe to share?","answer":"No. Automated and manual checks have limits. Review attachments, metadata, forms and all pages, and use your organization's security policy."}
+  ],
+  "relatedTools": ["pdf-redact", "pdf-remove-metadata", "pdf-compare", "pdf-protect"]
+}

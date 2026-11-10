@@ -1,0 +1,20 @@
+{
+  "slug": "remove-duplicate-lines-text",
+  "title": "How to Remove Duplicate Lines from a Text List",
+  "description": "Clean repeated lines from pasted text while preserving the entries you need, and understand how exact duplicate matching works.",
+  "date": "2026-11-10",
+  "category": "Text & data guides",
+  "readTime": "4 min read",
+  "intro": "Repeated rows can make a list harder to review, import or share. Before removing duplicates, decide whether “duplicate” means identical text or entries that differ only in case, spacing or punctuation.",
+  "sections": [
+    {"heading":"Decide what counts as a duplicate","paragraphs":["Exact matching treats two lines as duplicates only when their characters match according to the tool's rules. “Example.com” and “example.com” may be treated as different, as may lines with an extra space.","If case, whitespace or punctuation should be normalized, make that decision explicitly. For data with IDs or meaningful ordering, inspect repeated values before deleting anything."]},
+    {"heading":"Clean a copy and check the result","paragraphs":["Use <a href=\"/remove-duplicate-lines/\">Remove Duplicate Lines</a> to process a pasted text list. Keep a copy of the original, then compare the output count and sample entries to confirm that only intended duplicates were removed.","For numeric ordering, use <a href=\"/sort-lines/\">Sort Lines</a>; for differences between two lists or drafts, try the <a href=\"/text-diff-checker/\">Text Diff Checker</a>. These tasks are related but not interchangeable."]}
+  ],
+  "faq": [
+    {"question":"Will removing duplicate lines keep the first occurrence?","answer":"Check the tool's output and behavior for ordering. Retain the input so you can compare and recover entries if needed."},
+    {"question":"Are lines with different capitalization duplicates?","answer":"That depends on matching rules. If case matters, review entries such as IDs and email addresses before normalizing them."},
+    {"question":"Can I remove duplicate rows from a spreadsheet?","answer":"This text tool works with lines. Spreadsheet duplicate handling may need column-aware matching, so use a spreadsheet workflow when rows contain multiple fields."},
+    {"question":"Is my text uploaded?","answer":"The text utility runs in your browser. Avoid pasting secrets into any tool unless you have reviewed its processing details and your organization's policies."}
+  ],
+  "relatedTools": ["text-dedupe", "text-sort", "text-diff", "data-json-csv"]
+}

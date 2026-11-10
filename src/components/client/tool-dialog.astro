@@ -107,7 +107,7 @@
   let imageResizeSettings = createItemSettingsStore(() => imageResizeDefaultSettings);
   let imageResizeKbDefaultSettings = { format: 'image/webp', targetKb: '100', margin: 0 };
   let imageResizeKbSettings = createItemSettingsStore(() => imageResizeKbDefaultSettings);
-  let dsssbPhotoDefaultSettings = { width: '300', height: '400', targetKb: '100', format: 'image/jpeg', margin: 0 };
+  let dsssbPhotoDefaultSettings = { width: '480', height: '672', targetKb: '300', format: 'image/jpeg', margin: 0, role: 'photo' };
   let dsssbPhotoSettings = createItemSettingsStore(() => dsssbPhotoDefaultSettings);
   let imageRotateDefaultSettings = { rotation: 0, flipH: false, flipV: false, format: 'image/png', margin: 0 };
   let imageRotateSettings = createItemSettingsStore(() => imageRotateDefaultSettings);
@@ -222,7 +222,7 @@
   const imagePreviewTools = new Set(['image-convert', 'image-resize', 'image-compress', 'image-resize-kb', 'dsssb-photo-resizer', 'image-rotate', 'image-watermark']);
   
   const imageTools = new Set(['image-convert', 'image-compress', 'image-resize', 'image-resize-kb', 'dsssb-photo-resizer', 'image-rotate', 'image-watermark', 'images-pdf']);
-  const multiImageTools = new Set(['image-convert', 'image-compress', 'image-resize', 'image-resize-kb', 'dsssb-photo-resizer', 'image-rotate', 'image-watermark', 'images-pdf']);
+  const multiImageTools = new Set(['image-convert', 'image-compress', 'image-resize', 'image-resize-kb', 'image-rotate', 'image-watermark', 'images-pdf']);
   const rotateTools = new Set(['image-rotate', 'pdf-rotate-pages']);
   const singleFileTools = new Set(['image-crop', 'image-palette', 'youtube-thumbnail', 'svg-optimizer', 'pdf-delete-pages', 'pdf-rotate-pages', 'pdf-page-numbers', 'pdf-page-labels', 'pdf-watermark', 'pdf-remove-metadata', 'pdf-to-images', 'pdf-to-jpg', 'pdf-organize', 'pdf-compress', 'ocr', 'pdf-ocr', 'pdf-flatten', 'pdf-resize-pages', 'pdf-unlock', 'pdf-protect', 'pdf-sign', 'pdf-redact', 'word-to-pdf', 'powerpoint-to-pdf', 'excel-to-pdf', 'html-to-pdf', 'pdf-to-word', 'pdf-to-powerpoint', 'pdf-to-excel', 'pdf-to-pdfa', 'font-converter']);
   const pairFileTools = new Set(['pdf-compare']);
@@ -721,9 +721,11 @@
       if (event.target.id === 'resize-format' && activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]);
       if (event.target.id === 'kb-format' && activeTool === 'image-resize-kb' && files[previewIndex]) saveResizeKbSettings(files[previewIndex]);
       if (event.target.id === 'target-kb' && activeTool === 'image-resize-kb' && files[previewIndex]) saveResizeKbSettings(files[previewIndex]);
-      if (event.target.id === 'dsssb-preset' && activeTool === 'dsssb-photo-resizer' && files[previewIndex]) { applyDsssbPreset(files[previewIndex]); saveDsssbSettings(files[previewIndex]); }
-      if (event.target.id === 'dsssb-width' || event.target.id === 'dsssb-height') { if (activeTool === 'dsssb-photo-resizer' && files[previewIndex]) saveDsssbSettings(files[previewIndex]); }
-      if (event.target.id === 'dsssb-target-kb' && activeTool === 'dsssb-photo-resizer' && files[previewIndex]) saveDsssbSettings(files[previewIndex]);
+      if (['dsssb-preset','dsssb-signature-preset','dsssb-thumb-preset'].includes(event.target.id) && activeTool === 'dsssb-photo-resizer') syncDsssbRolePanels();
+      if (event.target.id === 'dsssb-upload-role' && activeTool === 'dsssb-photo-resizer') {
+        applyDsssbRole(files[previewIndex] || null);
+      }
+      if (['dsssb-width','dsssb-height','dsssb-target-kb'].includes(event.target.id) && activeTool === 'dsssb-photo-resizer' && files[previewIndex]) { if ($('#dsssb-upload-role')?.value !== 'photo') $('#dsssb-preset').value = 'custom'; saveDsssbSettings(files[previewIndex]); }
       if (event.target.id === 'dsssb-format' && activeTool === 'dsssb-photo-resizer' && files[previewIndex]) saveDsssbSettings(files[previewIndex]);
       if (event.target.id === 'rotate-format' && activeTool === 'image-rotate' && files[previewIndex]) saveRotateSettings(files[previewIndex]);
       if (event.target.id === 'crop-format' && activeTool === 'image-crop' && files[previewIndex]) saveCropSettings(files[previewIndex]);
@@ -788,8 +790,7 @@
       if (event.target.id === 'resize-width' || event.target.id === 'resize-height') { updateResizeDimension(event.target.id); if (activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]); }
       if (event.target.id === 'resize-format' && activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]);
       if (event.target.id === 'target-kb' && activeTool === 'image-resize-kb' && files[previewIndex]) saveResizeKbSettings(files[previewIndex]);
-      if (event.target.id === 'dsssb-width' || event.target.id === 'dsssb-height') { if (activeTool === 'dsssb-photo-resizer' && files[previewIndex]) saveDsssbSettings(files[previewIndex]); }
-      if (event.target.id === 'dsssb-target-kb' && activeTool === 'dsssb-photo-resizer' && files[previewIndex]) saveDsssbSettings(files[previewIndex]);
+      if (['dsssb-width','dsssb-height','dsssb-target-kb'].includes(event.target.id) && activeTool === 'dsssb-photo-resizer' && files[previewIndex]) { if ($('#dsssb-upload-role')?.value !== 'photo') $('#dsssb-preset').value = 'custom'; saveDsssbSettings(files[previewIndex]); }
       if (event.target.id === 'dsssb-format' && activeTool === 'dsssb-photo-resizer' && files[previewIndex]) saveDsssbSettings(files[previewIndex]);
       if (event.target.id === 'keep-ratio' && activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]);
       if (event.target.id === 'image-resize-margin' && activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]);
@@ -2161,7 +2162,7 @@
     if (tool === 'image-compress') { imageCompressSettings.clear(); imageCompressDefaultSettings = { format: 'image/webp', mode: 'quality', quality: '78', targetKb: '200' }; }
     if (tool === 'image-resize') { imageResizeSettings.clear(); imageResizeDefaultSettings = { width: '1200', height: '1200', keepRatio: true, format: 'image/webp', margin: 0 }; }
     if (tool === 'image-resize-kb') { imageResizeKbSettings.clear(); imageResizeKbDefaultSettings = { format: 'image/webp', targetKb: '100', margin: 0 }; }
-    if (tool === 'dsssb-photo-resizer') { dsssbPhotoSettings.clear(); dsssbPhotoDefaultSettings = { width: '300', height: '400', targetKb: '100', format: 'image/jpeg', margin: 0 }; }
+    if (tool === 'dsssb-photo-resizer') { dsssbPhotoSettings.clear(); dsssbPhotoDefaultSettings = { width: '480', height: '672', targetKb: '300', format: 'image/jpeg', margin: 0, role: 'photo' }; syncDsssbRolePanels(); }
     if (tool === 'image-rotate') { imageRotateSettings.clear(); imageRotateDefaultSettings = { rotation: 0, flipH: false, flipV: false, format: 'image/png', margin: 0 }; }
     if (tool === 'image-crop') { imageCropSettings.clear(); imageCropDefaultSettings = { format: 'image/png', margin: 0 }; }
     if (tool === 'image-watermark') { imageWatermarkSettings.clear(); imageWatermarkDefaultSettings = { text: '© iLoveMyFiles', position: 'bottom-right', color: '#ffffff', opacity: '0.6', size: '6', format: 'image/png' }; }
@@ -2208,6 +2209,20 @@
     dropZone.classList.remove('compact');
     updateDropZoneState();
     textWorkspace.hidden = !textMode;
+    const dsssbRoleSelect = $('#dsssb-upload-role');
+    const dsssbRolePanel = $('#dsssb-upload-roles');
+    if (dsssbRoleSelect) dsssbRoleSelect.value = 'photo';
+    if (dsssbRolePanel) dsssbRolePanel.hidden = tool !== 'dsssb-photo-resizer';
+    if (tool === 'dsssb-photo-resizer') {
+      const roleSettings = { role:'photo', width:'480', height:'672', targetKb:'300', format:'image/jpeg', ext:'jpg', preset:'photo480x672', margin:0 };
+      dsssbPhotoSettings.clear();
+      dsssbPhotoDefaultSettings = { ...roleSettings };
+      const width = $('#dsssb-width'); if (width) width.value = roleSettings.width;
+      const height = $('#dsssb-height'); if (height) height.value = roleSettings.height;
+      const target = $('#dsssb-target-kb'); if (target) target.value = roleSettings.targetKb;
+      const preset = $('#dsssb-preset'); if (preset) preset.value = roleSettings.preset;
+      syncDsssbRolePanels();
+    }
     const jwtInput = $('#jwt-input');
     const jwtLabel = dialog?.querySelector('label[for="jwt-input"]');
     if (jwtInput) { jwtInput.hidden = tool !== 'jwt-decoder'; jwtInput.value = ''; }
@@ -2325,7 +2340,12 @@
       dropZone.classList.add('file-error');
       return;
     }
-    if (singleFileTools.has(activeTool)) files = [valid[0]];
+    if (activeTool === 'dsssb-photo-resizer') {
+      // One DSSSB upload per run; role/requirements apply to this file only.
+      files = [valid[0]];
+      checkDsssbRoleSizeMatch(valid[0]);
+    }
+    else if (singleFileTools.has(activeTool)) files = [valid[0]];
     else if (pairFileTools.has(activeTool)) {
       const seen = new Set(files.map(file => fileKey(file)));
       files = [...files, ...valid.filter(file => { const key = fileKey(file); if (seen.has(key)) return false; seen.add(key); return true; })].slice(-2);
@@ -2376,10 +2396,14 @@
       });
       if (files.length) syncResizeKbSettings(files[previewIndex]);
     }
-    if (activeTool === 'dsssb-photo-resizer') {
+      if (activeTool === 'dsssb-photo-resizer') {
+      const rolePanel = $('#dsssb-upload-roles');
+      if (rolePanel) rolePanel.hidden = false;
       valid.forEach(file => {
         const key = fileKey(file);
-        if (!dsssbPhotoSettings.has(key)) dsssbPhotoSettings.set(key, { ...dsssbPhotoDefaultSettings });
+        const selectedRole = $('#dsssb-upload-role')?.value || 'photo';
+        const defaults = selectedRole === 'photo' ? { role:'photo',width:'480',height:'672',targetKb:'300',format:'image/jpeg',ext:'jpg',preset:'photo480x672' } : selectedRole === 'signature' ? { role:'signature',width:'110',height:'140',targetKb:'40',format:'image/jpeg',ext:'jpg',preset:'signature-reference' } : { role:'thumb',width:'110',height:'140',targetKb:'40',format:'image/jpeg',ext:'jpg',preset:'thumb-reference' };
+        dsssbPhotoSettings.set(key, defaults);
       });
       if (files.length) syncDsssbSettings(files[previewIndex]);
     }
@@ -3106,18 +3130,58 @@
     const heightInput = $('#dsssb-height');
     const targetInput = $('#dsssb-target-kb');
     const formatSelect = $('#dsssb-format');
-    const presetSelect = $('#dsssb-preset');
-    if (widthInput) widthInput.value = s.width || '300';
-    if (heightInput) heightInput.value = s.height || '400';
-    if (targetInput) targetInput.value = s.targetKb || '100';
-    if (presetSelect) presetSelect.value = s.preset || 'custom';
+    const role = s.role || 'photo';
+    const roleDefaults = role === 'photo'
+      ? { width:'480', height:'672', targetKb:'300', preset:'photo480x672', format:'image/jpeg', ext:'jpg' }
+      : role === 'signature'
+        ? { width:'110', height:'140', targetKb:'40', preset:'signature-reference', format:'image/jpeg', ext:'jpg' }
+        : { width:'110', height:'140', targetKb:'40', preset:'thumb-reference', format:'image/jpeg', ext:'jpg' };
+    const photoOptions = $('#dsssb-photo-options');
+    const signatureOptions = $('#dsssb-signature-options');
+    const thumbOptions = $('#dsssb-thumb-options');
+    if (photoOptions) photoOptions.hidden = role !== 'photo';
+    if (signatureOptions) signatureOptions.hidden = role !== 'signature';
+    if (thumbOptions) thumbOptions.hidden = role !== 'thumb';
+    if (widthInput) widthInput.value = s.width || roleDefaults.width;
+    if (heightInput) heightInput.value = s.height || roleDefaults.height;
+    if (targetInput) targetInput.value = s.targetKb || roleDefaults.targetKb;
+    const roleSelect = $('#dsssb-upload-role');
+    if (roleSelect) roleSelect.value = s.role || 'photo';
+    syncDsssbRolePanels();
     if (formatSelect) {
-      for (const opt of formatSelect.options) {
-        const matchExt = s.ext ? (opt.dataset.ext || '') === s.ext : true;
-        opt.selected = opt.value === s.format && matchExt;
-      }
+      for (const opt of formatSelect.options) { opt.selected = opt.value === (s.format || roleDefaults.format) && (opt.dataset.ext || '') === (s.ext || roleDefaults.ext); }
     }
     schedulePreviewUpdate();
+  }
+
+  function syncDsssbRolePanels() {
+    if (activeTool !== 'dsssb-photo-resizer') return;
+    const role = $('#dsssb-upload-role')?.value || 'photo';
+    const knownRoleDefaults = role === 'photo'
+      ? { width:'480',height:'672',targetKb:'300',preset:'photo480x672',format:'image/jpeg',ext:'jpg' }
+      : role === 'signature'
+        ? { width:'110',height:'140',targetKb:'40',preset:'signature-reference',format:'image/jpeg',ext:'jpg' }
+        : { width:'110',height:'140',targetKb:'40',preset:'thumb-reference',format:'image/jpeg',ext:'jpg' };
+    const photoPreset = $('#dsssb-preset'); if (photoPreset && role === 'photo') photoPreset.value = knownRoleDefaults.preset;
+    const format = $('#dsssb-format');
+    if (format) { const jpg = [...format.options].find(option => option.value === 'image/jpeg' && option.dataset.ext === 'jpg'); if (jpg) { format.value = jpg.value; jpg.selected = true; } }
+    const photoOptions = $('#dsssb-photo-options');
+    const signatureOptions = $('#dsssb-signature-options');
+    const thumbOptions = $('#dsssb-thumb-options');
+    const help = $('#dsssb-role-help');
+    const sizeSummary = $('#dsssb-role-size-summary');
+    if (photoOptions) photoOptions.hidden = role !== 'photo';
+    if (signatureOptions) signatureOptions.hidden = role !== 'signature';
+    if (thumbOptions) thumbOptions.hidden = role !== 'thumb';
+    const width = $('#dsssb-width'); if (width && (!width.value || width.value === '480' || width.value === '110')) width.value = knownRoleDefaults.width;
+    const height = $('#dsssb-height'); if (height && (!height.value || height.value === '672' || height.value === '140')) height.value = knownRoleDefaults.height;
+    const target = $('#dsssb-target-kb'); if (target && (!target.value || target.value === '300' || target.value === '40')) target.value = knownRoleDefaults.targetKb;
+    if (sizeSummary) sizeSummary.textContent = `${knownRoleDefaults.width} × ${knownRoleDefaults.height} px · max ${knownRoleDefaults.targetKb} KB (JPEG/JPG) · reference preset`;
+    if (help) help.textContent = role === 'photo'
+      ? 'The photo preset is based on supplied guidance. Verify dimensions and size with your current official DSSSB notice.'
+      : role === 'signature'
+        ? 'Using the supplied third-party signature reference (110 × 140 px, up to 40 KB). Verify the current official DSSSB notice before submitting.'
+        : 'Using the supplied third-party thumb reference (110 × 140 px, up to 40 KB). Verify the current official DSSSB notice before submitting.';
   }
 
   function saveDsssbSettings(file) {
@@ -3126,13 +3190,14 @@
     const formatSelect = $('#dsssb-format');
     const opt = formatSelect?.options[formatSelect?.selectedIndex || 0];
     const presetSelect = $('#dsssb-preset');
-    dsssbPhotoSettings.set(key, {
-      width: $('#dsssb-width')?.value || '300',
-      height: $('#dsssb-height')?.value || '400',
-      targetKb: $('#dsssb-target-kb')?.value || '100',
-      format: formatSelect?.value || 'image/jpeg',
-      ext: opt?.dataset.ext || null,
-      preset: presetSelect?.value || 'custom',
+      dsssbPhotoSettings.set(key, {
+        width: $('#dsssb-width')?.value ?? '',
+        height: $('#dsssb-height')?.value ?? '',
+        targetKb: $('#dsssb-target-kb')?.value ?? '',
+        format: formatSelect?.value || 'image/jpeg',
+        ext: opt?.dataset.ext || null,
+        preset: ($('#dsssb-upload-role')?.value || 'photo') === 'photo' ? (presetSelect?.value || 'photo480x672') : 'custom',
+        role: $('#dsssb-upload-role')?.value || 'photo',
       margin: 0
     });
     imageOutput.delete(key);
@@ -3426,21 +3491,115 @@
   
   function applyDsssbPreset(file) {
     if (activeTool !== 'dsssb-photo-resizer' || !file) return;
-    const preset = $('#dsssb-preset')?.value || 'custom';
-    const widths = { '35x45': '350', '2x2': '400', custom: null };
-    const heights = { '35x45': '450', '2x2': '400', custom: null };
+    if (($('#dsssb-upload-role')?.value || 'photo') !== 'photo') return;
+    const preset = 'photo480x672';
+    const widths = { photo480x672: '480' };
+    const heights = { photo480x672: '672' };
     const width = widths[preset];
     const height = heights[preset];
     if (width) $('#dsssb-width').value = width;
     if (height) $('#dsssb-height').value = height;
+    const role = $('#dsssb-upload-role')?.value || 'photo';
+    $('#dsssb-target-kb').value = '300';
     if (file && width && height) {
       const key = fileKey(file);
       const s = dsssbPhotoSettings.get(key) || dsssbPhotoDefaultSettings;
-      dsssbPhotoSettings.set(key, { ...s, width, height });
+      dsssbPhotoSettings.set(key, { ...s, width, height, role, preset });
       imageOutput.delete(fileKey(file));
       updateImageInfo();
       schedulePreviewUpdate(0);
     }
+  }
+
+  function applyDsssbRole(file) {
+    if (activeTool !== 'dsssb-photo-resizer') return;
+    const role = $('#dsssb-upload-role')?.value || 'photo';
+    const presetValue = role === 'photo' ? 'photo480x672' : role === 'signature' ? 'signature-reference' : 'thumb-reference';
+    const width = role === 'photo' ? '480' : '110';
+    const height = role === 'photo' ? '672' : '140';
+    const targetKb = role === 'photo' ? '300' : '40';
+    const widthInput = $('#dsssb-width');
+    const heightInput = $('#dsssb-height');
+    const targetInput = $('#dsssb-target-kb');
+    if (widthInput && (!widthInput.value || widthInput.value === '480' || widthInput.value === '110')) widthInput.value = width;
+    if (heightInput && (!heightInput.value || heightInput.value === '672' || heightInput.value === '140')) heightInput.value = height;
+    if (targetInput && (!targetInput.value || targetInput.value === '300' || targetInput.value === '40')) targetInput.value = targetKb;
+    syncDsssbRolePanels();
+    if (!file) return;
+    const key = fileKey(file);
+    const s = dsssbPhotoSettings.get(key) || dsssbPhotoDefaultSettings;
+    dsssbPhotoSettings.set(key, { ...s, role, width: widthInput.value, height: heightInput.value, targetKb: targetInput.value, preset: presetValue });
+    imageOutput.delete(key);
+    updateImageInfo();
+    schedulePreviewUpdate(0);
+    syncDsssbRolePanels();
+    hideDsssbSizeWarn();
+    checkDsssbRoleSizeMatch(file);
+  }
+
+  async function validateDsssbUpload(file, settings) {
+    const role = settings.role || 'photo';
+    const width = Number(settings.width), height = Number(settings.height), targetKb = Number(settings.targetKb);
+    const roleLabel = role === 'photo' ? 'DSSSB photo' : role === 'signature' ? 'DSSSB signature' : 'DSSSB thumb impression';
+    if (!width || !height || !targetKb) throw new Error(`Enter the current notice's width, height and maximum KB for the ${roleLabel.toLowerCase()} before processing.`);
+    if (!['image/jpeg','image/png','image/webp'].includes(settings.format)) throw new Error(`${roleLabel} output format is unsupported.`);
+    return { width, height, targetKb };
+  }
+
+  function dsssbExpectedSize(role) {
+    if (role === 'photo') return { width: 480, height: 672 };
+    if (role === 'signature') return { width: 110, height: 140 };
+    return { width: 110, height: 140 };
+  }
+
+  function hideDsssbSizeWarn() {
+    const rolePanel = $('#dsssb-upload-roles');
+    if (rolePanel) {
+      const warn = rolePanel.querySelector('.dsssb-size-warn');
+      if (warn) warn.hidden = true;
+    }
+  }
+
+  async function checkDsssbRoleSizeMatch(file) {
+    if (activeTool !== 'dsssb-photo-resizer' || !file) return;
+    hideDsssbSizeWarn();
+    const roleSelect = $('#dsssb-upload-role');
+    const currentRole = (roleSelect?.value || 'photo');
+    try {
+      const info = await getImageInfo(file);
+      const actualW = Number(info.width), actualH = Number(info.height);
+      if (!actualW || !actualH) return;
+      let detectedRole = null;
+      if (actualW === 480 && actualH === 672) {
+        detectedRole = 'photo';
+      } else if (actualW === 110 && actualH === 140) {
+        detectedRole = (currentRole === 'signature') ? 'signature' : 'thumb';
+      } else if (actualW >= 200 || actualH >= 200) {
+        detectedRole = 'photo';
+      } else {
+        detectedRole = (currentRole === 'signature' || currentRole === 'thumb') ? currentRole : 'thumb';
+      }
+      if (detectedRole && detectedRole !== currentRole && roleSelect) {
+        roleSelect.value = detectedRole;
+        applyDsssbRole(file);
+        return;
+      }
+      const expected = dsssbExpectedSize(currentRole);
+      if (actualW !== expected.width || actualH !== expected.height) {
+        const roleLabel = currentRole === 'photo' ? 'Photograph' : currentRole === 'signature' ? 'Signature' : 'Thumb impression';
+        const rolePanel = $('#dsssb-upload-roles');
+        if (rolePanel) {
+          let warn = rolePanel.querySelector('.dsssb-size-warn');
+          if (!warn) {
+            warn = document.createElement('p');
+            warn.className = 'dsssb-size-warn';
+            rolePanel.append(warn);
+          }
+          warn.textContent = `Image is ${actualW} × ${actualH} px. It will be resized to ${expected.width} × ${expected.height} px for ${roleLabel.toLowerCase()} on process.`;
+          warn.hidden = false;
+        }
+      }
+    } catch {}
   }
 
   function updateResizeDimension(changed) {
@@ -4111,7 +4270,8 @@
         outputs = await processMany(file => {
           const key = fileKey(file);
           const s = dsssbPhotoSettings.get(key) || dsssbPhotoDefaultSettings;
-          return resizeImage(file, Number(s.width), Number(s.height), true, s.format, s.margin, null);
+          const verified = validateDsssbUpload(file, s);
+          return resizeImage(file, verified.width, verified.height, true, s.format, s.margin, s.ext || null);
         });
       } else if (activeTool === 'image-rotate') {
         outputs = await processMany(file => {
