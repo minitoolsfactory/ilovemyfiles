@@ -10,7 +10,7 @@ const icon = (item, large = false) => `<span class="tool-icon icon-${item.icon}$
 ---
 
 <nav class="breadcrumb" aria-label="Breadcrumb">
-  <a href="/">Home</a><span>/</span><a href="/#tools">Tools</a><span>/</span><span aria-current="page">{tool.cardTitle}</span>
+  <a href="/">Home</a><span>/</span><a href="/tools/">Tools</a><span>/</span><a href={`/tools/?category=${tool.category}`}>{category}</a><span>/</span><span aria-current="page">{tool.cardTitle}</span>
 </nav>
 <header class="tool-hero">
   <span set:html={icon(tool, true)} />

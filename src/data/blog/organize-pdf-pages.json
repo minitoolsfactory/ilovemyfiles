@@ -1,0 +1,64 @@
+{
+  "title": "How to Organize, Rotate and Split PDF Pages",
+  "description": "Learn to reorder, rotate, remove and split PDF pages carefully, with a checklist for verifying the final document.",
+  "date": "2026-11-09",
+  "category": "PDF guides",
+  "readTime": "6 min read",
+  "intro": "PDF page tasks are easier when you start with a copy and a clear plan. Decide which pages to keep, where they belong and whether they need rotation before saving a new document.",
+  "sections": [
+    {
+      "heading": "Make a page plan",
+      "paragraphs": [
+        "Note the pages to keep, remove, rotate or move. Page numbers shown by a PDF reader may not match printed page numbers, especially when the document includes cover pages or Roman numeral sections.",
+        "Keep a source copy before editing. This makes it straightforward to repeat the changes if a page was moved or removed by mistake."
+      ]
+    },
+    {
+      "heading": "Reorder and rotate with care",
+      "paragraphs": [
+        "Use thumbnails or page previews to identify pages visually. Rotate only the pages that need it, and check mixed portrait and landscape documents at normal reading size.",
+        "When reordering, confirm that section breaks, attachments and references still make sense. If a table of contents has page references, those references may need separate updating."
+      ]
+    },
+    {
+      "heading": "Split or remove pages",
+      "paragraphs": [
+        "Splitting can create one file per page or a smaller group of pages. Choose ranges carefully and check that boundary pages are included as intended. Removing pages creates a new document without those pages.",
+        "The <a href=\"/organize-pdf-pages/\">Organize PDF Pages</a> tool can reorder, duplicate or remove pages. Use <a href=\"/rotate-pdf/\">Rotate PDF</a>, <a href=\"/split-pdf/\">Split PDF</a> or <a href=\"/delete-pdf-pages/\">Delete PDF Pages</a> for focused tasks."
+      ]
+    },
+    {
+      "heading": "Verify the result",
+      "paragraphs": [
+        "Open the exported PDF and check the total page count, first and last pages, orientation and sequence. Test links, forms, bookmarks, annotations and signatures if you rely on them; document features can vary across PDF editing operations.",
+        "Keep the original until the revised copy has passed your checks and reached its destination successfully."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "question": "Can I reorder PDF pages without changing their contents?",
+      "answer": "Reordering changes page sequence, not the intended page artwork, but inspect the exported file for any features that may not be carried over."
+    },
+    {
+      "question": "Does rotating a page rotate the printed content permanently?",
+      "answer": "Rotation tools may change page display or content depending on the PDF operation. Check the exported result in more than one viewer if orientation is important."
+    },
+    {
+      "question": "Will page numbers update after removing pages?",
+      "answer": "Printed page numbers are part of the page content and generally do not update automatically. Review them separately."
+    },
+    {
+      "question": "Can I recover deleted pages?",
+      "answer": "Keep the source PDF. The edited output may not contain removed pages, so retaining the original is the safest recovery option."
+    }
+  ],
+  "relatedTools": [
+    "pdf-organize",
+    "pdf-rotate",
+    "pdf-split",
+    "pdf-delete-pages",
+    "pdf-merge"
+  ],
+  "slug": "organize-pdf-pages"
+}

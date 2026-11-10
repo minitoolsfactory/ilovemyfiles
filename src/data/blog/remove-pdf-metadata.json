@@ -1,0 +1,56 @@
+{
+  "title": "How to Check and Remove Metadata from a PDF",
+  "description": "Understand common PDF metadata fields, review them before sharing, and learn what metadata removal can and cannot guarantee.",
+  "date": "2026-11-09",
+  "category": "PDF guides",
+  "readTime": "6 min read",
+  "intro": "PDF metadata can include a title, author, subject, keywords, software names and dates. Reviewing document properties before distribution can help you share only the information you intend to disclose.",
+  "sections": [
+    {
+      "heading": "What PDF metadata can contain",
+      "paragraphs": [
+        "Common document properties include title, author, subject, keywords, creator and producer. Some PDFs can also contain XMP metadata or other structures written by editing software.",
+        "Metadata is separate from visible page text. Removing a property does not automatically redact names, comments, annotations, form fields or other information visible inside the document."
+      ]
+    },
+    {
+      "heading": "Inspect before changing",
+      "paragraphs": [
+        "Review the document properties and determine which fields should be removed. Consider whether the recipient needs a meaningful title or author field for their workflow.",
+        "For sensitive documents, inspect page content and interactive features as well as metadata. Metadata cleanup is only one part of a broader document review."
+      ]
+    },
+    {
+      "heading": "Create and inspect a cleaned copy",
+      "paragraphs": [
+        "Use <a href=\"/remove-pdf-metadata/\">Remove PDF Metadata</a> to inspect supported properties and create a separate cleaned copy. The tool page explains the limits of the underlying PDF engine; some extended metadata structures written by other editors may not be fully removed.",
+        "After processing, inspect the result again and retain the original. If you need to hide visible content, use an appropriate redaction workflow and verify the redaction; simply drawing a box over text is not the same as removing it."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "question": "Does metadata removal redact visible text?",
+      "answer": "No. Document properties and visible page content are different. Review or redact page content separately when necessary."
+    },
+    {
+      "question": "Can every metadata field always be removed?",
+      "answer": "Not necessarily. PDF engines differ, and extended metadata structures may remain. Check the output and the tool's stated limitations."
+    },
+    {
+      "question": "Will removing metadata change the PDF pages?",
+      "answer": "The tool targets document properties, but always compare and inspect the output before relying on it."
+    },
+    {
+      "question": "Should I keep the original PDF?",
+      "answer": "Yes. The tool creates a separate cleaned file; retaining the original lets you recover or repeat the work."
+    }
+  ],
+  "relatedTools": [
+    "pdf-remove-metadata",
+    "pdf-redact",
+    "pdf-compare",
+    "pdf-protect"
+  ],
+  "slug": "remove-pdf-metadata"
+}

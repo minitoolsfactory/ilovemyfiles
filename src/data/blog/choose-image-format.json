@@ -1,0 +1,63 @@
+{
+  "title": "JPEG, PNG or WebP? Choosing an Image Format",
+  "description": "Compare JPEG, PNG and WebP for photos, graphics, transparency and web delivery, with practical checks before converting images.",
+  "date": "2026-11-09",
+  "category": "Image guides",
+  "readTime": "7 min read",
+  "intro": "Image formats make different trade-offs. The best choice depends on the kind of image, whether transparency matters, the destination's support and the quality you need to preserve.",
+  "sections": [
+    {
+      "heading": "JPEG for many photographs",
+      "paragraphs": [
+        "JPEG is widely supported and often works well for photographs. It uses lossy compression, so repeated edits and saves can accumulate visible artifacts. Keep a high-quality original and export a new copy for delivery.",
+        "JPEG does not preserve transparency. Transparent regions may become a solid background when converted."
+      ]
+    },
+    {
+      "heading": "PNG for transparency and sharp edges",
+      "paragraphs": [
+        "PNG is useful for transparency, interface elements, logos and graphics with sharp edges. It is lossless, but photographic PNG files can be considerably larger than a compressed photo format.",
+        "For a photo with transparency, check whether the destination accepts PNG or another alpha-capable format before converting."
+      ]
+    },
+    {
+      "heading": "WebP for supported web workflows",
+      "paragraphs": [
+        "WebP supports lossy and lossless encoding, as well as transparency. It can be efficient for web use, but verify that your content system, image pipeline and receiving application accept it.",
+        "There is no universal rule that WebP is always smaller. Compare the output files at an acceptable visual quality for the particular image."
+      ]
+    },
+    {
+      "heading": "Convert and compare",
+      "paragraphs": [
+        "Use the <a href=\"/image-converter/\">Image Format Converter</a> to convert among supported image types. Review transparency, colour, edges and file size after conversion. To reduce bytes while keeping the same format, the <a href=\"/compress-image/\">Image Compressor</a> may be a better fit.",
+        "Do not overwrite the only original. Keep a source copy so you can export again with different settings if the destination rejects the result."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "question": "Which format is best for photos?",
+      "answer": "JPEG is broadly compatible; WebP may be more efficient when supported. Compare quality and size for the actual image."
+    },
+    {
+      "question": "Which format supports transparent backgrounds?",
+      "answer": "PNG and WebP can support transparency. JPEG does not."
+    },
+    {
+      "question": "Will converting JPEG to PNG restore lost detail?",
+      "answer": "No. Conversion changes the container/encoding, not detail already lost in the JPEG source."
+    },
+    {
+      "question": "Can I compress PNG without changing its format?",
+      "answer": "Yes, though the achievable reduction depends on image content and compression method. If transparency is not needed, compare other formats too."
+    }
+  ],
+  "relatedTools": [
+    "image-convert",
+    "image-compress",
+    "image-resize",
+    "image-palette"
+  ],
+  "slug": "choose-image-format"
+}

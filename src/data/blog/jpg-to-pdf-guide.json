@@ -1,0 +1,56 @@
+{
+  "title": "How to Turn JPG Images into a PDF",
+  "description": "Combine JPG photos or scans into a PDF, order pages, choose page layout and review the resulting document before sending it.",
+  "date": "2026-11-09",
+  "category": "PDF guides",
+  "readTime": "5 min read",
+  "intro": "Putting images into a PDF makes a group of photos or scans easier to distribute as one document. Good preparation helps keep the pages in order, readable and appropriately sized.",
+  "sections": [
+    {
+      "heading": "Prepare and order the images",
+      "paragraphs": [
+        "Choose the image files you intend to include and put them in reading order. Clear filenames can help, but check the order in the tool before creating the PDF.",
+        "Rotate sideways photos and crop distracting borders first if needed. Avoid enlarging low-resolution images, since a PDF cannot recreate missing detail."
+      ]
+    },
+    {
+      "heading": "Choose the page layout",
+      "paragraphs": [
+        "A fit-to-image page can preserve each image's proportions, while a standard paper size can make a document easier to print. Orientation and margins affect how the image sits on the page.",
+        "If printing matters, check that content is not too close to page edges and that the output dimensions match the recipient's needs."
+      ]
+    },
+    {
+      "heading": "Create and inspect the PDF",
+      "paragraphs": [
+        "Open <a href=\"/jpg-to-pdf/\">JPG to PDF</a>, select your images, configure page size, orientation and margins, then create the document. Check page count, order, cropping and image clarity before sharing.",
+        "For a smaller PDF, compress a copy after reviewing the original output. If you need to extract the pages back out later, use <a href=\"/pdf-to-jpg/\">PDF to JPG</a>."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "question": "Can I put multiple JPGs in one PDF?",
+      "answer": "Yes. Select multiple images and arrange their order before generating the PDF."
+    },
+    {
+      "question": "Will the PDF improve image quality?",
+      "answer": "No. It places the existing image pixels on a page; it cannot restore detail absent from the source image."
+    },
+    {
+      "question": "Can each image use a different orientation?",
+      "answer": "Some workflows support per-image settings; otherwise choose a layout that suits the set and review each page in the finished PDF."
+    },
+    {
+      "question": "Are the source JPGs changed?",
+      "answer": "The tool creates a separate PDF output. Keep your originals as a backup."
+    }
+  ],
+  "relatedTools": [
+    "jpg-to-pdf",
+    "pdf-to-jpg",
+    "image-resize",
+    "pdf-compress"
+  ],
+  "slug": "jpg-to-pdf-guide"
+}

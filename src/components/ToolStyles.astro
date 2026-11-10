@@ -1,6 +1,28 @@
 ---
 ---
 <style is:global>
+/* Shared premium utility-page frame; workspace controls and processors remain intact. */
+.tool-page-view{max-width:1120px;margin:0 auto;padding:28px 28px 56px}
+.tool-page-view .breadcrumb{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 22px;color:var(--color-text-muted);font-size:12px}
+.tool-page-view .breadcrumb a:hover{color:#2563eb}
+.tool-page-view .tool-hero{display:flex;align-items:flex-start;gap:18px;margin:0 0 24px;padding:25px;border:1px solid var(--color-border);border-radius:16px;background:var(--color-surface);box-shadow:0 5px 18px #0f172a08}
+.tool-page-view .tool-hero>.tool-icon{flex:0 0 54px;width:54px;height:54px;border-radius:13px;background:#eff4ff;color:#315fc2}
+.tool-page-view .tool-hero-copy{min-width:0}
+.tool-page-view .tool-hero-copy .eyebrow{color:#2563eb;font-size:10px;letter-spacing:.8px}
+.tool-page-view .tool-hero h1{margin:7px 0 8px;color:var(--color-text-primary);font-size:clamp(28px,3vw,36px);line-height:1.15;letter-spacing:-1px}
+.tool-page-view .tool-hero-copy p{max-width:760px;margin:0;color:var(--color-text-secondary);font-size:14px;line-height:1.65}
+.tool-page-view .tool-hero .micro-trust{margin-top:12px;color:var(--color-text-muted);font-size:11px}
+.tool-page-view .tool-content{margin-top:32px}
+.tool-page-view .wb-stage-inner>.utility-results{width:100%;margin-top:0;padding:18px;border:1px solid var(--color-border);border-radius:14px;background:var(--color-surface)}
+.tool-page-view .wb-stage-inner>.drop-zone.compact{flex:none;min-height:112px;padding:18px;}
+.tool-page-view .wb-stage-inner>.drop-zone.compact .upload-icon{margin-bottom:7px}
+.tool-page-view .wb-stage-inner>.drop-zone-shell{width:100%}
+.tool-page-view .wb-stage-inner>.text-workspace{width:100%}
+.tool-page-view .wb-stage-inner>.text-workspace .utility-textarea{min-height:240px}
+.tool-page-view .wb-stage-inner>.utility-results .utility-textarea{min-height:220px;max-height:48vh}
+.tool-page-view .wb-stage-inner>.utility-results .utility-actions{justify-content:flex-start}
+.tool-page-view .wb-stage-inner>.utility-results .status-message{margin-top:0}
+@media(max-width:640px){.tool-page-view{padding:20px 15px 42px}.tool-page-view .tool-hero{gap:12px;padding:18px}.tool-page-view .tool-hero .tool-icon{flex-basis:44px;width:44px;height:44px}.tool-page-view .tool-hero h1{font-size:26px}.tool-page-view .tool-hero-copy p{font-size:13px}}
 /* Tool-page-only workspace, preview, dialog, option controls, and shared WCAG overrides. */
 .drop-zone:focus-visible{outline:3px solid #aaa9ff;outline-offset:3px}
 .tool-dialog{border:0;padding:0;width:min(620px,calc(100vw - 28px));max-width:none;max-height:min(90vh,900px);border-radius:18px;box-shadow:0 25px 90px #20243b35;color:var(--ink);overflow:hidden}

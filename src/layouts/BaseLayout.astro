@@ -2,6 +2,9 @@
 import ThemeToggle from "../components/ThemeToggle.astro";
 import GlobalStyles from "../components/GlobalStyles.astro";
 import GeoGate from "../components/client/geo-gate.astro";
+import toolData from "../data/tools.json";
+
+const navCategories = toolData.CATEGORIES.filter(category => ['pdf-tools', 'image', 'data', 'developer'].includes(category.id));
 ---
 <!doctype html>
 <html lang="en">
@@ -19,15 +22,17 @@ import GeoGate from "../components/client/geo-gate.astro";
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
-  <header class="topbar">
+    <header class="topbar">
     <a class="brand" href="/" aria-label="i♥MyFiles home">
       <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 3h11l7 7v19H8z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M19 3v8h7M12 17h10M12 22h7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span>
       <span>i<span class="brand-heart">♥</span>MyFiles<span class="brand-dot">.</span></span>
     </a>
     <nav class="topnav" aria-label="Main navigation">
-      <a href="/#tools">Tools</a><a href="/#privacy">Privacy</a><a href="/#how-it-works">How it works</a><a href="/tools/cbse-result-analyzer/" data-country-gated="cbse-result-analyzer" hidden>CBSE Analyzer</a>
+      <details class="nav-menu"><summary>Tools <span aria-hidden="true">⌄</span></summary><div class="nav-popover"><a href="/tools/">All tools</a>{navCategories.map(category => <a href={`/tools/?category=${category.id}`}>{category.label}</a>)}</div></details>
+      <a href="/tools/#categories">Categories</a><a href="/blog/">Blog</a><a href="/#about">About</a><a href="/tools/cbse-result-analyzer/" data-country-gated="cbse-result-analyzer" hidden>CBSE Analyzer</a>
     </nav>
-    <span class="privacy-pill"><span class="status-dot" aria-hidden="true"></span> Files stay on your device</span>
+      <a class="nav-search-link" href="/tools/" aria-label="Search tools"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg></a>
+      <a class="my-tools-link" href="/tools/#favourites" aria-label="My tools and favourites"><span aria-hidden="true">♡</span> My Tools</a>
     <ThemeToggle />
   </header>
 
@@ -35,12 +40,29 @@ import GeoGate from "../components/client/geo-gate.astro";
     <slot />
   </main>
 
-  <footer class="footer"><a class="brand footer-brand" href="/" aria-label="i♥MyFiles home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 3h11l7 7v19H8z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M19 3v8h7M12 17h10M12 22h7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span><span>i<span class="brand-heart">♥</span>MyFiles<span class="brand-dot">.</span></span></a><p>Useful file tools. Thoughtfully simple.</p><span>© <span id="year"></span> i<span class="brand-heart">♥</span>MyFiles</span></footer>
+  <footer class="footer"><a class="brand footer-brand" href="/" aria-label="i♥MyFiles home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 3h11l7 7v19H8z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M19 3v8h7M12 17h10M12 22h7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span><span>i<span class="brand-heart">♥</span>MyFiles<span class="brand-dot">.</span></span></a><p>Useful file tools. Thoughtfully simple.</p><nav class="footer-links" aria-label="Footer"><a href="/#about">About</a><a href="/contact/">Contact</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="/tools/#categories">Categories</a><a href="/sitemap.xml">Sitemap</a><a href="/blog/">Blog</a></nav><span>© <span id="year"></span> i<span class="brand-heart">♥</span>MyFiles</span></footer>
 
   <script>
     const year = document.getElementById('year');
     if (year) year.textContent = String(new Date().getFullYear());
   </script>
   <GeoGate />
+  <style is:global>
+    :root{--color-text-primary:#0f172a;--color-text-secondary:#475569;--color-text-muted:#64748b;--color-background:#f8fafc;--color-surface:#fff;--color-border:#e2e8f0;--color-action:#2563eb;--color-action-hover:#1d4ed8;--color-focus:#2563eb}
+    :root[data-theme="dark"]{--color-text-primary:#e2e8f0;--color-text-secondary:#cbd5e1;--color-text-muted:#94a3b8;--color-background:#0b1220;--color-surface:#111a2a;--color-border:#29364a;--color-action:#3b82f6;--color-action-hover:#2563eb;--color-focus:#93c5fd;--canvas-surface:#111a2a;--canvas-border:#29364a;--ink:#e2e8f0;background:#0b1220;color:#e2e8f0}
+    html,body{background:var(--color-background);color:var(--color-text-primary)}
+    .topbar{height:66px;padding:0 max(22px,calc((100vw - 1200px)/2));gap:28px;background:color-mix(in srgb,var(--color-surface) 94%,transparent);border-color:var(--color-border)}
+    .brand{font-size:21px;color:var(--color-text-primary)}.brand-mark{background:#eff6ff;color:#2563eb}.brand-dot{color:#2563eb}
+    .topnav{align-items:center;gap:24px;margin-left:12px}.topnav>a,.nav-menu>summary{color:var(--color-text-secondary);font-size:12px;font-weight:650;cursor:pointer}.topnav>a:hover,.nav-menu>summary:hover{color:#2563eb}
+    .nav-menu{position:relative}.nav-menu summary{list-style:none}.nav-menu summary::-webkit-details-marker{display:none}.nav-menu summary span{margin-left:4px;color:var(--color-text-muted)}
+    .nav-popover{position:absolute;z-index:50;top:calc(100% + 15px);left:-12px;width:205px;padding:6px;border:1px solid var(--color-border);border-radius:11px;background:var(--color-surface);box-shadow:0 12px 28px #0f172a18}.nav-popover a{display:block;padding:9px 10px;border-radius:7px;color:var(--color-text-secondary);font-size:12px}.nav-popover a:hover{background:#eff6ff;color:#1d4ed8}
+    .nav-search-link{width:36px;height:36px;display:grid;place-items:center;margin-left:auto;border-radius:9px;color:var(--color-text-secondary)}.nav-search-link:hover{background:#f1f5f9;color:#2563eb}.nav-search-link svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8}
+    .my-tools-link{min-height:38px;display:flex;align-items:center;gap:7px;padding:0 13px;border:1px solid #cbd5e1;border-radius:999px;color:var(--color-text-primary);font-size:12px;font-weight:650;white-space:nowrap}.my-tools-link:hover{border-color:#93b4f5;color:#1d4ed8}.my-tools-link span{font-size:17px;color:#315fc2}
+    .theme-toggle{margin:0;border:1px solid transparent!important;background:transparent!important;color:var(--color-text-secondary)!important;width:38px;height:38px;border-radius:9px!important;font-size:17px}
+    .footer{max-width:1200px;margin:20px auto 0;padding:24px 0 30px;flex-wrap:wrap;border-color:var(--color-border);color:var(--color-text-muted)}.footer-links{display:flex;flex-wrap:wrap;gap:12px}.footer-links a{color:var(--color-text-secondary)}.footer-links a:hover{color:#2563eb}
+    [data-theme="dark"] .nav-popover{box-shadow:0 12px 28px #0005}[data-theme="dark"] .nav-popover a:hover,[data-theme="dark"] .nav-search-link:hover{background:#1d2a40;color:#bfdbfe}[data-theme="dark"] .my-tools-link{border-color:#3b4a61;color:#dbeafe}
+    @media(max-width:900px){.topbar{gap:16px;padding:0 20px}.topnav{gap:15px}.footer{margin-left:24px;margin-right:24px}}
+    @media(max-width:640px){.topbar{height:62px;padding:0 14px;gap:9px}.brand{font-size:18px;gap:6px}.brand-mark{width:29px;height:29px}.topnav{display:none}.my-tools-link{padding:0 10px;font-size:11px}.nav-search-link{margin-left:auto}.footer{margin:0 18px;gap:12px}.footer-links{order:4;flex-basis:100%}.footer>span{margin-left:auto}}
+  </style>
 </body>
 </html>

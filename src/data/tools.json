@@ -1292,26 +1292,6 @@
       }
     },
     {
-      "id": "robots-sitemap-validator",
-      "slug": "robots-txt-sitemap-validator",
-      "section": "tools",
-      "category": "seo",
-      "cardTitle": "Robots.txt & Sitemap Validator",
-      "cardText": "Check robots directives and sitemap XML syntax offline.",
-      "tag": "OFFLINE SYNTAX CHECK",
-      "icon": "teal",
-      "svg": "<path d=\"M5 4h14v16H5z\"/><path d=\"M8 8h8M8 12h4M8 16h8\"/><path d=\"m14 12 2 2 3-4\"/>",
-      "keywords": ["robots.txt validator", "sitemap xml validator", "check sitemap", "robots tester", "sitemap syntax check"],
-      "seo": {
-        "title": "Robots.txt & XML Sitemap Validator - Offline Syntax Check | iLoveMyFiles",
-        "description": "Check robots.txt directives or sitemap XML syntax locally. Offline checks do not verify URLs, crawling or indexing.",
-        "intro": "Run an offline syntax and structure check on pasted robots.txt or sitemap XML. This does not fetch target URLs, test server behavior, submit a sitemap or confirm indexing.",
-        "steps": ["Choose robots.txt or sitemap XML mode.", "Paste the file content.", "Review syntax findings and apply fixes in your own file."],
-        "faqs": [["Does a valid sitemap mean it is indexed?", "No. Syntax validity does not show that URLs are crawlable, submitted or indexed."], ["Does this test my live robots.txt?", "No. It only checks the text you paste and does not make network requests."], ["Can it guarantee Google follows these directives?", "No. Robots processing can vary by crawler and server setup; check production behavior separately."]],
-        "related": ["seo-meta-generator", "json-formatter", "html-entities"]
-      }
-    },
-    {
       "id": "prompt-security-checker",
       "slug": "ai-prompt-security-checker",
       "section": "tools",
@@ -1348,7 +1328,7 @@
         "intro": "Check pasted robots.txt syntax for directive formatting, group placement and common mistakes. This offline check does not fetch URLs or model every crawler's behavior.",
         "steps": ["Paste robots.txt content.", "Run the syntax check.", "Review findings and test your live site separately."],
         "faqs": [["Does this check Googlebot access on my live site?", "No. It checks pasted text only and sends no requests."], ["Does a clean result guarantee indexing?", "No. Robots syntax is only one crawlability factor and does not imply indexing."]],
-        "related": ["robots-sitemap-validator", "seo-meta-generator", "sitemap-validator"]
+        "related": ["sitemap-validator", "seo-meta-generator"]
       }
     },
     {
@@ -1368,7 +1348,7 @@
         "intro": "Check a pasted XML sitemap for a protocol urlset, loc elements, URL formatting, duplicates and lastmod dates. This is an offline syntax check, not an indexing or live URL test.",
         "steps": ["Paste sitemap XML.", "Run the validator.", "Review reported XML or URL issues and verify your live sitemap separately."],
         "faqs": [["Does a valid sitemap mean pages are indexed?", "No. A sitemap can be valid but URLs may be blocked, unavailable, non-canonical or not indexed."], ["Does the tool fetch every URL?", "No. No network requests are made; the content you paste is checked locally."]],
-        "related": ["robots-sitemap-validator", "robots-txt-validator", "seo-meta-generator"]
+        "related": ["robots-txt-validator", "seo-meta-generator"]
       }
     },
     {

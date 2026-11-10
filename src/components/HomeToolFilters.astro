@@ -4,9 +4,11 @@
   const grid = document.querySelector('#tool-grid');
   const tabs = document.querySelector('#category-tabs');
   const search = document.querySelector('#tool-search');
+  const heroSearch = document.querySelector('#hero-tool-search');
   const noResults = document.querySelector('#no-results');
   const filterStatus = document.querySelector('#filter-status');
   const clearSearchButton = document.querySelector('#clear-tool-search');
+  const categoryRail = document.querySelector('.category-rail');
 
   let activeCategory = 'all';
   let term = '';
@@ -98,12 +100,37 @@
     filterTools(true);
   });
 
+  categoryRail?.addEventListener('click', event => {
+    const link = event.target.closest('[data-category-shortcut]');
+    if (!link) return;
+    const filter = link.dataset.categoryShortcut ?? 'all';
+    const tab = tabs?.querySelector(`button[data-filter="${CSS.escape(filter)}"]`);
+    if (tab) {
+      event.preventDefault();
+      tab.click();
+      document.querySelector('#tools')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+  });
+
   search?.addEventListener('input', () => {
+    term = search.value.trim().toLowerCase();
+    if (heroSearch && heroSearch.value !== search.value) heroSearch.value = search.value;
+    filterTools(true);
+  });
+  heroSearch?.addEventListener('input', () => {
+    if (!search) return;
+    search.value = heroSearch.value;
     term = search.value.trim().toLowerCase();
     filterTools(true);
   });
+  heroSearch?.form?.addEventListener('submit', event => {
+    event.preventDefault();
+    document.querySelector('#tools')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    search?.focus({ preventScroll: true });
+  });
   clearSearchButton?.addEventListener('click', () => {
     if (search) search.value = '';
+    if (heroSearch) heroSearch.value = '';
     term = '';
     activeCategory = 'all';
     tabs?.querySelectorAll('button[data-filter]').forEach(tab => {

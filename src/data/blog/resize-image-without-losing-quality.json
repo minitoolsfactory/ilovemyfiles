@@ -1,0 +1,70 @@
+{
+  "title": "How to Resize an Image Without Losing Quality",
+  "description": "Learn how image resizing changes pixel dimensions, when to use a resizer, and how to keep a photo sharp for web, print and forms.",
+  "date": "2026-11-09",
+  "category": "Image guides",
+  "readTime": "6 min read",
+  "intro": "Resizing an image can mean changing its pixel dimensions, changing its file size, or both. Choosing the right operation helps avoid blurry photos, stretched logos and files that are still too large to upload.",
+  "sections": [
+    {
+      "heading": "What does image resizing change?",
+      "paragraphs": [
+        "Pixel resizing changes the width and height of the image. A 4000 × 3000 photo can be reduced to 1600 × 1200 for a web page while keeping the same aspect ratio. File-size reduction is a separate step: it depends on image format, quality settings, colour data and metadata.",
+        "Print sizing is different again. A pixel image printed at a larger physical size has fewer pixels per inch and may look softer, even though the file itself has not changed."
+      ]
+    },
+    {
+      "heading": "Start with the destination",
+      "paragraphs": [
+        "Check the target service or page for its recommended dimensions and file-size limit. Social platforms, application forms and content-management systems can each impose different requirements. Avoid choosing a dimension from memory when the destination publishes exact specifications.",
+        "For web content, start from the rendered image size and account for high-density displays. For a form, follow the stated width, height, format and maximum kilobytes exactly."
+      ]
+    },
+    {
+      "heading": "Keep the aspect ratio",
+      "paragraphs": [
+        "The aspect ratio is the relationship between an image's width and height. Locking it while resizing prevents circles becoming ovals and faces becoming unnaturally wide. If the destination needs a different shape, crop intentionally rather than stretching the image.",
+        "An image resizer can usually preserve proportions automatically. If you enter both dimensions manually, verify that the lock-ratio option is enabled or calculate a matching height."
+      ]
+    },
+    {
+      "heading": "Choose a suitable output format",
+      "paragraphs": [
+        "JPEG is a common choice for photographs, while PNG is useful for sharp graphics or transparency. WebP can provide efficient web delivery when the destination supports it. Converting a format does not guarantee smaller output: the right choice depends on the picture and its use.",
+        "Repeatedly saving a JPEG can introduce additional compression artifacts. Keep an original and create a new export for each destination."
+      ]
+    },
+    {
+      "heading": "Resize and check the result",
+      "paragraphs": [
+        "Use the <a href=\"/resize-image/\">Image Resizer</a> to set dimensions and keep proportions. If the dimensions are already correct but the file is too large, use the <a href=\"/compress-image/\">Image Compressor</a> instead. For a target kilobyte limit, the <a href=\"/kb-resizer-image-converter-in-kb/\">Image Resizer in KB</a> can help you work toward a specified size.",
+        "After exporting, inspect the image at its intended display size. Look for soft edges, compression blocks, unexpected cropping and transparency changes. Keep the original until the destination accepts the new file."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "question": "Does resizing always reduce file size?",
+      "answer": "Usually reducing pixel dimensions helps, but format, quality, metadata and image content also affect file size. Check the exported file rather than assuming."
+    },
+    {
+      "question": "Why does my resized photo look blurry?",
+      "answer": "The source may have been enlarged beyond its original detail, the output dimensions may be too small for its display, or compression may be too aggressive."
+    },
+    {
+      "question": "Should I resize or compress an image?",
+      "answer": "Resize when the pixel dimensions are too large. Compress when the dimensions are suitable but the file size needs to be reduced. Some workflows need both."
+    },
+    {
+      "question": "Can I make an image larger without quality loss?",
+      "answer": "Upscaling creates additional pixels but cannot restore detail that was not present in the original. A small enlargement may be acceptable, but substantial upscaling can look soft."
+    }
+  ],
+  "relatedTools": [
+    "resize-image",
+    "image-compress",
+    "image-resize-kb",
+    "image-crop"
+  ],
+  "slug": "resize-image-without-losing-quality"
+}

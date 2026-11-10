@@ -1,0 +1,56 @@
+{
+  "title": "How to Turn Scanned Pages into a Searchable PDF",
+  "description": "Learn the difference between image-only scans and OCR text layers, how to prepare pages and how to verify searchable PDF output.",
+  "date": "2026-11-09",
+  "category": "PDF guides",
+  "readTime": "7 min read",
+  "intro": "A scanned PDF may look like a document while containing only page images. Optical character recognition (OCR) can add a text layer that makes words searchable, but recognition quality depends on scan quality and language support.",
+  "sections": [
+    {
+      "heading": "Image-only scan or searchable document?",
+      "paragraphs": [
+        "If you cannot select or search words in a scan, its pages may be stored as images. OCR analyses those images and attempts to recognize characters, adding text that a PDF reader can search.",
+        "OCR is not a guarantee of perfect transcription. Handwriting, low contrast, skewed pages, unusual fonts and complex tables can reduce accuracy."
+      ]
+    },
+    {
+      "heading": "Prepare a clear source",
+      "paragraphs": [
+        "Use a readable scan with straight pages, good contrast and enough resolution to distinguish characters. Remove unnecessary borders and verify page orientation before recognition.",
+        "For a large document, test a representative page first. Check names, numbers, punctuation, columns and any text that will be used for decisions."
+      ]
+    },
+    {
+      "heading": "Run OCR and review the result",
+      "paragraphs": [
+        "Use <a href=\"/make-pdf-searchable/\">Make PDF Searchable</a> to add a searchable text layer to supported scans. Then search for several known words and compare recognized text with the source page.",
+        "If you need to extract images or convert pages to pictures instead, use <a href=\"/pdf-to-jpg/\">PDF to JPG</a>. Keep the original scan: OCR output can require manual correction, especially for important records."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "question": "Does OCR change the page image?",
+      "answer": "OCR typically adds a text layer over or alongside the scanned page image, but inspect the result to understand the tool's output."
+    },
+    {
+      "question": "Is OCR always accurate?",
+      "answer": "No. Accuracy depends on scan quality, font, language and layout. Proofread names, figures and critical passages."
+    },
+    {
+      "question": "Can OCR recognize handwriting?",
+      "answer": "Handwriting recognition varies considerably and may not be supported. Treat any recognized handwriting as a draft requiring careful review."
+    },
+    {
+      "question": "Can I search a PDF after OCR?",
+      "answer": "A successful OCR text layer generally enables search, but test known terms in your PDF reader after processing."
+    }
+  ],
+  "relatedTools": [
+    "pdf-ocr",
+    "pdf-searchable",
+    "pdf-to-jpg",
+    "pdf-compress"
+  ],
+  "slug": "scan-paper-to-pdf"
+}

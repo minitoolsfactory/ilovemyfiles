@@ -1,0 +1,63 @@
+{
+  "title": "How to Compress Images for the Web",
+  "description": "A practical guide to reducing image file sizes for faster web pages while balancing dimensions, format and visual quality.",
+  "date": "2026-11-09",
+  "category": "Image guides",
+  "readTime": "7 min read",
+  "intro": "Large images can take longer to transfer and display. A good web export balances pixel dimensions, file format and quality so the image looks right without shipping unnecessary bytes.",
+  "sections": [
+    {
+      "heading": "Choose dimensions before compression",
+      "paragraphs": [
+        "First determine how large the image appears in the page layout. Exporting a 6000-pixel-wide photo for a 700-pixel content column can waste bandwidth, even if it is compressed afterward.",
+        "Responsive websites often serve multiple image widths for different screens. When you are preparing a single asset, choose a sensible maximum dimension based on its largest expected display size."
+      ]
+    },
+    {
+      "heading": "Pick a format for the image",
+      "paragraphs": [
+        "JPEG is widely supported and commonly used for photographs. PNG is useful for transparency and crisp flat graphics, but photographic PNGs can be very large. WebP is supported by modern browsers and is often efficient, though you should confirm that your publishing pipeline accepts it.",
+        "If converting format, check transparency, colour and edges. Do not select a format solely because it sounds smaller; compare the actual output and appearance."
+      ]
+    },
+    {
+      "heading": "Adjust compression gradually",
+      "paragraphs": [
+        "Lossy compression removes some image information to reduce bytes. Increasing compression too far can create visible blocks, ringing around edges or loss of fine texture. Make a moderate change, inspect the result at display size, and adjust again if needed.",
+        "Keep a high-quality original and create a separate web export. This makes it possible to produce a different size or format later without starting from an already compressed copy."
+      ]
+    },
+    {
+      "heading": "Use the right tool for the goal",
+      "paragraphs": [
+        "The <a href=\"/compress-image/\">Image Compressor</a> reduces file size using quality or target-size settings. Use the <a href=\"/resize-image/\">Image Resizer</a> first when the pixel dimensions exceed what the page needs. If a publishing form specifies a kilobyte ceiling, the <a href=\"/kb-resizer-image-converter-in-kb/\">Image Resizer in KB</a> is designed around that constraint.",
+        "After exporting, verify the real file size, dimensions, format and appearance. Page-speed improvements also depend on responsive delivery, caching, lazy loading and the number of images requested."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "question": "What is a good image file size for a web page?",
+      "answer": "There is no single ideal size. It depends on display dimensions, image detail, page context and performance goals. Use an appropriately sized export and measure the actual result."
+    },
+    {
+      "question": "Is WebP always smaller than JPEG?",
+      "answer": "No. Results depend on image content and encoder settings. Compare formats at similar visual quality and verify compatibility with your publishing system."
+    },
+    {
+      "question": "Will compression make my page faster?",
+      "answer": "Smaller transferred images can help, but page performance also depends on delivery, caching, layout, scripts, network conditions and how many assets load."
+    },
+    {
+      "question": "Does the compressor upload my image?",
+      "answer": "The Image Compressor processes images in your browser. Check the individual tool's page for its current processing details and limitations."
+    }
+  ],
+  "relatedTools": [
+    "image-compress",
+    "image-resize",
+    "image-resize-kb",
+    "image-convert"
+  ],
+  "slug": "compress-image-for-web"
+}

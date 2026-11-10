@@ -1,0 +1,56 @@
+{
+  "title": "How to Meet an Image Upload Size Limit",
+  "description": "A step-by-step approach to fitting an image under a kilobyte limit without ignoring required dimensions, format or clarity.",
+  "date": "2026-11-09",
+  "category": "Image guides",
+  "readTime": "6 min read",
+  "intro": "Upload forms often specify both a maximum file size and image dimensions. Getting below the size limit is only part of the job: the result still needs to meet the required format and remain readable.",
+  "sections": [
+    {
+      "heading": "Check every requirement first",
+      "paragraphs": [
+        "Record the exact maximum size, accepted formats, pixel dimensions, aspect ratio and any colour or background rules. A file can be small enough but still rejected because its dimensions or type are wrong.",
+        "Confirm the units too. Kilobytes and kibibytes are often used loosely in upload instructions, so leave a little headroom below the stated ceiling when possible."
+      ]
+    },
+    {
+      "heading": "Reduce dimensions when appropriate",
+      "paragraphs": [
+        "If the source is much larger than the required display, resize it while preserving its aspect ratio. Avoid enlarging a small original to satisfy dimensions; upscaling does not restore missing detail.",
+        "When exact dimensions are required, crop intentionally rather than stretching the picture. Keep a backup before cropping or recompressing."
+      ]
+    },
+    {
+      "heading": "Target the file size and verify",
+      "paragraphs": [
+        "Use <a href=\"/kb-resizer-image-converter-in-kb/\">Image Resizer in KB</a> to work toward a target file size. For a form with exact width and height, the <a href=\"/resize-image/\">Image Resizer</a> can set dimensions, then the <a href=\"/compress-image/\">Image Compressor</a> can reduce bytes further if needed.",
+        "Check the final file size, dimensions and format after export. Open the image and inspect fine details, especially text, faces, logos and edges. Some forms may decode and re-encode uploads, so leave a margin below the maximum."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "question": "Why is my image still over the limit after resizing?",
+      "answer": "Dimensions are only one factor. Format, quality, metadata and image complexity affect the final bytes. Compress or convert a copy and check the result."
+    },
+    {
+      "question": "Will lowering quality always reduce size enough?",
+      "answer": "It often reduces size, but the result varies. Use gradual changes and inspect visual quality instead of choosing the most aggressive setting immediately."
+    },
+    {
+      "question": "Should I crop or resize?",
+      "answer": "Resize to change overall dimensions while keeping the composition. Crop when the required aspect ratio differs and some edges can be removed."
+    },
+    {
+      "question": "How can I avoid being just over the limit?",
+      "answer": "Aim below the maximum rather than exactly at it, then check the exported file's reported size and the destination's own validation."
+    }
+  ],
+  "relatedTools": [
+    "image-resize-kb",
+    "image-resize",
+    "image-compress",
+    "image-crop"
+  ],
+  "slug": "calculate-image-file-size"
+}

@@ -1,0 +1,63 @@
+{
+  "title": "How to Merge PDF Files Safely and Keep Pages in Order",
+  "description": "Learn how to combine PDF files, arrange page order, check the merged document and understand what may not be preserved.",
+  "date": "2026-11-09",
+  "category": "PDF guides",
+  "readTime": "6 min read",
+  "intro": "Combining PDFs is useful for reports, applications and project handoffs. Before merging, decide the order, keep original copies and review the final document for pages and features that matter.",
+  "sections": [
+    {
+      "heading": "Prepare the source PDFs",
+      "paragraphs": [
+        "Rename files clearly or make a short list of the intended order. Check that each source opens correctly and that you have permission to combine and share its contents.",
+        "Keep the originals unchanged. A merged PDF is a new output, and retaining the source files makes it easier to correct ordering or replace one part later."
+      ]
+    },
+    {
+      "heading": "Arrange files in reading order",
+      "paragraphs": [
+        "A common order is cover, contents, main sections, appendices and supporting material. The right order depends on the reader and the purpose of the document.",
+        "Use the preview and reorder controls to put pages in sequence before processing. For a large merge, inspect section boundaries and make sure a page was not omitted or duplicated."
+      ]
+    },
+    {
+      "heading": "Check the merged document",
+      "paragraphs": [
+        "After merging, open the output and review the first and last pages, section transitions, page orientation and any pages with unusual sizes. If a page contains a form, signature or link, check whether it remains usable.",
+        "PDF merge tools may preserve page content while not carrying every interactive feature, such as forms, signatures, bookmarks or document-level metadata. Do not assume these features survive unchanged; test the output that you plan to distribute."
+      ]
+    },
+    {
+      "heading": "Merge locally with iLoveMyFiles",
+      "paragraphs": [
+        "Open the <a href=\"/merge-pdf/\">Merge PDF tool</a>, choose the files, arrange their order, then process and download the combined document. The tool runs in your browser; large files may use significant device memory, so close other heavy tabs if processing is slow.",
+        "For a different task, use <a href=\"/split-pdf/\">Split PDF</a> to separate pages, or <a href=\"/compress-pdf/\">Compress PDF</a> to create a smaller copy. Always verify the result before sending it on."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "question": "Can I change page order before merging?",
+      "answer": "Yes. Arrange source files or pages in the required sequence before processing, then review the finished PDF."
+    },
+    {
+      "question": "Will merging change my original files?",
+      "answer": "The merge creates a separate output; keep the source PDFs if you need to repeat or change the merge."
+    },
+    {
+      "question": "Do bookmarks, signatures and forms always survive?",
+      "answer": "No. Interactive and document-level features may not be preserved by every PDF library. Inspect and test the output before relying on them."
+    },
+    {
+      "question": "Are my PDFs sent to a server?",
+      "answer": "The Merge PDF tool processes files in your browser. Review the tool page for current details and browser memory limitations."
+    }
+  ],
+  "relatedTools": [
+    "pdf-merge",
+    "pdf-split",
+    "pdf-compress",
+    "pdf-organize"
+  ],
+  "slug": "merge-pdf-files-safely"
+}

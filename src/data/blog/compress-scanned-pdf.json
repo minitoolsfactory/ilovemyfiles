@@ -1,0 +1,22 @@
+{
+  "slug": "compress-scanned-pdf",
+  "title": "How to Make a Scanned PDF Smaller Without Losing Legibility",
+  "description": "Learn how scan resolution, colour mode and PDF compression affect file size—and how to check a smaller scan remains readable.",
+  "date": "2026-11-09",
+  "category": "PDF guides",
+  "readTime": "6 min read",
+  "intro": "Scanned PDFs can be large because each page may be stored as a full-page image. Reducing the file can help with sharing, but the scan must remain readable for its intended purpose.",
+  "sections": [
+    {"heading":"Why scans take up space","paragraphs":["A scanned page is often a raster image. Colour scans, high pixel dimensions and detailed paper textures can produce many bytes per page. A PDF containing selectable text may compress differently from an image-only scan.","If you control the scanning step, capture only the resolution and colour information the destination requires. Preserve a high-quality master when the document has archival or evidentiary value."]},
+    {"heading":"Choose resolution and colour deliberately","paragraphs":["The right resolution depends on the smallest text, fine lines and whether the document will be printed or only viewed on screen. Lower resolution can shrink a file but may erase punctuation, small characters or stamps.","Colour, grayscale and monochrome modes also affect size. Choose a mode that preserves meaningful content; a coloured mark, annotation or stamp may matter even when the page is mostly black text."]},
+    {"heading":"Compress a copy and inspect difficult pages","paragraphs":["Use the <a href=\"/compress-pdf/\">PDF Compressor</a> on a copy and begin with a moderate setting. Check the smallest print, faint marks, diagrams, handwritten notes and pages with photographs. Zoom in, but also view pages at ordinary reading size.","If the compressed file is still over a portal limit, consider rescanning oversized pages with appropriate settings, but keep the original and follow any records-handling rules. Avoid repeatedly compressing already compressed scans."]},
+    {"heading":"Consider OCR as a separate step","paragraphs":["OCR adds a searchable text layer to supported scans; it does not necessarily reduce image bytes and recognition can contain errors. If searchability is the goal, use <a href=\"/make-pdf-searchable/\">Make PDF Searchable</a> and proofread important names, figures and passages.","After any processing, verify the output's file size, page count, visual quality and search behavior. A smaller scan is not useful if required information is no longer legible."]}
+  ],
+  "faq": [
+    {"question":"What DPI should I use for a scanned document?","answer":"There is no universal value. Follow the receiving organization's specification and test the smallest text and line detail at the intended viewing or print size."},
+    {"question":"Will OCR make a scanned PDF smaller?","answer":"OCR adds recognized text and may or may not change overall size. Its primary purpose is making scanned content searchable, not compression."},
+    {"question":"Can I convert a colour scan to black and white to save space?","answer":"Only if colour is not meaningful and the destination permits it. Colour annotations, stamps and highlighting could be lost or obscured."},
+    {"question":"Should I keep the original scan?","answer":"Yes. Preserve a source copy, especially for official, archival or evidentiary documents."}
+  ],
+  "relatedTools": ["pdf-compress", "pdf-searchable", "pdf-to-jpg", "pdf-ocr"]
+}

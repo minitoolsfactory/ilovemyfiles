@@ -1,0 +1,174 @@
+---
+import toolData from '../../data/tools.json';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const { TOOLS, CATEGORIES } = toolData;
+const isPdfCategory = category => category === 'to-pdf' || category.endsWith('-pdf');
+const categoryCount = category => category === 'all' ? TOOLS.length
+  : category === 'pdf-tools' ? TOOLS.filter(tool => isPdfCategory(tool.category)).length
+  : category === 'other-work' ? TOOLS.filter(tool => !isPdfCategory(tool.category)).length
+  : TOOLS.filter(tool => tool.category === category).length;
+const categoryLabel = id => CATEGORIES.find(category => category.id === id)?.label ?? 'Utilities';
+const categoryIcon = id => ({'pdf-tools':'▤','other-work':'✦','organize-pdf':'↕','optimize-pdf':'◌','to-pdf':'＋','convert-pdf':'⇄','security-pdf':'⌑','edit-pdf':'✎',image:'▧',data:'{}',developer:'⌘',ai:'✧',seo:'⌕'})[id] ?? '•';
+const toolPath = tool => tool.section === 'tools' ? `/tools/${tool.slug}/` : `/${tool.slug}/`;
+const toolIcon = tool => `<span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24">${tool.svg}</svg></span>`;
+const searchText = tool => `${tool.cardTitle} ${tool.cardText} ${tool.keywords.join(' ')}`.toLowerCase();
+---
+<BaseLayout>
+  <Fragment slot="head">
+    <title>All File Tools | iLoveMyFiles</title>
+    <meta name="description" content="Search and browse all free online file tools by category. Convert, compress, edit and manage files with iLoveMyFiles.">
+    <meta name="robots" content="index,follow">
+    <link rel="canonical" href="https://ilovemyfiles.com/tools/">
+  </Fragment>
+  <main class="directory-page" id="main">
+    <header class="directory-heading">
+      <nav class="breadcrumb directory-breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a><span class="breadcrumb-separator" aria-hidden="true">/</span><span aria-current="page">All tools</span></nav>
+      <div class="eyebrow">THE COMPLETE TOOLKIT</div>
+      <h1>Find the right tool for the job.</h1>
+      <p>Search {TOOLS.length} tools by name, file type, or task. Filter by category to get there faster.</p>
+      <label class="directory-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input id="directory-search" type="search" placeholder="Try “reduce photo size” or “merge PDF”" aria-label="Search all tools" autocomplete="off"><kbd>/</kbd></label>
+    </header>
+    <div class="directory-layout">
+      <aside class="directory-sidebar" aria-label="Tool categories">
+        <h2>Categories</h2>
+        <button class="directory-category is-active" type="button" data-category="all" aria-pressed="true"><span class="directory-category-icon" aria-hidden="true">▦</span><span class="directory-category-name">All tools</span><small class="directory-category-count">{TOOLS.length}</small></button>
+        {CATEGORIES.filter(category => category.id !== 'all').map(category => <button class="directory-category" type="button" data-category={category.id} aria-pressed="false"><span class="directory-category-icon" aria-hidden="true">{categoryIcon(category.id)}</span><span class="directory-category-name">{category.label}</span><small class="directory-category-count">{categoryCount(category.id)}</small></button>)}
+      </aside>
+      <section class="directory-results" aria-labelledby="directory-results-title">
+      <div class="directory-toolbar"><div class="directory-results-heading"><h2 id="directory-results-title">All tools</h2><span class="directory-result-count" id="directory-result-count" aria-live="polite">{TOOLS.length} tools</span></div><label class="sort-label">Sort by<select id="directory-sort" aria-label="Sort tools"><option value="popular">Recommended</option><option value="az">Name A–Z</option><option value="za">Name Z–A</option></select></label></div>
+        <div class="directory-grid" id="directory-grid">
+          {TOOLS.map(tool => <a class="directory-tool-card" href={toolPath(tool)} data-category={tool.category} data-name={tool.cardTitle.toLowerCase()} data-search={searchText(tool)} data-tool-id={tool.id}>
+            <span set:html={toolIcon(tool)} /><span class="directory-tool-copy"><b>{tool.cardTitle}</b><small>{tool.cardText}</small><em>{categoryLabel(tool.category)}</em></span><span class="directory-tool-arrow" aria-hidden="true">↗</span>
+          </a>)}
+        </div>
+        <div class="directory-empty" id="directory-empty" hidden><b>No tools found</b><p>Try another name or keyword, or choose a different category.</p><button type="button" id="directory-reset">Clear search and filters</button></div>
+        <div class="directory-more-wrap"><button class="directory-more" type="button" id="directory-more" hidden>Load more tools</button></div>
+      </section>
+    </div>
+  </main>
+  <script>
+    const grid = document.querySelector('#directory-grid');
+    const search = document.querySelector('#directory-search');
+    const sort = document.querySelector('#directory-sort');
+    const count = document.querySelector('#directory-result-count');
+    const title = document.querySelector('#directory-results-title');
+    const empty = document.querySelector('#directory-empty');
+    const more = document.querySelector('#directory-more');
+    const reset = document.querySelector('#directory-reset');
+    const PAGE_SIZE = 36;
+    const sidebarTabs = [...document.querySelectorAll('.directory-sidebar .directory-category')];
+    const allTabs = sidebarTabs;
+    let selectedCategory = new URLSearchParams(location.search).get('category') || 'all';
+    const validCategories = new Set(['all', ...sidebarTabs.map(tab => tab.dataset.category)]);
+    if (!validCategories.has(selectedCategory)) selectedCategory = 'all';
+    let query = new URLSearchParams(location.search).get('q')?.trim().toLowerCase() || '';
+    let visibleLimit = PAGE_SIZE;
+    const cards = [...(grid?.querySelectorAll('.directory-tool-card') ?? [])];
+    if (search) search.value = query;
+    allTabs.forEach(tab => { const active = tab.dataset.category === selectedCategory; tab.classList.toggle('is-active', active); tab.setAttribute('aria-pressed', String(active)); });
+      const categoryMatches = (card, category) => category === 'all'
+      || (category === 'pdf-tools' && (card.dataset.category === 'to-pdf' || card.dataset.category.endsWith('-pdf')))
+      || (category === 'other-work' && card.dataset.category !== 'to-pdf' && !card.dataset.category.endsWith('-pdf'))
+      || (category === 'utilities' && !['to-pdf','image','data','developer','ai','seo'].includes(card.dataset.category) && !card.dataset.category.endsWith('-pdf'))
+      || (category === 'video' && card.dataset.search.includes('video'))
+      || (category === 'audio' && card.dataset.search.includes('audio'))
+      || card.dataset.category === category;
+    function update() {
+      const matches = cards.filter(card => categoryMatches(card, selectedCategory) && (card.dataset.search ?? '').includes(query));
+      const ordered = [...matches];
+      if (sort?.value === 'az') ordered.sort((a,b) => a.dataset.name.localeCompare(b.dataset.name));
+      if (sort?.value === 'za') ordered.sort((a,b) => b.dataset.name.localeCompare(a.dataset.name));
+      cards.forEach(card => { card.hidden = true; });
+      ordered.slice(0, visibleLimit).forEach(card => { card.hidden = false; grid?.append(card); });
+      if (count) count.textContent = `${matches.length} ${matches.length === 1 ? 'tool' : 'tools'}`;
+      if (title) title.textContent = selectedCategory === 'all' ? 'All tools' : sidebarTabs.find(tab => tab.dataset.category === selectedCategory)?.querySelector('.directory-category-name')?.textContent.trim() ?? 'Filtered tools';
+      if (empty) empty.hidden = matches.length > 0;
+      if (more) { more.hidden = matches.length <= visibleLimit; more.textContent = `Load more tools (${matches.length - visibleLimit} remaining)`; }
+    }
+    allTabs.forEach(tab => tab.addEventListener('click', () => {
+      selectedCategory = tab.dataset.category ?? 'all'; visibleLimit = PAGE_SIZE;
+      allTabs.forEach(item => { const active = item.dataset.category === selectedCategory; item.classList.toggle('is-active', active); item.setAttribute('aria-pressed', String(active)); });
+      const url = new URL(location.href); if (selectedCategory === 'all') url.searchParams.delete('category'); else url.searchParams.set('category', selectedCategory); if(query)url.searchParams.set('q',query); history.replaceState({}, '', url);
+      update();
+    }));
+    search?.addEventListener('input', () => { query = search.value.trim().toLowerCase(); visibleLimit = PAGE_SIZE; const url = new URL(location.href); if(query)url.searchParams.set('q',query);else url.searchParams.delete('q');history.replaceState({},'',url);update(); });
+    sort?.addEventListener('change', update);
+    more?.addEventListener('click', () => { visibleLimit += PAGE_SIZE; update(); });
+    reset?.addEventListener('click', () => { search.value = ''; query = ''; selectedCategory = 'all'; visibleLimit = PAGE_SIZE; allTabs.forEach(tab => { const active = tab.dataset.category === 'all'; tab.classList.toggle('is-active', active); tab.setAttribute('aria-pressed', String(active)); }); const url = new URL(location.href); url.searchParams.delete('category'); url.searchParams.delete('q'); history.replaceState({}, '', url); update(); search.focus(); });
+    document.addEventListener('keydown', event => {
+      if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target?.tagName ?? '')) return;
+      event.preventDefault(); search?.focus();
+    });
+    update();
+  </script>
+</BaseLayout>
+
+<style is:global>
+  .directory-page{max-width:1240px;margin:0 auto;padding:38px 28px 72px;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:normal}
+  .directory-page :where(h1,h2,p,button,small,a,label,select){font-family:inherit;letter-spacing:normal}
+  .directory-heading{max-width:760px;margin:0 auto 34px;text-align:center}
+  .directory-heading .directory-breadcrumb{display:flex;align-items:center;justify-content:flex-start;gap:9px;width:100%;margin:0 0 28px;text-align:left;color:var(--color-text-muted);font-size:12px;line-height:1.5}
+  .directory-breadcrumb a{color:var(--color-text-secondary);text-decoration:none}
+  .directory-breadcrumb a:hover{color:#2563eb}
+  .directory-breadcrumb .breadcrumb-separator{color:#94a3b8}
+  .directory-breadcrumb [aria-current="page"]{color:var(--color-text-primary);font-weight:600}
+  .directory-heading .eyebrow{justify-content:center}
+  .directory-heading h1{margin:12px 0;font-size:clamp(34px,4vw,48px);line-height:1.08;letter-spacing:-1.8px;color:var(--color-text-primary)}
+  .directory-heading>p{margin:0 auto;color:var(--color-text-secondary);font-size:15px;line-height:1.6;max-width:650px}
+  .directory-search{display:flex;align-items:center;gap:12px;margin:24px auto 0;padding:8px 12px;width:min(100%,640px);min-height:54px;border:1px solid var(--color-border);border-radius:14px;background:var(--color-surface);box-shadow:0 6px 18px #0f172a0c;text-align:left}
+  .directory-search svg{width:20px;height:20px;fill:none;stroke:var(--color-text-muted);stroke-width:1.8;flex:0 0 auto}
+  .directory-search input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--color-text-primary);font-size:14px}
+  .directory-search kbd{padding:4px 7px;border:1px solid var(--color-border);border-radius:6px;color:var(--color-text-muted);font:11px ui-monospace,monospace}
+  .directory-category-nav{display:grid;grid-template-columns:100px minmax(0,1fr);align-items:center;gap:8px;margin:0 0 22px;padding:8px 12px;border:1px solid var(--color-border);border-radius:14px;background:var(--color-surface);min-width:0;overflow:hidden}
+  .directory-category-nav h2{display:block;min-width:0;margin:0;padding-left:2px;color:var(--color-text-primary);font-size:13px;font-weight:700;white-space:nowrap}
+  .directory-category-list{display:flex;align-items:center;gap:4px;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:var(--color-border) transparent;overscroll-behavior-inline:contain}
+  .directory-category-nav .directory-category{width:auto;flex:0 0 auto;min-height:38px;display:flex;align-items:center;justify-content:flex-start;gap:6px;padding:6px 9px;border:1px solid transparent;border-radius:8px;white-space:nowrap;color:var(--color-text-secondary);font-size:12px;font-weight:550;line-height:1}
+  .directory-category-nav .directory-category-name{display:block;line-height:1.2}
+  .directory-category-nav .directory-category-icon{display:inline-grid;place-items:center;width:19px;height:19px;flex:0 0 19px;color:#5969c8;font-size:14px;line-height:1}
+  .directory-category-nav .directory-category-count{display:inline-block;min-width:12px;margin:0;padding:0;color:var(--color-text-muted);font-size:10px;font-weight:600;line-height:1;text-align:right}
+  .directory-category-nav .directory-category.is-active{border-color:#dbeafe;background:#eff6ff;color:#1d4ed8}
+  .directory-category-nav .directory-category.is-active .directory-category-count{color:#315fc2}
+  .directory-category-nav .directory-category:hover:not(.is-active){background:var(--color-surface-soft);color:var(--color-text-primary)}
+  .directory-category-nav[hidden]{display:none!important}
+  .directory-layout{display:grid;grid-template-columns:210px minmax(0,1fr);gap:24px;align-items:start}
+  .directory-sidebar{position:sticky;top:88px;padding:13px;border:1px solid var(--color-border);border-radius:13px;background:var(--color-surface)}
+  .directory-sidebar h2{margin:0 0 9px;padding:0 9px;font-size:13px;line-height:1.4;color:var(--color-text-primary)}
+  .directory-sidebar .directory-category{display:grid;grid-template-columns:18px minmax(0,1fr) auto;align-items:center;column-gap:8px;width:100%;min-height:35px;padding:6px 9px;border:0;border-radius:8px;background:transparent;color:var(--color-text-secondary);text-align:left;font-size:11px;line-height:1.25;font-weight:550;cursor:pointer}
+  .directory-sidebar .directory-category:hover{background:var(--color-surface-soft);color:var(--color-text-primary)}
+  .directory-sidebar .directory-category.is-active{background:#eff6ff;color:#1d4ed8;font-weight:650}
+  .directory-sidebar .directory-category-icon{width:18px;color:#5265c8;font-size:13px;text-align:center}
+  .directory-sidebar .directory-category-name{min-width:0;line-height:1.25}
+  .directory-sidebar .directory-category-count{justify-self:end;margin:0;color:var(--color-text-muted);font-size:10px;font-weight:500;line-height:1}
+  [data-theme="dark"] .directory-sidebar .directory-category.is-active{background:#202b4a;color:#adc5ff}
+  .directory-toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:0 0 16px}
+  .directory-results-heading{display:flex;align-items:baseline;gap:12px;min-width:0}
+  .directory-toolbar h2{margin:0;font-size:22px;line-height:1.25;letter-spacing:-.5px;color:var(--color-text-primary)}
+  .directory-toolbar p{margin:0;color:var(--color-text-muted);font-size:12px}
+  .directory-result-count{color:var(--color-text-muted);font-size:13px;white-space:nowrap}
+  .sort-label{display:flex;align-items:center;gap:8px;color:var(--color-text-secondary);font-size:11px;white-space:nowrap}
+  .sort-label select{min-height:38px;padding:0 28px 0 10px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface);color:var(--color-text-primary);font:inherit}
+  .directory-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .directory-tool-card{min-width:0;min-height:100px;display:flex;align-items:flex-start;gap:10px;padding:13px;border:1px solid var(--color-border);border-radius:12px;background:var(--color-surface);color:var(--color-text-primary);transition:border-color .18s,box-shadow .18s,transform .18s}
+  .directory-tool-card:hover{border-color:#b8c8f4;box-shadow:0 8px 20px #0f172a0b;transform:translateY(-1px)}
+  .directory-tool-card[hidden]{display:none!important}
+  .directory-tool-card .tool-icon{width:36px;height:36px;flex:0 0 36px;border-radius:10px}
+  .directory-tool-card .tool-icon svg{width:20px;height:20px}
+  .directory-tool-copy{display:block;min-width:0;padding-right:3px}
+  .directory-tool-copy b{display:block;margin:1px 0 4px;font-size:12px;line-height:1.3}
+  .directory-tool-copy small{display:-webkit-box;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical;color:var(--color-text-secondary);font-size:10px;line-height:1.4}
+  .directory-tool-copy em{display:block;margin-top:7px;color:var(--color-text-muted);font-size:9px;font-style:normal}
+  .directory-tool-arrow{margin-left:auto;color:var(--color-text-muted);font-size:14px}
+  .directory-empty{padding:48px 20px;text-align:center;border:1px dashed var(--color-border);border-radius:14px;color:var(--color-text-secondary)}
+  .directory-empty b{color:var(--color-text-primary)}
+  .directory-empty p{font-size:13px}
+  .directory-empty button,.directory-more{min-height:42px;padding:0 15px;border:1px solid var(--color-border);border-radius:9px;background:var(--color-surface);color:var(--color-text-primary);font-size:13px;font-weight:650;cursor:pointer;transition:background .16s,border-color .16s,color .16s,box-shadow .16s}
+  .directory-empty button:hover,.directory-more:hover{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8;box-shadow:0 4px 12px #0f172a0a}
+  .directory-more-wrap{display:flex;justify-content:center;padding-top:20px}
+  .directory-more{min-width:170px}
+  .directory-more[hidden]{display:none}
+  [data-theme="dark"] .directory-category.is-active{background:#202b4a;color:#adc5ff}
+  @media(max-width:980px){.directory-layout{grid-template-columns:190px minmax(0,1fr);gap:20px}.directory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:680px){.directory-page{padding:24px 16px 48px}.directory-heading{margin-bottom:24px}.directory-heading .directory-breadcrumb{margin-bottom:20px}.directory-layout{grid-template-columns:1fr}.directory-sidebar{display:none}.directory-category-nav{grid-template-columns:1fr;gap:5px;margin-bottom:16px;padding:8px}.directory-category-nav h2{font-size:12px}.directory-category-list{gap:3px}.directory-category-nav .directory-category{min-height:36px;padding:5px 8px;font-size:11px}.directory-category-nav .directory-category-count{min-width:12px}.directory-toolbar{align-items:flex-start}.directory-results-heading{flex-wrap:wrap;gap:4px 10px}.directory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:420px){.directory-grid{grid-template-columns:1fr}.directory-tool-card{min-height:86px}.directory-toolbar{flex-direction:column}.directory-results-heading{flex-wrap:wrap;gap:4px 10px}}
+</style>

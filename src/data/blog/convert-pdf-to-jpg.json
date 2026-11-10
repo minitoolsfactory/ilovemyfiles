@@ -1,0 +1,56 @@
+{
+  "title": "How to Convert PDF Pages to JPG Images",
+  "description": "A practical guide to exporting PDF pages as JPG images, choosing resolution and checking text, colour and privacy before sharing.",
+  "date": "2026-11-09",
+  "category": "PDF guides",
+  "readTime": "5 min read",
+  "intro": "Converting PDF pages to JPG is handy for previews, image-based sharing and workflows that accept pictures but not documents. Each PDF page becomes a raster image, so choose a resolution that fits the next use.",
+  "sections": [
+    {
+      "heading": "Know what changes in the conversion",
+      "paragraphs": [
+        "A JPG is a raster image made from pixels. Text, vector shapes and selectable content in the PDF are rendered into pixels during export. The resulting picture is convenient to display, but the text is no longer selectable as text.",
+        "Multi-page PDFs usually produce multiple images. Keep track of page order and filenames so recipients can identify each page correctly."
+      ]
+    },
+    {
+      "heading": "Select a useful resolution",
+      "paragraphs": [
+        "Higher resolution preserves more detail but creates larger images. For a small on-screen preview, a modest resolution may be enough. For detailed diagrams or print, use a higher setting and check the target system's requirements.",
+        "Inspect small text, thin lines, colour and page edges. If the output looks soft, increase resolution rather than repeatedly sharpening an already rasterized image."
+      ]
+    },
+    {
+      "heading": "Convert and verify",
+      "paragraphs": [
+        "Use <a href=\"/pdf-to-jpg/\">PDF to JPG</a> to render pages as images in your browser. Before sharing, compare image count with PDF page count, check orientation and confirm that the output contains only pages you intend to share.",
+        "If you need a single document containing pictures, use <a href=\"/jpg-to-pdf/\">JPG to PDF</a>. If the goal is editing text, converting pages to images is usually not the right workflow; use an accessible source document where possible."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "question": "Will JPG preserve selectable PDF text?",
+      "answer": "No. JPG pages are images; text and vector content are rendered into pixels."
+    },
+    {
+      "question": "Does every PDF page create one JPG?",
+      "answer": "Typically each selected page becomes an image. Check the output filenames and count, especially when handling page ranges."
+    },
+    {
+      "question": "Which resolution should I choose?",
+      "answer": "Choose based on the intended display or print use, then inspect small text and detail. Higher resolution creates larger images."
+    },
+    {
+      "question": "Can I convert JPG images back into a PDF?",
+      "answer": "Yes. Use the JPG to PDF tool to create a PDF from image files; it does not restore text that was rasterized."
+    }
+  ],
+  "relatedTools": [
+    "pdf-to-jpg",
+    "jpg-to-pdf",
+    "pdf-compress",
+    "image-compress"
+  ],
+  "slug": "convert-pdf-to-jpg"
+}

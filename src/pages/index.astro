@@ -1,127 +1,127 @@
 ---
-import toolData from "../data/tools.json";
-import cbseTool from "../data/cbse-tool.json";
-import BaseLayout from "../layouts/BaseLayout.astro";
-import HomeToolFilters from "../components/HomeToolFilters.astro";
-import HomeStyles from "../components/HomeStyles.astro";
+import toolData from '../data/tools.json';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HomeStyles from '../components/HomeStyles.astro';
 
-const { TOOLS, CATEGORIES } = toolData;
-const categoryIcons = {
-  'pdf-tools': '▤', 'other-work': '✦', 'organize-pdf': '↕', 'optimize-pdf': '◌',
-  'to-pdf': '＋', 'convert-pdf': '⇄', 'security-pdf': '⌑', 'edit-pdf': '✎',
-  image: '▧', data: '{}', developer: '</>', ai: '✧', seo: '⌕'
-};
-const isPdfCategory = id => id === 'to-pdf' || id.endsWith('-pdf');
-const categoryCount = id => id === 'all'
-  ? TOOLS.length
-  : id === 'pdf-tools'
-    ? TOOLS.filter(tool => isPdfCategory(tool.category)).length
-    : id === 'other-work'
-      ? TOOLS.filter(tool => !isPdfCategory(tool.category)).length
-      : TOOLS.filter(tool => tool.category === id).length;
-const toolById = id => TOOLS.find(tool => tool.id === id);
-const icon = (tool, large = false) => `<span class="tool-icon icon-${tool.icon}${large ? ' tool-icon-lg' : ''}" aria-hidden="true"><svg viewBox="0 0 24 24">${tool.svg}</svg></span>`;
-const popular = ['pdf-merge', 'pdf-compress', 'images-pdf', 'image-resize', 'image-convert'].map(toolById).filter(Boolean);
+const { TOOLS } = toolData;
+const popularIds = ['image-compress','pdf-compress','pdf-to-images','images-pdf','image-resize','pdf-merge','pdf-split','image-convert'];
+const featuredIds = ['image-compress','pdf-compress','pdf-to-images','images-pdf','image-resize','pdf-merge'];
+const byId = id => TOOLS.find(tool => tool.id === id);
+const popular = popularIds.map(byId).filter(Boolean);
+const featured = featuredIds.map(byId).filter(Boolean);
+const categories = [
+  {id:'pdf-tools',label:'PDF tools',description:'Merge, compress, convert and protect PDF documents.',icon:'▤'},
+  {id:'image',label:'Image tools',description:'Resize, convert, crop and optimise images.',icon:'▧'},
+  {id:'data',label:'Data & text',description:'Format, convert and work with everyday data.',icon:'{}'},
+  {id:'developer',label:'Developer tools',description:'Utilities for code, data and web workflows.',icon:'⌘'},
+  {id:'ai',label:'AI tools',description:'Helpers for AI prompts and model usage.',icon:'✧'},
+  {id:'seo',label:'SEO tools',description:'Practical tools for site checks and search work.',icon:'⌕'},
+];
+const countFor = id => id === 'pdf-tools'
+  ? TOOLS.filter(tool => tool.category === 'to-pdf' || tool.category.endsWith('-pdf')).length
+  : TOOLS.filter(tool => tool.category === id).length;
+const toolPath = tool => tool.section === 'tools' ? `/tools/${tool.slug}/` : `/${tool.slug}/`;
+const icon = tool => `<span class="tool-icon icon-${tool.icon}" aria-hidden="true"><svg viewBox="0 0 24 24">${tool.svg}</svg></span>`;
 ---
 <BaseLayout>
   <HomeStyles />
   <Fragment slot="head">
-    <meta name="description" content="Free, private file tools. Convert, compress and resize images, create PDFs, merge PDFs and split PDF pages directly in your browser.">
+    <meta name="description" content="Free online tools to convert, compress and manage files. Browse the complete toolkit and process files locally where supported.">
     <meta name="robots" content="index,follow">
     <link rel="canonical" href="https://ilovemyfiles.com/">
-    <title>iLoveMyFiles - Free Online Image & PDF Tools</title>
+    <title>iLoveMyFiles — Free Online File Tools</title>
   </Fragment>
 
   <section class="hero">
     <div class="hero-copy">
-      <div class="eyebrow"><span class="eyebrow-icon" aria-hidden="true">✦</span> PRIVATE FILE TOOLS · NO UPLOADS</div>
-      <h1>Get file tasks<br><span>out of your way.</span></h1>
-      <p class="hero-subtitle">Convert, compress, organise and edit files with a clear, focused toolkit. Processing happens in your browser, so your documents stay on your device.</p>
-      <div class="hero-actions">
-        <a class="button button-primary" href="/#tools">Find your tool <span aria-hidden="true">↘</span></a>
-        <span class="micro-trust"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2 16 4v5c0 4-2.5 7-6 9-3.5-2-6-5-6-9V4z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m7 10 2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Free · no account · runs locally</span>
-      </div>
-      <div class="hero-proof" aria-label="At a glance"><span><b>{TOOLS.length}</b> practical tools</span><span><b>0</b> file uploads</span><span><b>100%</b> browser-based</span></div>
+      <div class="eyebrow"><span class="eyebrow-icon" aria-hidden="true">✦</span> {TOOLS.length}+ Free Online File Tools</div>
+      <h1>Convert, compress,<br>edit &amp; <span>manage files.</span></h1>
+      <p class="hero-subtitle">A thoughtful collection of free tools for everyday file tasks. Simple to use, with privacy-minded processing wherever supported.</p>
+      <form class="hero-search" action="/tools/" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>
+        <input id="hero-tool-search" type="search" placeholder="Search tools, file types or tasks…" aria-label="Search file tools" autocomplete="off" aria-controls="hero-search-suggestions" aria-expanded="false">
+        <kbd aria-hidden="true">/</kbd><button class="button button-primary" type="submit">Search</button>
+        <div class="hero-search-suggestions" id="hero-search-suggestions" role="listbox" aria-label="Matching tools" hidden></div>
+      </form>
+      <div class="hero-actions"><a class="button button-primary" href="/tools/">Explore all tools <span aria-hidden="true">→</span></a></div>
+      <div class="hero-benefits" aria-label="Benefits"><span><i aria-hidden="true">✓</i> 100% Free</span><span><i aria-hidden="true">⌑</i> No signup</span><span><i aria-hidden="true">◇</i> Privacy first</span></div>
     </div>
     <div class="hero-art" aria-hidden="true">
-      <div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div>
-      <div class="file-card file-card-back"><div class="fake-lines"></div><div class="fake-lines short"></div><div class="fake-lines"></div></div>
-      <div class="file-card file-card-front"><div class="image-glyph"><span></span><i></i></div><div class="file-label">your-file.webp</div><div class="file-meta">IMAGE · 2.4 MB</div><div class="convert-arrow">↓</div><div class="file-output"><span class="output-icon">✓</span><div><b>Optimized</b><small>640 KB · ready to save</small></div></div></div>
-      <div class="floating-chip chip-lock"><span>⌑</span> Private by design</div><div class="floating-chip chip-speed"><span>↯</span> Fast in-browser tools</div>
+      <div class="hero-art-glow"></div>
+      <div class="hero-document document-main"><span class="doc-tag">PDF</span><i></i><i></i><i></i><b>report.pdf</b></div>
+      <div class="hero-document document-output"><span class="doc-tag image-tag">IMG</span><div class="doc-photo"><span></span></div><b>Optimised image</b><small>Reduced file size</small></div>
+      <div class="process-link">→</div><div class="hero-shield"><span>✓</span><small>Processed<br>securely</small></div>
+      <div class="hero-art-caption"><span class="caption-dot"></span> Files stay in your control</div>
     </div>
   </section>
 
-  <section class="quick-section" id="popular-section" aria-label="Popular tools">
-    <div class="quick-head"><h2>Popular tools</h2><a class="quick-browse" href="#tools">Browse all tools <span aria-hidden="true">→</span></a></div>
-    <div class="quick-grid" id="popular-grid">
-      {popular.map(tool => (
-        <a href={tool.section === 'tools' ? `/tools/${tool.slug}/` : `/${tool.slug}/`} class="quick-card" data-tool={tool.id} data-tool-id={tool.id}>
-          <span set:html={icon(tool)} />
-          <b>{tool.cardTitle}</b>
-        </a>
-      ))}
-    </div>
+  <nav class="category-rail" aria-label="Popular tool categories">
+    <a class="category-rail-all" href="/tools/">All tools</a>
+    <a href="/tools/?category=pdf-tools"><span aria-hidden="true">▤</span> PDF Tools</a>
+    <a href="/tools/?category=image"><span aria-hidden="true">▧</span> Image Tools</a>
+    <a href="/tools/?category=data"><span aria-hidden="true">▤</span> Document Tools</a>
+    <a href="/tools/?category=video"><span aria-hidden="true">▶</span> Video Tools</a>
+    <a href="/tools/?category=audio"><span aria-hidden="true">♫</span> Audio Tools</a>
+    <a href="/tools/?category=developer"><span aria-hidden="true">⌘</span> Developer Tools</a>
+    <a href="/tools/?category=utilities"><span aria-hidden="true">⌁</span> Utilities</a>
+    <a href="/tools/#categories" class="category-rail-more">More <span aria-hidden="true">→</span></a>
+  </nav>
+
+  <section class="quick-section home-section" id="popular-section" aria-labelledby="popular-title">
+    <div class="home-section-heading"><div><div class="eyebrow">GET STARTED</div><h2 id="popular-title">Popular tools</h2><p>Quick access to tools people use every day.</p></div><a class="quick-browse" href="/tools/">View all tools <span aria-hidden="true">→</span></a></div>
+    <div class="quick-grid" id="popular-grid">{popular.map(tool => <a href={toolPath(tool)} class="quick-card" data-tool={tool.id} data-tool-id={tool.id}><span set:html={icon(tool)} /><span class="popular-copy"><b>{tool.cardTitle}</b><small>{tool.cardText}</small></span><span class="popular-arrow" aria-hidden="true">↗</span></a>)}</div>
   </section>
 
-  <section class="trust-strip" aria-label="iLoveMyFiles benefits">
-    <div><span class="trust-icon" aria-hidden="true">◎</span><span><b>Private by default</b><small>Files stay on your device</small></span></div>
-    <div><span class="trust-icon" aria-hidden="true">ϟ</span><span><b>Simple and focused</b><small>Choose a tool, get it done</small></span></div>
-    <div><span class="trust-icon" aria-hidden="true">♧</span><span><b>Free to use</b><small>No account or subscription</small></span></div>
+  <section class="featured-section home-section" aria-labelledby="featured-title">
+    <div class="home-section-heading"><div><div class="eyebrow">CURATED PICKS</div><h2 id="featured-title">Featured tools</h2><p>Reliable essentials for common file tasks.</p></div><a class="quick-browse" href="/tools/">Explore the full directory <span aria-hidden="true">→</span></a></div>
+    <div class="featured-grid">{featured.map((tool,index) => <a class={`featured-card featured-card-${index+1}`} href={toolPath(tool)}><span set:html={icon(tool)} /><span class="featured-copy"><small>FEATURED TOOL</small><b>{tool.cardTitle}</b><span>{tool.cardText}</span></span><span class="featured-arrow" aria-hidden="true">↗</span></a>)}</div>
   </section>
 
-  <section class="quick-section" id="recent-section" hidden aria-label="Recently used tools">
-    <div class="quick-head">
-      <h2>Recently used <span class="recent-count" id="recent-count" aria-hidden="true"></span></h2>
-      <button type="button" class="recent-clear" data-clear-recent title="Clear recently used tools" aria-label="Clear recently used tools">Clear</button>
-    </div>
-    <div class="quick-grid" id="recent-grid"></div>
+  <section class="browse-category-section home-section" id="categories" aria-labelledby="browse-categories-title">
+    <div class="home-section-heading"><div><div class="eyebrow">BROWSE BY CATEGORY</div><h2 id="browse-categories-title">Find the right toolkit</h2><p>Explore tools grouped around the work you need to do.</p></div><a class="quick-browse" href="/tools/#categories">All categories <span aria-hidden="true">→</span></a></div>
+    <div class="browse-category-grid">{categories.map(category => <a class="browse-category-card" href={`/tools/?category=${category.id}`}><span class="browse-category-icon" aria-hidden="true">{category.icon}</span><span class="browse-category-heading"><b>{category.label}</b><small>{countFor(category.id)} tools</small></span><p>{category.description}</p><span class="browse-category-link">Explore category <i aria-hidden="true">→</i></span></a>)}</div>
   </section>
 
-  <section class="tools-section" id="tools">
-    <div class="section-heading">
-      <div><div class="eyebrow">THE TOOLKIT</div><h2>What would you like to do?</h2><p>Search {TOOLS.length} tools, or browse by the kind of task you need to finish.</p></div>
-      <div class="search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input id="tool-search" type="search" placeholder="Try ‘merge PDF’ or ‘resize image’" aria-label="Search tools" aria-describedby="search-hint" autocomplete="off"><span id="search-hint" class="sr-only">Search tool names, descriptions and keywords. Results update as you type.</span><kbd class="search-shortcut" aria-hidden="true">/</kbd></div>
-    </div>
-    <div class="category-tabs" id="category-tabs" role="group" aria-label="Filter tools">
-      {CATEGORIES.map(cat => (
-        <button type="button" class={`category-tab${cat.id === 'all' ? ' active' : ''}`} data-filter={cat.id} aria-pressed={cat.id === 'all' ? 'true' : 'false'}><span class="category-symbol" aria-hidden="true">{categoryIcons[cat.id] ?? '•'}</span><span class="category-label">{cat.label}</span><span class="category-count">{categoryCount(cat.id)}</span></button>
-      ))}
-    </div>
-    <div class="tool-catalog-meta" aria-live="polite"><span><b>{TOOLS.length}</b> tools available</span><span>Choose a category or search all tools</span></div>
-    <div class="tool-grid" id="tool-grid">
-      {TOOLS.map(tool => (
-        <a href={tool.section === 'tools' ? `/tools/${tool.slug}/` : `/${tool.slug}/`} class="tool-card" data-tool={tool.id} data-tool-id={tool.id} data-category={tool.category} data-search={`${tool.cardTitle} ${tool.cardText} ${tool.keywords.join(' ')}`.toLowerCase()}>
-          <span set:html={icon(tool)} />
-          <span class="tool-card-content">
-            <b>{tool.cardTitle}</b>
-            <span>{tool.cardText}</span>
-            <small>{tool.tag}</small>
-          </span>
-          <span class="tool-arrow" aria-hidden="true">↗</span>
-        </a>
-      ))}
-      <a href={`/${cbseTool.slug}/`} class="tool-card" data-tool={cbseTool.id} data-tool-id={cbseTool.id} data-category={cbseTool.category} data-country-gated={cbseTool.id} hidden>
-        <span set:html={icon(cbseTool)} />
-        <span class="tool-card-content">
-          <b>{cbseTool.cardTitle}</b>
-          <span>{cbseTool.cardText}</span>
-          <small>{cbseTool.tag}</small>
-        </span>
-        <span class="tool-arrow" aria-hidden="true">↗</span>
-      </a>
-    </div>
-    <div id="no-results" class="no-results" hidden><b>No matching tools yet</b><p>Try a shorter search, a different keyword, or select “All tools”.</p><button type="button" class="button button-ghost" id="clear-tool-search">Clear search and filters</button></div>
-    <p class="sr-only" id="filter-status" role="status" aria-live="polite"></p>
+  <section class="why-compact" id="about" aria-label="Why iLoveMyFiles">
+    <div class="why-intro"><div class="eyebrow">MADE FOR EVERYDAY WORK</div><h2>Useful tools.<br>No unnecessary friction.</h2><p>Use supported tools without an account. When a tool processes files locally, your files stay in the browser; some features may rely on online services.</p></div>
+    <ul class="why-points"><li><b>Free to use</b><span>No subscription to get started.</span></li><li><b>No registration</b><span>Open a tool and get straight to work.</span></li><li><b>Privacy-minded</b><span>Local processing where supported.</span></li><li><b>Works across devices</b><span>Responsive on mobile and desktop.</span></li></ul>
   </section>
 
-  <section class="privacy-section" id="privacy">
-    <div class="privacy-visual" aria-hidden="true"><div class="privacy-circle"><svg viewBox="0 0 64 64"><path d="M32 6 51 13v16c0 13-8 23-19 29C21 52 13 42 13 29V13z" fill="none" stroke="currentColor" stroke-width="2.6"/><rect x="24" y="27" width="16" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M27 27v-4a5 5 0 0 1 10 0v4" fill="none" stroke="currentColor" stroke-width="2.4"/></svg></div><span class="privacy-spark spark-a">✦</span><span class="privacy-spark spark-b">✧</span></div>
-    <div class="privacy-copy"><div class="eyebrow">YOUR PRIVACY MATTERS</div><h2>Your files stay yours.<br><span>That’s the point.</span></h2>    <p>iLoveMyFiles processes files locally in your browser. Your selected files aren't sent to an iLoveMyFiles server. You stay in control from start to finish.</p><ul><li><span aria-hidden="true">✓</span> No file uploads for processing</li><li><span aria-hidden="true">✓</span> No account or sign-up required</li><li><span aria-hidden="true">✓</span> Your originals stay untouched</li></ul><p class="privacy-note">Your browser uses memory to process files. Large documents may take longer; close the tool when finished, especially on a shared device.</p></div>  </section>
-
-  <section class="how-section" id="how-it-works">
-    <div class="section-heading centered"><div><div class="eyebrow">THREE SIMPLE STEPS</div><h2>From file to finished.</h2><p>No confusing settings. No complicated workflow.</p></div></div>
-    <ol class="steps-grid"><li class="step"><span class="step-number" aria-hidden="true">01</span><div class="step-symbol" aria-hidden="true">↥</div><h3>Choose your files</h3><p>Select one or more files from your device. They remain in your browser.</p></li><li class="step"><span class="step-number" aria-hidden="true">02</span><div class="step-symbol" aria-hidden="true">✳</div><h3>Set your options</h3><p>Choose the format, size or pages you want to work with.</p></li><li class="step"><span class="step-number" aria-hidden="true">03</span><div class="step-symbol" aria-hidden="true">↓</div><h3>Download the result</h3><p>Save your converted file or ZIP archive straight to your device.</p></li></ol>
+  <section class="how-section home-section" id="how-it-works" aria-labelledby="how-title">
+    <div class="home-section-heading centered"><div><div class="eyebrow">THREE SIMPLE STEPS</div><h2 id="how-title">From file to finished.</h2><p>A straightforward workflow, whatever the task.</p></div></div>
+    <ol class="steps-grid"><li class="step"><span class="step-number" aria-hidden="true">01</span><div class="step-symbol" aria-hidden="true">⌕</div><h3>Select a tool</h3><p>Find the right tool from the catalogue or search.</p></li><li class="step"><span class="step-number" aria-hidden="true">02</span><div class="step-symbol" aria-hidden="true">↑</div><h3>Choose your file</h3><p>Upload or select a file as the tool requires.</p></li><li class="step"><span class="step-number" aria-hidden="true">03</span><div class="step-symbol" aria-hidden="true">↓</div><h3>Process and download</h3><p>Adjust the options, process and save your result.</p></li></ol>
   </section>
-  <section class="bottom-cta"><div><h2>Ready to get it done?</h2><p>Your next file task is just a few clicks away.</p></div><a href="/#tools" class="button button-light">Choose a tool <span aria-hidden="true">↗</span></a></section>
-  <HomeToolFilters />
+
+  <section class="home-faq home-section" aria-labelledby="home-faq-title"><div class="home-section-heading"><div><div class="eyebrow">HELP CENTRE</div><h2 id="home-faq-title">Frequently asked questions</h2></div></div><div class="home-faq-grid"><details><summary>Are the tools free to use?</summary><p>Yes. The tools are free to use; there is no subscription required to get started.</p></details><details><summary>Are my files uploaded?</summary><p>Many tools process files locally in your browser. Processing behavior depends on the individual tool; check its page for details.</p></details><details><summary>Do I need an account?</summary><p>No account is required for supported tools. Open a tool and follow its instructions.</p></details><details><summary>Can I use the tools on mobile?</summary><p>The site is responsive and works on modern mobile browsers, though some large files may work better on desktop.</p></details></div></section>
+  <script>
+    import tools from '../data/tools.json';
+    const input = document.querySelector('#hero-tool-search');
+    const list = document.querySelector('#hero-search-suggestions');
+    const route = tool => tool.section === 'tools' ? `/tools/${tool.slug}/` : `/${tool.slug}/`;
+    const synonyms = {reduce:['compress','smaller','shrink'],photo:['image','picture'],join:['merge','combine'],convert:['change format','to'],cut:['split','separate']};
+    let activeIndex = -1;
+    let results = [];
+    function search() {
+      const query = input.value.trim().toLowerCase();
+      results = query ? tools.TOOLS.map(tool => {
+        const expanded = query.split(/\s+/).flatMap(word => [word, ...(synonyms[word] ?? [])]).join(' ');
+        const haystack = `${tool.cardTitle} ${tool.cardText} ${tool.keywords.join(' ')}`.toLowerCase();
+        const exact = haystack.includes(query);
+        const score = (exact ? 10 : 0) + expanded.split(/\s+/).filter(word => haystack.includes(word)).length;
+        return {tool,score};
+      }).filter(item => item.score > 0).sort((a,b) => b.score-a.score).slice(0,6).map(item => item.tool) : [];
+      activeIndex = -1;
+      list.replaceChildren();
+      if (!query) { list.hidden = true; input.setAttribute('aria-expanded','false'); return; }
+      if (!results.length) { const empty = document.createElement('p'); empty.className='suggestion-empty'; empty.textContent='No matching tools. Try a different search.'; list.append(empty); }
+      results.forEach((tool,index) => { const link=document.createElement('a'); link.href=route(tool); link.setAttribute('role','option'); link.setAttribute('aria-selected','false'); link.dataset.index=String(index); const title=document.createElement('b'); title.textContent=tool.cardTitle; const meta=document.createElement('small'); meta.textContent=tool.cardText; link.append(title,meta); list.append(link); });
+      const all=document.createElement('a'); all.className='suggestion-all'; all.href=`/tools/?q=${encodeURIComponent(query)}`; all.textContent='See all matching tools →'; list.append(all);
+      list.hidden=false; input.setAttribute('aria-expanded','true');
+    }
+    function setActive(index) { const options=[...list.querySelectorAll('[role="option"]')]; if(!options.length)return; activeIndex=(index+options.length)%options.length; options.forEach((option,i)=>{option.setAttribute('aria-selected',String(i===activeIndex)); if(i===activeIndex)option.scrollIntoView({block:'nearest'});}); }
+    input.addEventListener('input',search);
+    input.addEventListener('keydown',event=>{if(event.key==='ArrowDown'&&!list.hidden){event.preventDefault();setActive(activeIndex+1);}else if(event.key==='ArrowUp'&&!list.hidden){event.preventDefault();setActive(activeIndex-1);}else if(event.key==='Enter'&&activeIndex>=0){event.preventDefault();list.querySelector(`[data-index="${activeIndex}"]`)?.click();}else if(event.key==='Escape'){list.hidden=true;input.setAttribute('aria-expanded','false');}});
+    document.addEventListener('click',event=>{if(!event.target.closest('.hero-search')){list.hidden=true;input.setAttribute('aria-expanded','false');}});
+    document.addEventListener('keydown',event=>{if(event.key==='/'&&!event.metaKey&&!event.ctrlKey&&!event.altKey&&!/^(INPUT|TEXTAREA|SELECT)$/.test(event.target?.tagName??'')){event.preventDefault();input.focus();}});
+  </script>
 </BaseLayout>

@@ -1,0 +1,85 @@
+---
+import toolData from '../../data/tools.json';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const blogFiles = import.meta.glob('../../data/blog/*.json', { eager:true, import:'default' });
+const posts = Object.values(blogFiles);
+export function getStaticPaths() {
+  const files = import.meta.glob('../../data/blog/*.json', { eager:true, import:'default' });
+  return Object.values(files).map(post => ({ params:{slug:post.slug} }));
+}
+const slug = Astro.params.slug;
+const post = posts.find(item => item.slug === slug);
+const relatedTools = post ? post.relatedTools.map(id => toolData.TOOLS.find(tool => tool.id === id)).filter(Boolean) : [];
+const pathFor = tool => tool.section === 'tools' ? `/tools/${tool.slug}/` : `/${tool.slug}/`;
+const canonical = `https://ilovemyfiles.com/blog/${slug}/`;
+const structuredData = post ? {
+  '@context':'https://schema.org',
+  '@type':'BlogPosting',
+  headline:post.title,
+  description:post.description,
+  datePublished:post.date,
+  dateModified:post.date,
+  mainEntityOfPage:canonical,
+  author:{'@type':'Organization',name:'iLoveMyFiles'},
+  publisher:{'@type':'Organization',name:'iLoveMyFiles'}
+} : null;
+const faqData = post?.faq?.length ? {'@context':'https://schema.org','@type':'FAQPage',mainEntity:post.faq.map(item=>({'@type':'Question',name:item.question,acceptedAnswer:{'@type':'Answer',text:item.answer}}))} : null;
+---
+<BaseLayout>
+  <Fragment slot="head">
+    <title>{post ? `${post.title} | iLoveMyFiles` : 'Article not found | iLoveMyFiles'}</title>
+    <meta name="description" content={post?.description ?? 'Browse practical file guides from iLoveMyFiles.'}>
+    <meta name="robots" content={post ? 'index,follow' : 'noindex,follow'}>
+    <link rel="canonical" href={canonical}>
+    <meta property="og:title" content={post?.title ?? 'iLoveMyFiles Blog'}>
+    <meta property="og:description" content={post?.description ?? ''}>
+    <meta property="og:url" content={canonical}>
+    <meta property="og:type" content="article">
+    {structuredData && <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />}
+    {faqData && <script type="application/ld+json" set:html={JSON.stringify(faqData)} />}
+  </Fragment>
+  {post ? <main class="article-page">
+    <nav class="article-breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a><span>/</span><a href="/blog/">Blog</a><span>/</span><span aria-current="page">{post.title}</span></nav>
+    <article>
+      <header class="article-header">
+        <a class="article-category" href="/blog/">{post.category}</a>
+        <h1>{post.title}</h1>
+        <p class="article-description">{post.description}</p>
+        <div class="article-byline"><span>iLoveMyFiles Editorial</span><span aria-hidden="true">·</span><time datetime={post.date}>{new Date(`${post.date}T12:00:00Z`).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'})}</time><span aria-hidden="true">·</span><span>{post.readTime}</span></div>
+      </header>
+      <div class="article-layout">
+        <div class="article-body">
+          <p class="article-lead">{post.intro}</p>
+          {post.sections.map(section => <section class="article-section"><h2>{section.heading}</h2>{section.paragraphs.map(paragraph => <p set:html={paragraph} />)}</section>)}
+          {post.faq?.length > 0 && <section class="article-faq"><h2>Frequently asked questions</h2>{post.faq.map(item => <details><summary>{item.question}</summary><p>{item.answer}</p></details>)}</section>}
+          <p class="article-disclaimer">Tool behavior and supported formats can change. Check the linked tool page for current options, limits and processing details. Keep an original copy of important files.</p>
+        </div>
+        <aside class="article-related"><h2>Related tools</h2><p>Continue with a tool for this task.</p><div>{relatedTools.map(tool => <a href={pathFor(tool)}><span class={`tool-icon icon-${tool.icon}`} aria-hidden="true"><svg viewBox="0 0 24 24" set:html={tool.svg}></svg></span><span><b>{tool.cardTitle}</b><small>{tool.cardText}</small></span><i aria-hidden="true">↗</i></a>)}</div><a class="all-guides-link" href="/blog/">More guides →</a></aside>
+      </div>
+    </article>
+  </main> : <main class="article-page article-missing"><h1>Article not found</h1><p>This guide may have moved. Browse the latest articles instead.</p><a href="/blog/">View all guides →</a></main>}
+  <style is:global>
+    .article-page{max-width:1160px;margin:0 auto;padding:32px 28px 76px}
+    .article-breadcrumb{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 36px;color:var(--color-text-muted);font-size:12px;line-height:1.5}
+    .article-breadcrumb a{color:var(--color-text-secondary);text-decoration:none}.article-breadcrumb a:hover{color:#2563eb}
+    .article-header{max-width:790px;margin:0 auto 38px;text-align:center}
+    .article-category{display:inline-block;padding:6px 10px;border-radius:999px;background:#eff6ff;color:#315fc2;font-size:11px;font-weight:650;text-decoration:none}
+    .article-header h1{margin:16px 0 12px;color:var(--color-text-primary);font-size:clamp(34px,4.5vw,50px);line-height:1.1;letter-spacing:-1.7px}
+    .article-description{margin:0 auto;color:var(--color-text-secondary);font-size:17px;line-height:1.55}
+    .article-byline{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px;margin-top:18px;color:var(--color-text-muted);font-size:11px}
+    .article-layout{display:grid;grid-template-columns:minmax(0,740px) 270px;justify-content:center;align-items:start;gap:46px}
+    .article-body{min-width:0;color:var(--color-text-primary);font-size:16px;line-height:1.8}
+    .article-lead{margin:0 0 30px;color:var(--color-text-secondary);font-size:18px;line-height:1.75}
+    .article-section{margin:0 0 27px}.article-section h2,.article-faq h2{margin:0 0 9px;color:var(--color-text-primary);font-size:23px;line-height:1.3;letter-spacing:-.45px}
+    .article-section p{margin:0 0 13px;color:var(--color-text-secondary)}.article-body a{color:#1d4ed8;text-decoration:underline;text-underline-offset:3px}.article-body a:hover{color:#1e40af}
+    .article-faq{margin-top:34px}.article-faq details{margin:10px 0;padding:13px 15px;border:1px solid var(--color-border);border-radius:10px;background:var(--color-surface)}.article-faq summary{cursor:pointer;color:var(--color-text-primary);font-size:14px;font-weight:650}.article-faq details p{margin:9px 0 0;color:var(--color-text-secondary);font-size:14px;line-height:1.65}
+    .article-disclaimer{margin-top:34px;padding:13px 15px;border-left:3px solid #93b4f5;background:var(--color-surface-soft);color:var(--color-text-muted);font-size:12px;line-height:1.6}
+    .article-related{position:sticky;top:88px;padding:17px;border:1px solid var(--color-border);border-radius:13px;background:var(--color-surface)}.article-related h2{margin:0 0 5px;font-size:16px;color:var(--color-text-primary)}.article-related>p{margin:0 0 13px;color:var(--color-text-muted);font-size:11px}.article-related>div{display:grid;gap:8px}
+    .article-related>div>a{display:grid;grid-template-columns:34px minmax(0,1fr) 12px;align-items:center;gap:9px;padding:9px;border:1px solid var(--color-border);border-radius:9px;color:var(--color-text-primary);text-decoration:none}.article-related>div>a:hover{border-color:#bfd0f5;background:var(--color-surface-soft)}.article-related .tool-icon{width:32px;height:32px;flex-basis:32px;border-radius:8px}.article-related .tool-icon svg{width:18px;height:18px}.article-related>div>a b,.article-related>div>a small{display:block}.article-related>div>a b{font-size:11px;line-height:1.35}.article-related>div>a small{margin-top:3px;color:var(--color-text-muted);font-size:9px;line-height:1.35}.article-related>div>a i{color:#315fc2;font-style:normal}.all-guides-link{display:block;margin-top:14px;color:#2563eb;font-size:12px;font-weight:650;text-decoration:none}
+    .article-missing{min-height:45vh;text-align:center;padding-top:100px}.article-missing p{color:var(--color-text-secondary)}.article-missing>a{color:#2563eb}
+    [data-theme="dark"] .article-category{background:#202b4a;color:#bfdbfe}
+    @media(max-width:850px){.article-layout{grid-template-columns:minmax(0,740px);gap:24px}.article-related{position:static;grid-row:1}.article-related>div{grid-template-columns:1fr 1fr}}
+    @media(max-width:600px){.article-page{padding:22px 16px 52px}.article-breadcrumb{margin-bottom:26px}.article-header{margin-bottom:28px}.article-header h1{font-size:34px;letter-spacing:-1px}.article-description{font-size:15px}.article-layout{gap:22px}.article-related>div{grid-template-columns:1fr}.article-body{font-size:15px}.article-lead{font-size:16px}.article-section h2,.article-faq h2{font-size:21px}}
+  </style>
+</BaseLayout>

@@ -1,0 +1,67 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+const blogFiles = import.meta.glob('../../data/blog/*.json', { eager:true, import:'default' });
+
+const posts = Object.values(blogFiles).sort((a, b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title));
+const categories = [...new Set(posts.map(post => post.category))];
+---
+<BaseLayout>
+  <Fragment slot="head">
+    <title>File Guides &amp; How-tos | iLoveMyFiles Blog</title>
+    <meta name="description" content="Practical guides to working with PDFs, images and everyday file tools. Learn workflows, understand file formats and find the right iLoveMyFiles tools.">
+    <meta name="robots" content="index,follow">
+    <link rel="canonical" href="https://ilovemyfiles.com/blog/">
+    <meta property="og:title" content="File Guides & How-tos | iLoveMyFiles Blog">
+    <meta property="og:description" content="Practical, accurate guides to PDFs, images and common file tasks.">
+    <meta property="og:url" content="https://ilovemyfiles.com/blog/">
+    <meta property="og:type" content="website">
+  </Fragment>
+  <main class="blog-index">
+    <header class="blog-intro">
+      <nav class="breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a><span>/</span><span aria-current="page">Blog</span></nav>
+      <p class="eyebrow">THE ILOVEMYFILES FIELD GUIDE</p>
+      <h1>Practical help for everyday file work.</h1>
+      <p class="blog-deck">Clear, useful guides to PDFs, images and common file tasks—written to help you make the right choice, not just click a tool.</p>
+      <a class="blog-tools-cta" href="/tools/">Browse all tools <span aria-hidden="true">→</span></a>
+    </header>
+    <section class="blog-listing" aria-labelledby="blog-list-title">
+      <div class="blog-list-heading"><div><p class="eyebrow">GUIDES &amp; EXPLAINERS</p><h2 id="blog-list-title">Latest articles</h2></div><p>{posts.length} practical guides</p></div>
+      <div class="blog-grid">
+        {posts.map(post => <article class="blog-card">
+          <a class="blog-card-link" href={`/blog/${post.slug}/`}>
+            <span class="blog-card-category">{post.category}</span>
+            <h3>{post.title}</h3>
+            <p>{post.description}</p>
+            <span class="blog-card-meta"><time datetime={post.date}>{new Date(`${post.date}T12:00:00Z`).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'})}</time><span aria-hidden="true">·</span>{post.readTime}<span class="blog-card-arrow" aria-hidden="true">↗</span></span>
+          </a>
+        </article>)}
+      </div>
+    </section>
+  </main>
+  <style is:global>
+    .blog-index{max-width:1180px;margin:0 auto;padding:34px 28px 70px}
+    .blog-intro{max-width:850px;margin:0 auto 54px;text-align:center}
+    .blog-intro .breadcrumb{display:flex;align-items:center;gap:8px;margin-bottom:38px;text-align:left;color:var(--color-text-muted);font-size:12px}
+    .blog-intro .breadcrumb a:hover{color:#2563eb}
+    .blog-intro .eyebrow,.blog-list-heading .eyebrow{color:#315fc2;font-size:10px;font-weight:750;letter-spacing:1.5px}
+    .blog-intro h1{max-width:780px;margin:14px auto;font-size:clamp(38px,5vw,58px);line-height:1.05;letter-spacing:-2.2px;color:var(--color-text-primary)}
+    .blog-deck{max-width:680px;margin:0 auto;color:var(--color-text-secondary);font-size:17px;line-height:1.65}
+    .blog-tools-cta{display:inline-flex;align-items:center;gap:8px;margin-top:22px;padding:11px 16px;border-radius:9px;background:#2563eb;color:#fff;font-size:13px;font-weight:650}
+    .blog-tools-cta:hover{background:#1d4ed8}
+    .blog-listing{border-top:1px solid var(--color-border);padding-top:30px}
+    .blog-list-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px}
+    .blog-list-heading .eyebrow{margin:0 0 7px}.blog-list-heading h2{margin:0;font-size:25px;letter-spacing:-.5px;color:var(--color-text-primary)}.blog-list-heading>p{margin:0;color:var(--color-text-muted);font-size:12px}
+    .blog-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+    .blog-card{min-width:0;border:1px solid var(--color-border);border-radius:13px;background:var(--color-surface);transition:border-color .18s,box-shadow .18s,transform .18s}
+    .blog-card:hover{transform:translateY(-2px);border-color:#bfd0f5;box-shadow:0 10px 25px #0f172a0b}
+    .blog-card-link{height:100%;min-height:205px;display:flex;flex-direction:column;padding:19px;color:var(--color-text-primary);text-decoration:none}
+    .blog-card-category{align-self:flex-start;padding:5px 8px;border-radius:999px;background:#eff6ff;color:#315fc2;font-size:10px;font-weight:650}
+    .blog-card h3{margin:14px 0 7px;font-size:17px;line-height:1.3;letter-spacing:-.3px}
+    .blog-card p{margin:0;color:var(--color-text-secondary);font-size:12px;line-height:1.55}
+    .blog-card-meta{display:flex;align-items:center;gap:7px;margin-top:auto;padding-top:18px;color:var(--color-text-muted);font-size:10px}
+    .blog-card-arrow{margin-left:auto;color:#315fc2;font-size:15px}
+    [data-theme="dark"] .blog-card-category{background:#202b4a;color:#bfdbfe}
+    @media(max-width:900px){.blog-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:600px){.blog-index{padding:22px 16px 48px}.blog-intro{margin-bottom:38px}.blog-intro .breadcrumb{margin-bottom:27px}.blog-intro h1{font-size:38px;letter-spacing:-1.5px}.blog-deck{font-size:15px}.blog-grid{grid-template-columns:1fr;gap:10px}.blog-card-link{min-height:175px;padding:16px}.blog-card h3{font-size:16px}.blog-list-heading h2{font-size:22px}}
+  </style>
+</BaseLayout>

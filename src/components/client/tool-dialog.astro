@@ -136,6 +136,7 @@
   const cropWorkspace = $('#crop-workspace');
   const mergeHost = $('#merge-workspace');
   const stage = $('#tool-dialog .wb-stage');
+  const stageInner = stage?.querySelector('.wb-stage-inner');
   let workspace = null;
   let workspaceKey = null;
   let previewTimer = null;
@@ -225,7 +226,7 @@
   const rotateTools = new Set(['image-rotate', 'pdf-rotate-pages']);
   const singleFileTools = new Set(['image-crop', 'image-palette', 'youtube-thumbnail', 'svg-optimizer', 'pdf-delete-pages', 'pdf-rotate-pages', 'pdf-page-numbers', 'pdf-page-labels', 'pdf-watermark', 'pdf-remove-metadata', 'pdf-to-images', 'pdf-to-jpg', 'pdf-organize', 'pdf-compress', 'ocr', 'pdf-ocr', 'pdf-flatten', 'pdf-resize-pages', 'pdf-unlock', 'pdf-protect', 'pdf-sign', 'pdf-redact', 'word-to-pdf', 'powerpoint-to-pdf', 'excel-to-pdf', 'html-to-pdf', 'pdf-to-word', 'pdf-to-powerpoint', 'pdf-to-excel', 'pdf-to-pdfa', 'font-converter']);
   const pairFileTools = new Set(['pdf-compare']);
-  const textTools = new Set(['data-json', 'data-base64', 'data-wordcount', 'data-json-csv', 'data-units', 'qr-code', 'barcode', 'url-codec', 'text-binary', 'text-hex', 'text-case', 'text-reverse', 'text-dedupe', 'text-sort', 'text-line-numbers', 'text-remove-empty', 'text-replace', 'percentage-calculator', 'age-calculator', 'date-difference', 'number-base', 'morse-code', 'base32-codec', 'url-base64', 'text-octal', 'ascii-codec', 'xml-json', 'json-xml', 'csv-xml', 'markdown-html', 'bbcode-html', 'html-text', 'csv-to-excel', 'xml-format', 'yaml-json', 'yaml-xml', 'md5-hash', 'sha1-hash', 'sha256-hash', 'csv-to-json', 'sql-to-csv', 'sql-to-json', 'uuid-generator', 'markdown-viewer', 'json-viewer', 'xml-viewer', 'csv-viewer', 'slug-generator', 'cron-generator', 'regex-tester', 'chmod-calculator', 'sql-highlighter', 'htaccess-generator', 'html-entities', 'json-yaml', 'text-diff', 'csv-jsonl', 'uuid-decode', 'lorem-ipsum', 'jwt-decoder', 'seo-meta-generator', 'robots-sitemap-validator', 'prompt-security-checker']);
+  const textTools = new Set(['data-json', 'data-base64', 'data-wordcount', 'data-json-csv', 'data-units', 'qr-code', 'barcode', 'url-codec', 'text-binary', 'text-hex', 'text-case', 'text-reverse', 'text-dedupe', 'text-sort', 'text-line-numbers', 'text-remove-empty', 'text-replace', 'percentage-calculator', 'age-calculator', 'date-difference', 'number-base', 'morse-code', 'base32-codec', 'url-base64', 'text-octal', 'ascii-codec', 'xml-json', 'json-xml', 'csv-xml', 'markdown-html', 'bbcode-html', 'html-text', 'csv-to-excel', 'xml-format', 'yaml-json', 'yaml-xml', 'md5-hash', 'sha1-hash', 'sha256-hash', 'csv-to-json', 'sql-to-csv', 'sql-to-json', 'uuid-generator', 'markdown-viewer', 'json-viewer', 'xml-viewer', 'csv-viewer', 'slug-generator', 'cron-generator', 'regex-tester', 'chmod-calculator', 'sql-highlighter', 'htaccess-generator', 'html-entities', 'json-yaml', 'text-diff', 'csv-jsonl', 'uuid-decode', 'lorem-ipsum', 'jwt-decoder', 'seo-meta-generator', 'prompt-security-checker']);
   const viewerTools = new Set(['csv-viewer', 'json-viewer', 'xml-viewer', 'markdown-viewer']);
   const fileOutputTools = new Set(['font-converter']);
   const fileOnlyTools = new Set(['file-hash-md5', 'file-hash-sha256']);
@@ -245,7 +246,6 @@
     'lorem-ipsum': async () => ({ output: generateLorem({ paragraphs: $('#lorem-paragraphs').value, words: $('#lorem-words').value, startWithLorem: $('#lorem-start').checked }), filename: 'lorem-ipsum.txt' }),
     'jwt-decoder': async () => ({ decoded: decodeJwt($('#jwt-input').value), message: 'Decoded locally. Signature not verified.' }),
     'seo-meta-generator': async () => ({ meta: generateSeoMeta({ title: $('#meta-title-input').value, description: $('#meta-description-input').value, url: $('#meta-url-input').value, image: $('#meta-image-input').value }) }),
-    'robots-sitemap-validator': async text => ({ output: ($('#validator-mode')?.value || 'robots') === 'robots' ? validateRobotsTxt(text) : validateSitemapXml(text), filename: 'validation-report.txt' }),
     'robots-txt-validator': async text => ({ output: validateRobotsTxt(text), filename: 'robots-validation-report.txt' }),
     'sitemap-validator': async text => ({ output: validateSitemapXml(text), filename: 'sitemap-validation-report.txt' }),
     'prompt-security-checker': async text => ({ output: checkPromptSecurity(text), filename: 'prompt-security-report.txt', message: 'Heuristic scan complete. Review findings; this cannot guarantee safety.' }),
@@ -2213,9 +2213,9 @@
     if (jwtInput) { jwtInput.hidden = tool !== 'jwt-decoder'; jwtInput.value = ''; }
     if (jwtLabel) jwtLabel.hidden = tool !== 'jwt-decoder';
     const specializedLabel = dialog?.querySelector('.field-label[for="utility-input"]');
-    if (specializedLabel) specializedLabel.hidden = !['robots-sitemap-validator', 'robots-txt-validator', 'sitemap-validator', 'prompt-security-checker', 'ai-token-cost', 'json-typescript'].includes(tool);
+    if (specializedLabel) specializedLabel.hidden = !['robots-txt-validator', 'sitemap-validator', 'prompt-security-checker', 'ai-token-cost', 'json-typescript'].includes(tool);
     if (utilityInput) {
-      const specializedTextInput = ['robots-sitemap-validator', 'robots-txt-validator', 'sitemap-validator', 'prompt-security-checker', 'ai-token-cost', 'json-typescript'].includes(tool);
+      const specializedTextInput = ['robots-txt-validator', 'sitemap-validator', 'prompt-security-checker', 'ai-token-cost', 'json-typescript'].includes(tool);
       utilityInput.hidden = specializedTextInput;
       if (specializedTextInput) utilityInput.value = '';
     }
@@ -2224,12 +2224,10 @@
     const thumbnailWorkbench = $('#thumbnail-workbench');
     const jwtWorkbench = $('#jwt-workbench');
     const seoMetaWorkbench = $('#seo-meta-workbench');
-    const validatorWorkbench = $('#validator-workbench');
     const schemaWorkbench = $('#schema-workbench');
     const imageFileInput = $('#file-input');
     if (svgSource) { svgSource.hidden = tool !== 'svg-optimizer'; svgSource.value = ''; }
     if (svgWorkbench) svgWorkbench.hidden = tool !== 'svg-optimizer';
-    if (validatorWorkbench) validatorWorkbench.hidden = !['robots-sitemap-validator', 'robots-txt-validator', 'sitemap-validator'].includes(tool);
     if (thumbnailWorkbench) thumbnailWorkbench.hidden = tool !== 'youtube-thumbnail';
     if (schemaWorkbench) schemaWorkbench.hidden = tool !== 'json-typescript';
     if (jwtWorkbench) jwtWorkbench.hidden = tool !== 'jwt-decoder';
@@ -2246,8 +2244,6 @@
       diffReference.value = '';
     }
     if (diffLabel) diffLabel.hidden = tool !== 'text-diff';
-    const validatorMode = $('#validator-mode');
-    if (validatorMode) validatorMode.value = tool === 'sitemap-validator' ? 'sitemap' : 'robots';
     for (const id of ['thumbnail-quality', 'thumbnail-target-kb']) { const field = $('#' + id); if (field) field.value = field.defaultValue; }
     const primaryInput = $('#utility-input');
     if (primaryInput) {
@@ -2264,14 +2260,21 @@
       // Text-first tools need their editor immediately visible, not pushed to
       // the bottom of a tall empty file workspace. Move it into the left stage
       // so the input starts at the top and fills the available working area.
-      const stageInner = stage?.querySelector('.wb-stage-inner');
-      if (stageInner && textWorkspace.parentElement !== stageInner) stageInner.prepend(textWorkspace);
-    } else {
+      if (stageInner && dropZone.parentElement !== stageInner) stageInner.prepend(dropZone);
+      if (stageInner && textWorkspace.parentElement !== stageInner) stageInner.append(textWorkspace);
+      dropZone.hidden = false;
+      dropZone.classList.add('compact');
+      if (textTools.has(tool)) {
+        dropZone.hidden = true;
+        if (textWorkspace.parentElement !== stageInner) stageInner?.prepend(textWorkspace);
+      }
+      } else {
       // Restore the original layout on file tools so preview/drop-zone ordering
       // and their existing workspace behaviour remain unchanged.
       const sideScroll = dialog?.querySelector('.wb-side-scroll');
       const options = dialog?.querySelector('#tool-options');
       if (sideScroll && options && textWorkspace.parentElement !== sideScroll) sideScroll.insertBefore(textWorkspace, options);
+      if (stageInner && utilityResults.parentElement !== stageInner && !utilityResults.hidden) stageInner.append(utilityResults);
     }
     utilityInput.value = ''; utilityOutput.value = ''; utilityResults.hidden = true;
     dataViewer.hidden = true; viewerContent.replaceChildren(); lastViewerJson = '';
@@ -2282,7 +2285,7 @@
     const pasteHint = $('#drop-paste');
     if (pasteHint) pasteHint.hidden = textMode || !imageTools.has(tool);
     runButton.disabled = true;
-      setRunButtonLabel(DATE_INPUT_TOOLS.has(tool) || fileOnlyTools.has(tool) ? 'Choose files to start →' : textMode ? 'Run tool →' : 'Choose files to start →');
+      setRunButtonLabel(['robots-txt-validator','sitemap-validator'].includes(tool) ? 'Choose a file or enter text →' : DATE_INPUT_TOOLS.has(tool) || fileOnlyTools.has(tool) || (textMode && !textTools.has(tool)) ? 'Choose files to start →' : textMode ? 'Run tool →' : 'Choose files to start →');
       if (fileOutputTools.has(tool)) setRunButtonLabel('Choose a font file →');
       if (tool === 'file-hash-md5' || tool === 'file-hash-sha256') {
         setRunButtonLabel('Choose files to start →');
@@ -2488,12 +2491,14 @@
     if (activeTool === 'svg-optimizer') return files.length === 1 || Boolean($('#svg-source')?.value.trim());
     if (activeTool === 'jwt-decoder') return Boolean($('#jwt-input')?.value.trim());
     if (activeTool === 'seo-meta-generator') return Boolean($('#meta-title-input')?.value.trim() && $('#meta-description-input')?.value.trim());
-    if (['robots-sitemap-validator', 'robots-txt-validator', 'sitemap-validator', 'prompt-security-checker', 'ai-token-cost', 'json-typescript'].includes(activeTool)) return Boolean(utilityInput.value.trim());
+    if (['robots-txt-validator', 'sitemap-validator'].includes(activeTool)) return files.length === 1 || Boolean(utilityInput.value.trim());
+    if (['prompt-security-checker', 'ai-token-cost', 'json-typescript'].includes(activeTool)) return Boolean(utilityInput.value.trim());
     if (activeTool === 'youtube-thumbnail') return files.length === 1;
     if (activeTool === 'svg-optimizer') return files.length === 1 || Boolean($('#svg-source')?.value.trim());
     if (activeTool === 'jwt-decoder') return Boolean($('#jwt-input')?.value.trim());
     if (activeTool === 'seo-meta-generator') return Boolean($('#meta-title-input')?.value.trim() && $('#meta-description-input')?.value.trim());
-    if (['robots-sitemap-validator', 'robots-txt-validator', 'sitemap-validator', 'prompt-security-checker', 'ai-token-cost', 'json-typescript'].includes(activeTool)) return Boolean(utilityInput.value.trim());
+    if (['robots-txt-validator', 'sitemap-validator'].includes(activeTool)) return files.length === 1 || Boolean(utilityInput.value.trim());
+    if (['prompt-security-checker', 'ai-token-cost', 'json-typescript'].includes(activeTool)) return Boolean(utilityInput.value.trim());
     if (activeTool === 'pdf-page-labels') return files.length === 1;
     if (activeTool === 'text-diff') return utilityInput.value.length > 0 && ($('#diff-reference')?.value.length ?? 0) > 0;
     if (activeTool === 'data-hash' || fileOnlyTools.has(activeTool)) return files.length > 0 || (activeTool === 'data-hash' && utilityInput.value.trim().length > 0);
@@ -3867,7 +3872,11 @@
   async function runTextTool() {
     setBusy(true); status.hidden = true; utilityResults.hidden = true;
     try {
-      const result = activeTool === 'pdf-page-labels'
+      const validatorTools = ['robots-txt-validator','sitemap-validator'];
+      const validatorSource = validatorTools.includes(activeTool) && files.length ? await files[0].text() : utilityInput.value;
+      const result = validatorTools.includes(activeTool)
+        ? { output: activeTool === 'sitemap-validator' ? validateSitemapXml(validatorSource) : validateRobotsTxt(validatorSource), filename: 'validation-report.txt' }
+        : activeTool === 'pdf-page-labels'
         ? { file: await addPdfPageLabels(files[0], { prefix: $('#label-prefix').value, start: $('#label-start').value, style: $('#label-style').value }) }
         : activeTool === 'youtube-thumbnail'
         ? { specialResult: 'youtube-thumbnail', file: await makeYoutubeThumbnail(files[0], { quality: $('#thumbnail-quality').value, targetKb: $('#thumbnail-target-kb').value }) }
@@ -3934,9 +3943,8 @@
         schedulePersist();
         return;
       }
-      if (activeTool === 'robots-txt-validator' || activeTool === 'sitemap-validator' || activeTool === 'robots-sitemap-validator') {
+      if (activeTool === 'robots-txt-validator' || activeTool === 'sitemap-validator') {
         const report = $('#status-message');
-        validatorWorkbench.hidden = false;
         utilityOutput.value = result.output;
         utilityBlob = new Blob([result.output], { type: 'text/plain;charset=utf-8' });
         utilityOutput.hidden = false;
@@ -3944,6 +3952,7 @@
         utilityCopy.hidden = false;
         utilityDownload.dataset.filename = result.filename;
         utilityResults.hidden = false;
+        if (utilityResults.parentElement !== stageInner) stageInner?.append(utilityResults);
         if (report) { report.textContent = result.output; report.className = 'status-message status-info'; report.hidden = false; }
         schedulePersist();
         return;
@@ -4067,6 +4076,7 @@
   
   async function runTool() {
     if (!canRun() || busy) return;
+    if (['robots-txt-validator','sitemap-validator'].includes(activeTool)) return runTextTool();
     if (activeTool === 'font-converter' || activeTool === 'data-hash' || fileOnlyTools.has(activeTool) || textTools.has(activeTool)) return runTextTool();
     if (activeTool === 'pdf-remove-metadata') return runMetadataTool();
     setBusy(true); status.hidden = true; results.hidden = true; results.replaceChildren();

@@ -1,0 +1,22 @@
+{
+  "slug": "resize-image-to-exact-kb",
+  "title": "How to Resize an Image to a Specific KB Size",
+  "description": "A practical workflow for preparing an image under a stated kilobyte limit while still meeting exact dimensions, format and readability requirements.",
+  "date": "2026-11-09",
+  "category": "Image guides",
+  "readTime": "7 min read",
+  "intro": "Application forms and portals often ask for an image below a specific KB limit. The trick is to satisfy every requirement together: file size, pixel dimensions, aspect ratio and format. A tiny file that misses the required dimensions can still be rejected.",
+  "sections": [
+    {"heading":"Read the upload specification carefully","paragraphs":["Write down the maximum file size, required width and height, accepted formats, aspect ratio and any background or colour rules. If the instructions say “under 100 KB”, target somewhat below that ceiling rather than exactly on it; portals may calculate size or re-encode files differently.","Check whether the limit is stated in KB or MB and whether it applies to each file or the whole upload. Do not infer requirements from another form or an older application cycle."]},
+    {"heading":"Set dimensions before targeting KB","paragraphs":["If exact dimensions are required, resize or crop to those dimensions first. Preserve proportions when possible; if the required aspect ratio differs, crop intentionally rather than stretching a face or logo.","Use the <a href=\"/resize-image/\">Image Resizer</a> for pixel dimensions. For a form-specific photo, check its published specification first; the <a href=\"/dsssb-photo-resizer/\">DSSSB Photo Resizer</a> only fits that tool's stated target, not every form's rules."]},
+    {"heading":"Choose a format and reduce bytes gradually","paragraphs":["JPEG is commonly accepted for photographs; PNG is useful for transparency and sharp graphics. WebP may be smaller but is not accepted by every portal. Always follow the destination's explicit format list.","After dimensions and format are correct, use the <a href=\"/kb-resizer-image-converter-in-kb/\">Image Resizer in KB</a> or <a href=\"/compress-image/\">Image Compressor</a> to work toward the required file size. If the output remains too large, reduce quality in measured steps and inspect fine detail rather than applying the strongest compression immediately."]},
+    {"heading":"Verify the exported file before upload","paragraphs":["Check the final file's reported size, width, height, extension and appearance. Open the saved output and inspect it at normal size; look for blockiness, blur, clipped edges or changed colours. Keep an untouched original in case you need to export again.","Some portals convert or re-encode an upload after receiving it, so a file near the limit may be rejected. Leave a reasonable safety margin and follow the portal's own error messages if it reports different requirements."]}
+  ],
+  "faq": [
+    {"question":"Can I guarantee an image will be exactly 50 KB?","answer":"Image encoders produce discrete output sizes, so an exact byte count may not be achievable for every image. Aim below the stated maximum, then verify the exported file size."},
+    {"question":"Should I resize or compress first?","answer":"Meet required dimensions and crop/aspect-ratio rules first, then choose an accepted format and reduce file size. Recheck all requirements after export."},
+    {"question":"Why does my portal reject an image that is under the limit?","answer":"It may require specific dimensions, format, aspect ratio, colour mode or a smaller safety margin. Read the current portal specification and its validation message."},
+    {"question":"Does changing JPG to PNG make a photo smaller?","answer":"Usually not; photographic PNGs are often larger. The best format depends on the image and what the receiving service accepts."}
+  ],
+  "relatedTools": ["image-resize-kb", "image-compress", "image-resize", "dsssb-photo-resizer"]
+}

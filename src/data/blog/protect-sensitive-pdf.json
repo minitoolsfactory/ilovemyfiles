@@ -1,0 +1,56 @@
+{
+  "title": "How to Protect a PDF Before Sharing It",
+  "description": "A practical checklist for PDF permissions, passwords, redaction and safe sharing—plus what document protection does not guarantee.",
+  "date": "2026-11-09",
+  "category": "PDF guides",
+  "readTime": "7 min read",
+  "intro": "PDF protection is not one single control. Passwords, permissions, redaction and careful sharing address different risks. Choose the control that fits the information and verify the result with a trusted reader.",
+  "sections": [
+    {
+      "heading": "Choose a protection goal",
+      "paragraphs": [
+        "A document-open password restricts opening the file, while permissions can discourage or limit actions in compatible readers. These controls do not prevent screenshots, photography or every way of copying content.",
+        "If information must not be disclosed, remove it from the document rather than relying on a visual cover or a permissions setting."
+      ]
+    },
+    {
+      "heading": "Redact sensitive content properly",
+      "paragraphs": [
+        "Redaction should remove underlying text and related content, not merely paint a rectangle over it. After redacting, search, copy and inspect the area to make sure the sensitive text is no longer present.",
+        "Review metadata, annotations, attachments, form fields and hidden layers too. Keep an original copy in a controlled location before making changes."
+      ]
+    },
+    {
+      "heading": "Apply protection and test",
+      "paragraphs": [
+        "Use <a href=\"/protect-pdf/\">Protect PDF</a> to create a protected copy, or <a href=\"/redact-pdf/\">Redact PDF</a> when removing supported content. If you need to add a signature, use <a href=\"/sign-pdf/\">Sign PDF</a> and verify what kind of signature the tool creates.",
+        "Open the output in a compatible PDF reader and test the expected behavior. Share passwords separately through an appropriate channel, and confirm that the recipient can access the file."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "question": "Does a PDF password make a document impossible to copy?",
+      "answer": "No. Protection features vary by reader and do not prevent screenshots, photography or all forms of copying."
+    },
+    {
+      "question": "Is drawing a black box over text enough to redact it?",
+      "answer": "No. The original text may remain underneath. Use a true redaction operation and verify the output by searching and copying around the redacted area."
+    },
+    {
+      "question": "Should I use a strong password?",
+      "answer": "If you use password protection, follow your organization’s policy and use a unique, hard-to-guess password. Deliver it separately from the document."
+    },
+    {
+      "question": "Does signing a PDF mean a qualified digital signature?",
+      "answer": "Not necessarily. Signature types and legal effect vary. Check the tool details and applicable requirements before relying on a signature."
+    }
+  ],
+  "relatedTools": [
+    "pdf-protect",
+    "pdf-redact",
+    "pdf-sign",
+    "pdf-remove-metadata"
+  ],
+  "slug": "protect-sensitive-pdf"
+}

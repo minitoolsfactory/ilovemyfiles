@@ -1,0 +1,22 @@
+{
+  "slug": "compress-pdf-to-specific-kb",
+  "title": "How to Compress a PDF to a Specific KB or MB Limit",
+  "description": "A careful method for reducing a PDF below an upload limit, checking readability and understanding why an exact target size cannot always be guaranteed.",
+  "date": "2026-11-09",
+  "category": "PDF guides",
+  "readTime": "7 min read",
+  "intro": "When a portal sets a PDF size limit, the useful goal is usually “below this maximum,” not an exact KB number. Compression results depend on page content, embedded images, fonts and the available quality settings, so the final file must be checked rather than assumed.",
+  "sections": [
+    {"heading":"Start with the actual limit","paragraphs":["Confirm whether the destination limit is in KB or MB and whether it applies per file. Note any additional restrictions on page count, dimensions, password protection or PDF version. Leave some headroom below the maximum in case the portal applies its own checks.","Keep a copy of the original PDF. Compression can reduce image detail and should not replace an archival source or the only copy of an important document."]},
+    {"heading":"Identify what is making the PDF large","paragraphs":["Scanned pages and photographs often account for most of a PDF's size. Large images may be downsampled or recompressed. Other contributors can include embedded fonts, duplicated resources and attachments.","If only a few pages are image-heavy, consider whether you can create a suitable lower-resolution copy of those source images and rebuild the PDF. Do not remove pages or attachments just to meet a limit unless the document specification allows it."]},
+    {"heading":"Compress gradually and protect readability","paragraphs":["Use the <a href=\"/compress-pdf/\">PDF Compressor</a> and start with a moderate quality option. Inspect small text, scans, diagrams, signatures and any fine print. If the file is still over the portal limit, try a stronger setting only after checking that the previous output remains legible.","A compressor may not reach a requested exact KB size; the result depends on the contents and settings. For a file with mostly vector text, compression may save little. For scans, aggressive compression can make letters and numbers difficult to read."]},
+    {"heading":"Check the final PDF","paragraphs":["Compare the output's file size and page count. Open it in a PDF reader and inspect representative pages at normal reading size and zoom. Check orientation, links, forms, annotations and signatures if you rely on them; these features may not survive every PDF rewrite unchanged.","If you still cannot meet the limit without unacceptable quality loss, check whether the portal accepts another format, separate files or a different scan resolution. Do not claim the document is valid or accepted until the destination confirms it."]}
+  ],
+  "faq": [
+    {"question":"Can a PDF compressor guarantee an exact 200 KB file?","answer":"No. Output size depends on the document contents and compression settings. The compressor can reduce size, but you must inspect the resulting file and its measured size."},
+    {"question":"Will compressing a PDF make text blurry?","answer":"Selectable text often remains sharp, but scanned pages are images and can lose detail. Review scans and fine print after compression."},
+    {"question":"What if the compressed PDF is still too large?","answer":"Try a stronger setting only if the output remains readable, reduce oversized source scans if appropriate, or check the destination for alternatives. Do not remove required content to meet a limit."},
+    {"question":"Does compression remove pages or change the original?","answer":"Compression is intended to create a smaller output, not to remove pages. Keep the original and verify page count, content and features in the new copy."}
+  ],
+  "relatedTools": ["pdf-compress", "pdf-organize", "pdf-split", "image-compress"]
+}

@@ -1,0 +1,56 @@
+{
+  "title": "How to Reduce PDF File Size Before Sharing",
+  "description": "Understand why PDFs get large and how to make a smaller copy while checking image quality, fonts, pages and document contents.",
+  "date": "2026-11-09",
+  "category": "PDF guides",
+  "readTime": "6 min read",
+  "intro": "A PDF can become large because it contains high-resolution images, embedded fonts, scanned pages or duplicated resources. Reducing its size is a trade-off: the goal is a smaller file that remains readable and complete for its intended use.",
+  "sections": [
+    {
+      "heading": "Find what is making the PDF large",
+      "paragraphs": [
+        "Image-heavy documents often account for most of the bytes. Scans can also be large because each page is stored as a picture. Fonts, attachments and duplicated page resources may contribute too.",
+        "If only a few pages are responsible, consider exporting or splitting those pages separately rather than applying aggressive compression to the entire document."
+      ]
+    },
+    {
+      "heading": "Choose a compression level thoughtfully",
+      "paragraphs": [
+        "Image downsampling and recompression can reduce size, but may soften small text in scans, diagrams and photographs. Start with a moderate setting and inspect representative pages at normal reading size and at higher zoom.",
+        "Keep an uncompressed original. For legal, archival, print or accessibility workflows, verify that the resulting quality and document structure meet the applicable requirements before replacing or distributing anything."
+      ]
+    },
+    {
+      "heading": "Check the output, not just the byte count",
+      "paragraphs": [
+        "After compression, compare file size and check text clarity, page count, rotation, links, annotations, forms and any signatures or metadata you rely on. A smaller file is not automatically a better file.",
+        "The <a href=\"/compress-pdf/\">PDF Compressor</a> creates a compressed copy with selectable quality levels. Keep the original and review the output before sharing. If the size is driven by images in other formats, the <a href=\"/compress-image/\">Image Compressor</a> may be more appropriate before recreating the PDF."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "question": "Will PDF compression make text blurry?",
+      "answer": "Text stored as text usually stays crisp, but scanned pages are images and can lose detail when downsampled or recompressed. Inspect scans and fine print carefully."
+    },
+    {
+      "question": "Can compression remove PDF pages?",
+      "answer": "Compression should not be used as a page-removal operation. Check page count and use a page-organizing or splitting tool if you need to change pages."
+    },
+    {
+      "question": "Does a smaller PDF always load faster?",
+      "answer": "A smaller file often takes less time to transfer, but viewing speed also depends on the PDF structure, device, reader and connection."
+    },
+    {
+      "question": "Should I overwrite my original?",
+      "answer": "Keep the original until you have checked the compressed copy and confirmed it is suitable for the intended recipient or workflow."
+    }
+  ],
+  "relatedTools": [
+    "pdf-compress",
+    "pdf-merge",
+    "pdf-split",
+    "pdf-organize"
+  ],
+  "slug": "reduce-pdf-file-size"
+}
