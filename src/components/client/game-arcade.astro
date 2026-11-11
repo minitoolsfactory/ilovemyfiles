@@ -4,6 +4,8 @@ const { game } = Astro.props;
 <div class="file-game-root" data-file-game={game} data-file-game-root></div>
 
 <script>
+  import { gameProgressLabel, markGamePlayed, readGameProgress, saveGameBest } from '../../scripts/game-progress.js';
+
   window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
     window.iLoveMyFilesModules ??= {};
 
@@ -51,6 +53,13 @@ const { game } = Astro.props;
     function init({ container, game = container?.dataset.fileGame } = {}) {
       if (!(container instanceof HTMLElement) || !TITLES[game]) return;
 
+      const progressPanel = document.querySelector(`[data-game-progress][data-game-id="${game}"]`);
+      const updateProgressPanel = () => {
+        if (!(progressPanel instanceof HTMLElement)) return;
+        progressPanel.textContent = gameProgressLabel(readGameProgress()[game]);
+      };
+      updateProgressPanel();
+
       container.innerHTML = `
         <section class="file-game-shell" aria-label="${TITLES[game]}">
           <header class="file-game-head">
@@ -71,6 +80,21 @@ const { game } = Astro.props;
       if (!(board instanceof HTMLElement) || !(stats instanceof HTMLElement) || !(controls instanceof HTMLElement) || !(status instanceof HTMLElement) || !(reset instanceof HTMLButtonElement)) return;
 
       const cleanups = [];
+      const onGameInteraction = (event) => {
+        if (!(event.target instanceof Element) || !event.target.closest('[data-board], [data-controls]')) return;
+        markGamePlayed(game);
+        updateProgressPanel();
+      };
+      container.addEventListener('pointerdown', onGameInteraction, true);
+      container.addEventListener('keydown', onGameInteraction, true);
+      container.addEventListener('input', onGameInteraction, true);
+      window.addEventListener('game-progress-updated', updateProgressPanel);
+      cleanups.push(() => {
+        container.removeEventListener('pointerdown', onGameInteraction, true);
+        container.removeEventListener('keydown', onGameInteraction, true);
+        container.removeEventListener('input', onGameInteraction, true);
+        window.removeEventListener('game-progress-updated', updateProgressPanel);
+      });
       const setStatus = (message) => { status.textContent = message; };
       container.tabIndex = 0;
       const setStats = (...values) => {
@@ -155,6 +179,7 @@ const { game } = Astro.props;
           if (before === grid.map(row => row.join(',')).join('|')) return;
           addTile();
           render();
+          saveGameBest(game, score, `${score.toLocaleString()} points`);
           if (grid.flat().includes(40)) {
             finished = true;
             setStatus('1 PB reached! You merged the whole file-size ladder.');
@@ -235,6 +260,7 @@ const { game } = Astro.props;
           }
           const complete = checks.every(Boolean);
           setStats(['Rows matched', `${checks.slice(0, 3).filter(Boolean).length}/3`], ['Columns matched', `${checks.slice(3).filter(Boolean).length}/3`]);
+          if (complete) saveGameBest(game, 1, 'Solved');
           setStatus(complete ? `Solved! ${solution.join(' · ')} are all valid file extensions.` : 'Fill letters so every row and column matches its regular-expression clue. Click a cell to cycle; focus and type a letter.');
         };
         controls.replaceChildren(button('Clear grid', 'file-game-button'));
@@ -270,6 +296,7 @@ const { game } = Astro.props;
             finished = true;
             clearInterval(timer);
             input.disabled = true;
+            saveGameBest(game, wpm, `${wpm} WPM · ${accuracy}% accuracy`);
             setStatus(`Round complete: ${wpm} WPM at ${accuracy}% accuracy. Start a new game for another snippet.`);
           }
         };
@@ -329,7 +356,10 @@ const { game } = Astro.props;
                   first.matched = second.matched = true;
                   matches++;
                   open = [];
-                  if (matches === formats.length) setStatus(`All pairs matched in ${turns} turns. Great file-format recall!`);
+                  if (matches === formats.length) {
+                    saveGameBest(game, turns, `${turns} turns`, { higherIsBetter: false });
+                    setStatus(`All pairs matched in ${turns} turns. Great file-format recall!`);
+                  }
                   else setStatus('Match found!');
                 } else {
                   locked = true;
@@ -372,6 +402,7 @@ const { game } = Astro.props;
         const end = () => {
           clearInterval(timer);
           over = true;
+          saveGameBest(game, score, `${score} bugs`);
           setStatus(`Run ended with ${score} bugs fixed. Start a new game to try again.`);
         };
         const tick = () => {
@@ -448,7 +479,10 @@ const { game } = Astro.props;
                 if (item.textContent === answer) item.classList.add('is-correct');
               });
               if (round < 10) timeout = setTimeout(nextRound, 850);
-              else setStatus(`Game complete: ${score}/10 correct, with a ${streak}-answer final streak. Start a new game to play again.`);
+              else {
+                saveGameBest(game, score, `${score}/10 correct`);
+                setStatus(`Game complete: ${score}/10 correct, with a ${streak}-answer final streak. Start a new game to play again.`);
+              }
             });
             options.append(choice);
           });
@@ -546,7 +580,12 @@ const { game } = Astro.props;
           selected = null;
           moves++;
           render();
-          setStatus(SUITS.every(item => foundations[item].length === 13) ? 'All 52 cards sorted. Solitaire complete!' : 'Card moved to its foundation.');
+          if (SUITS.every(item => foundations[item].length === 13)) {
+            saveGameBest(game, moves, `${moves} moves`, { higherIsBetter: false });
+            setStatus('All 52 cards sorted. Solitaire complete!');
+          } else {
+            setStatus('Card moved to its foundation.');
+          }
         };
         const selectOrMoveColumn = (col) => {
           const destination = tableau[col];

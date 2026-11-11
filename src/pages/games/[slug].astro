@@ -85,6 +85,11 @@ const canonical = `https://ilovemyfiles.com/games/${game.slug}/`;
         <div class="game-page-wrap">
           <ArcadeGameComponent game={game.slug} />
         </div>
+        <aside class="game-personal-record" aria-label="Your personal game record">
+          <strong>Your record</strong>
+          <span data-game-progress data-game-id={game.slug} aria-live="polite">Not played yet</span>
+          <small>Saved only in this browser.</small>
+        </aside>
       </section>
 
       <section class="game-howto" aria-labelledby="game-howto-title">
@@ -132,6 +137,10 @@ const canonical = `https://ilovemyfiles.com/games/${game.slug}/`;
     .game-play-section{margin-top:14px}
     .game-play-label,.detail-section-kicker{display:flex;align-items:center;gap:9px;color:var(--arcade-cyan);font:800 10px/1.4 ui-monospace,monospace;letter-spacing:1.2px}
     .game-page-wrap{width:100%;margin-top:12px}
+    .game-personal-record{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px;padding:13px 15px;border:1px solid var(--arcade-border);border-radius:12px;background:rgba(18,27,48,.85)}
+    .game-personal-record strong{color:var(--arcade-text);font-size:12px}
+    .game-personal-record [data-game-progress]{color:var(--arcade-cyan);font-size:12px;font-weight:700}
+    .game-personal-record small{margin-left:auto;color:var(--arcade-dim);font-size:11px}
     .game-howto,.game-faq{margin-top:24px;padding:24px;border:1px solid var(--arcade-border);border-radius:16px;background:rgba(18,27,48,.85);color:var(--arcade-text)}
     .game-howto h2,.game-faq h2{margin:8px 0 12px;color:var(--arcade-text);font-size:21px;letter-spacing:-.3px}
     .game-intro,.game-howto ol,.faq-item p{color:var(--arcade-muted);font-size:13px;line-height:1.65}

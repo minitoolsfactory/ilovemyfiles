@@ -1,9 +1,12 @@
 ---
 import toolData from '../data/tools.json';
+import arcadeGames from '../data/arcade-games.json';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import HomeStyles from '../components/HomeStyles.astro';
 
 const { TOOLS } = toolData;
+const retiredGames = new Set(['file-memory', 'file-format-quiz']);
+const games = [...TOOLS.filter(tool => tool.section === 'games' && !retiredGames.has(tool.slug)), ...arcadeGames];
 const popularIds = ['image-compress','pdf-compress','pdf-to-images','images-pdf','image-resize','pdf-merge','pdf-split','image-convert'];
 const featuredIds = ['image-compress','pdf-compress','pdf-to-images','images-pdf','image-resize','pdf-merge'];
 const byId = id => TOOLS.find(tool => tool.id === id);
@@ -20,7 +23,9 @@ const categories = [
 ];
 const countFor = id => id === 'pdf-tools'
   ? TOOLS.filter(tool => tool.category === 'to-pdf' || tool.category.endsWith('-pdf')).length
-  : TOOLS.filter(tool => tool.category === id).length;
+  : id === 'games'
+    ? games.length + 1
+    : TOOLS.filter(tool => tool.category === id).length;
 const toolPath = tool => tool.section === 'tools' ? `/tools/${tool.slug}/` : tool.section === 'games' ? `/games/${tool.slug}/` : `/${tool.slug}/`;
 const icon = tool => `<span class="tool-icon icon-${tool.icon}" aria-hidden="true"><svg viewBox="0 0 24 24">${tool.svg}</svg></span>`;
 ---
@@ -80,7 +85,7 @@ const icon = tool => `<span class="tool-icon icon-${tool.icon}" aria-hidden="tru
 
   <section class="browse-category-section home-section" id="categories" aria-labelledby="browse-categories-title">
     <div class="home-section-heading"><div><div class="eyebrow">BROWSE BY CATEGORY</div><h2 id="browse-categories-title">Find the right toolkit</h2><p>Explore tools grouped around the work you need to do.</p></div><a class="quick-browse" href="/tools/#categories">All categories <span aria-hidden="true">→</span></a></div>
-    <div class="browse-category-grid">{categories.map(category => <a class="browse-category-card" href={category.id === 'games' ? '/games/' : `/tools/?category=${category.id}`}><span class="browse-category-icon" aria-hidden="true">{category.icon}</span><span class="browse-category-heading"><b>{category.label}</b><small>{countFor(category.id)} tools</small></span><p>{category.description}</p><span class="browse-category-link">Explore category <i aria-hidden="true">→</i></span></a>)}</div>
+    <div class="browse-category-grid">{categories.map(category => <a class="browse-category-card" href={category.id === 'games' ? '/games/' : `/tools/?category=${category.id}`}><span class="browse-category-icon" aria-hidden="true">{category.icon}</span><span class="browse-category-heading"><b>{category.label}</b><small>{countFor(category.id)} {category.id === 'games' ? 'games' : 'tools'}</small></span><p>{category.description}</p><span class="browse-category-link">Explore category <i aria-hidden="true">→</i></span></a>)}</div>
   </section>
 
   <section class="why-compact" id="about" aria-label="Why iLoveMyFiles">

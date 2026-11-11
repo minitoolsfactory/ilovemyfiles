@@ -73,6 +73,8 @@ const toolIcon = (tool) => `<span class="tool-icon icon-${tool.icon}" aria-hidde
           </div>
           <div class="game-filters" role="group" aria-label="Filter games">
             <button type="button" class="game-filter" data-filter="all" aria-pressed="true">All <span>{games.length + 1}</span></button>
+            <button type="button" class="game-filter" data-filter="played" aria-pressed="false">Played <span data-progress-count="played">0</span></button>
+            <button type="button" class="game-filter" data-filter="not-played" aria-pressed="false">Not played <span data-progress-count="not-played">{games.length + 1}</span></button>
             <button type="button" class="game-filter" data-filter="brain" aria-pressed="false">Brain & logic</button>
             <button type="button" class="game-filter" data-filter="arcade" aria-pressed="false">Speed & arcade</button>
             <button type="button" class="game-filter" data-filter="casual" aria-pressed="false">Casual breaks</button>
@@ -80,28 +82,30 @@ const toolIcon = (tool) => `<span class="tool-icon icon-${tool.icon}" aria-hidde
         </div>
 
         <div class="games-grid" aria-live="polite">
-          <a href="#arcade-game" class="game-card-link" data-game-card data-category="arcade">
-            <span class="game-card-icon arcade-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M7 8.5h10a4 4 0 0 1 3.8 5.2l-.6 2a2 2 0 0 1-3.3.8l-1.6-1.5H8.7l-1.6 1.5a2 2 0 0 1-3.3-.8l-.6-2A4 4 0 0 1 7 8.5Z"/><path d="M8 10.5v4m-2-2h4m6-1h.01M18 13h.01"/></svg>
-            </span>
-            <span class="game-card-body">
-              <span class="game-card-tag">LIVE ARCADE</span>
-              <h3>Byte Sorter: Packet Drop</h3>
-              <p>Catch useful file packets, avoid corrupted data, and build a high score.</p>
-            </span>
-            <span class="game-card-arrow">Play now <span aria-hidden="true">→</span></span>
-          </a>
-          {games.map(game => (
-            <a href={`/games/${game.slug}/`} class="game-card-link" data-game-card data-category={game.gameCategory}>
-              <span class="game-card-icon" set:html={toolIcon(game)} />
-              <span class="game-card-body">
-                <span class="game-card-tag">{game.tag}</span>
-                <h3>{game.cardTitle}</h3>
-                <p>{game.cardText}</p>
+            <a href="#arcade-game" class="game-card-link" data-game-card data-game-id="byte-sorter" data-category="arcade">
+              <span class="game-card-icon arcade-card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M7 8.5h10a4 4 0 0 1 3.8 5.2l-.6 2a2 2 0 0 1-3.3.8l-1.6-1.5H8.7l-1.6 1.5a2 2 0 0 1-3.3-.8l-.6-2A4 4 0 0 1 7 8.5Z"/><path d="M8 10.5v4m-2-2h4m6-1h.01M18 13h.01"/></svg>
               </span>
+              <span class="game-card-body">
+                <span class="game-card-tag">LIVE ARCADE</span>
+                <h3>Byte Sorter: Packet Drop</h3>
+                <p>Catch useful file packets, avoid corrupted data, and build a high score.</p>
+              </span>
+              <span class="game-progress" data-game-progress data-game-id="byte-sorter">Not played yet</span>
               <span class="game-card-arrow">Play now <span aria-hidden="true">→</span></span>
             </a>
-          ))}
+            {games.map(game => (
+              <a href={`/games/${game.slug}/`} class="game-card-link" data-game-card data-game-id={game.slug} data-category={game.gameCategory}>
+                <span class="game-card-icon" set:html={toolIcon(game)} />
+                <span class="game-card-body">
+                  <span class="game-card-tag">{game.tag}</span>
+                  <h3>{game.cardTitle}</h3>
+                  <p>{game.cardText}</p>
+                </span>
+                <span class="game-progress" data-game-progress data-game-id={game.slug}>Not played yet</span>
+                <span class="game-card-arrow">Play now <span aria-hidden="true">→</span></span>
+              </a>
+            ))}
         </div>
       </section>
 
@@ -117,22 +121,58 @@ const toolIcon = (tool) => `<span class="tool-icon icon-${tool.icon}" aria-hidde
   </div>
 
   <script>
+    import { gameProgressLabel, readGameProgress } from '../../scripts/game-progress.js';
+
     const gamesPage = document.querySelector('[data-games-page]');
     if (gamesPage instanceof HTMLElement) {
       const filters = gamesPage.querySelectorAll('[data-filter]');
       const cards = gamesPage.querySelectorAll('[data-game-card]');
+      let activeFilter = 'all';
 
-      filters.forEach((filter) => {
+      const updateProgress = () => {
+        const progress = readGameProgress();
+        let playedCount = 0;
+        cards.forEach((card) => {
+          const gameId = card.getAttribute('data-game-id');
+          const record = gameId ? progress[gameId] : null;
+          const played = Boolean(record?.played);
+          if (played) playedCount++;
+          const status = card.querySelector('[data-game-progress]');
+          if (status instanceof HTMLElement) {
+            status.textContent = gameProgressLabel(record);
+            status.dataset.played = String(played);
+          }
+          card.dataset.played = String(played);
+        });
+        gamesPage.querySelector('[data-progress-count="played"]')?.replaceChildren(String(playedCount));
+        gamesPage.querySelector('[data-progress-count="not-played"]')?.replaceChildren(String(cards.length - playedCount));
+        applyFilter();
+      };
+
+      function applyFilter() {
+        cards.forEach((card) => {
+          const isPlayed = card.dataset.played === 'true';
+          const matches = activeFilter === 'all' ||
+            (activeFilter === 'played' && isPlayed) ||
+            (activeFilter === 'not-played' && !isPlayed) ||
+            card.getAttribute('data-category') === activeFilter;
+          card.toggleAttribute('hidden', !matches);
+        });
+      }
+
+      filters.forEach(filter => {
         filter.addEventListener('click', () => {
-          const category = filter.getAttribute('data-filter');
+          activeFilter = filter.getAttribute('data-filter') ?? 'all';
           filters.forEach((button) => {
             button.setAttribute('aria-pressed', String(button === filter));
           });
-          cards.forEach((card) => {
-            card.toggleAttribute('hidden', category !== 'all' && card.getAttribute('data-category') !== category);
-          });
+          applyFilter();
         });
       });
+
+      updateProgress();
+      window.addEventListener('game-progress-updated', updateProgress);
+      window.addEventListener('storage', updateProgress);
     }
   </script>
 
@@ -178,6 +218,8 @@ const toolIcon = (tool) => `<span class="tool-icon icon-${tool.icon}" aria-hidde
     .game-card-tag{display:inline-block;margin-bottom:7px;color:var(--arcade-cyan);font-size:10px;font-weight:800;letter-spacing:.9px}
     .game-card-body h3{margin:0 0 7px;color:var(--arcade-text);font-size:18px;letter-spacing:-.25px}
     .game-card-body p{margin:0;color:var(--arcade-muted);font-size:13px;line-height:1.55}
+    .game-progress{display:inline-flex;min-height:28px;align-items:center;padding:0 9px;border:1px solid rgba(148,163,184,.22);border-radius:8px;background:rgba(9,13,22,.55);color:var(--arcade-dim);font-size:11px;font-weight:700}
+    .game-progress[data-played="true"]{border-color:rgba(52,211,153,.3);color:#a7f3d0}
     .game-card-arrow{display:flex;align-items:center;gap:7px;margin-top:auto;padding-top:12px;color:var(--arcade-purple);font-size:12px;font-weight:750}
     .games-info{padding:22px;border:1px solid var(--arcade-border);border-radius:18px;background:rgba(18,27,48,.74)}
     .games-info h2{margin:0 0 16px;color:var(--arcade-text);font-size:20px;text-align:center}
