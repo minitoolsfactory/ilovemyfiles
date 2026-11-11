@@ -43,6 +43,7 @@
   <url><loc>https://ilovemyfiles.com/compare-pdf/</loc></url>
   <url><loc>https://ilovemyfiles.com/compress-image/</loc></url>
   <url><loc>https://ilovemyfiles.com/compress-pdf/</loc></url>
+  <url><loc>https://ilovemyfiles.com/contact/</loc></url>
   <url><loc>https://ilovemyfiles.com/cron-expression-generator/</loc></url>
   <url><loc>https://ilovemyfiles.com/crop-image/</loc></url>
   <url><loc>https://ilovemyfiles.com/csv-jsonl-converter/</loc></url>
@@ -58,6 +59,14 @@
   <url><loc>https://ilovemyfiles.com/file-hash-sha256/</loc></url>
   <url><loc>https://ilovemyfiles.com/flatten-pdf/</loc></url>
   <url><loc>https://ilovemyfiles.com/font-converter/</loc></url>
+  <url><loc>https://ilovemyfiles.com/games/</loc></url>
+  <url><loc>https://ilovemyfiles.com/games/bug-hunter-snake/</loc></url>
+  <url><loc>https://ilovemyfiles.com/games/code-markdown-racer/</loc></url>
+  <url><loc>https://ilovemyfiles.com/games/file-size-2048/</loc></url>
+  <url><loc>https://ilovemyfiles.com/games/hex-color-guesser/</loc></url>
+  <url><loc>https://ilovemyfiles.com/games/memory-cache-pair/</loc></url>
+  <url><loc>https://ilovemyfiles.com/games/micro-solitaire/</loc></url>
+  <url><loc>https://ilovemyfiles.com/games/regex-crossword-mini/</loc></url>
   <url><loc>https://ilovemyfiles.com/hash-generator/</loc></url>
   <url><loc>https://ilovemyfiles.com/htaccess-generator/</loc></url>
   <url><loc>https://ilovemyfiles.com/html-entities/</loc></url>
@@ -92,6 +101,7 @@
   <url><loc>https://ilovemyfiles.com/pdf-to-word/</loc></url>
   <url><loc>https://ilovemyfiles.com/percentage-calculator/</loc></url>
   <url><loc>https://ilovemyfiles.com/powerpoint-to-pdf/</loc></url>
+  <url><loc>https://ilovemyfiles.com/privacy/</loc></url>
   <url><loc>https://ilovemyfiles.com/protect-pdf/</loc></url>
   <url><loc>https://ilovemyfiles.com/qr-code-generator/</loc></url>
   <url><loc>https://ilovemyfiles.com/redact-pdf/</loc></url>
@@ -113,6 +123,7 @@
   <url><loc>https://ilovemyfiles.com/sql-syntax-highlighter/</loc></url>
   <url><loc>https://ilovemyfiles.com/sql-to-csv/</loc></url>
   <url><loc>https://ilovemyfiles.com/sql-to-json/</loc></url>
+  <url><loc>https://ilovemyfiles.com/terms/</loc></url>
   <url><loc>https://ilovemyfiles.com/text-case-converter/</loc></url>
   <url><loc>https://ilovemyfiles.com/text-diff-checker/</loc></url>
   <url><loc>https://ilovemyfiles.com/text-replacement/</loc></url>

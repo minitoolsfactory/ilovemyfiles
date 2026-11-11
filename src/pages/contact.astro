@@ -1,0 +1,16 @@
+---
+import InfoPage from '../components/InfoPage.astro';
+
+const email = 'ilovemyfiles.com@gmail.com';
+---
+<InfoPage
+  title="Contact"
+  description="Questions, feedback, or a problem with a tool? Get in touch by email."
+  canonical="/contact/"
+>
+  <section aria-labelledby="contact-email-title">
+    <h2 id="contact-email-title">Email us</h2>
+    <p>For help, feedback, or other enquiries, email <a href={`mailto:${email}`}>{email}</a>.</p>
+    <p>Please avoid sending sensitive files or personal information unless it is necessary to explain your message.</p>
+  </section>
+</InfoPage>

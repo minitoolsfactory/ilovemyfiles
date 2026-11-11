@@ -1,0 +1,586 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+
+    const QUESTIONS = {
+      extension: [
+        { q: 'Which extension is used for Adobe PDF files?', options: ['.pdf', '.doc', '.txt', '.psd'], answer: 0, fact: 'PDF stands for Portable Document Format.' },
+        { q: 'What is the standard extension for JPEG images?', options: ['.jpg', '.jpeg', 'Both .jpg and .jpeg', '.jpe'], answer: 2, fact: 'Both .jpg and .jpeg are widely used; .jpg originated from 8.3 filename limits.' },
+        { q: 'Which extension indicates a PNG image?', options: ['.png', '.pgn', '.pg', '.pnt'], answer: 0, fact: 'PNG = Portable Network Graphics, supports transparency and lossless compression.' },
+        { q: 'What extension does Microsoft Word use for documents?', options: ['.docx', '.doc', 'Both .doc and .docx', '.wrd'], answer: 2, fact: '.doc was the legacy binary format; .docx (Office Open XML) is the modern default since Word 2007.' },
+        { q: 'Which extension is used for ZIP archives?', options: ['.zip', '.zp', '.z', '.arc'], answer: 0, fact: 'ZIP is the most common archive format; .z is for compress(1), .arc is an older format.' },
+        { q: 'What extension do GIF animations use?', options: ['.gif', '.giff', '.ani', '.gfa'], answer: 0, fact: 'GIF = Graphics Interchange Format, supports simple animations and 256 colors.' },
+        { q: 'Which extension indicates an MP3 audio file?', options: ['.mp3', '.m3u', '.wav', '.aac'], answer: 0, fact: 'MP3 = MPEG-1 Audio Layer 3, the dominant lossy audio format for decades.' },
+        { q: 'What extension does Microsoft Excel use?', options: ['.xlsx', '.xls', 'Both .xls and .xlsx', '.xl'], answer: 2, fact: '.xlsx is the modern Office Open XML format; .xls is the legacy binary format.' },
+        { q: 'Which extension is used for SVG vector graphics?', options: ['.svg', '.sv', '.sgv', '.vct'], answer: 0, fact: 'SVG = Scalable Vector Graphics, an XML-based vector format for the web.' },
+        { q: 'What extension do JSON data files typically use?', options: ['.json', '.jsn', '.jso', '.js'], answer: 0, fact: 'JSON = JavaScript Object Notation, lightweight data interchange format.' },
+        { q: 'Which extension indicates a WebP image?', options: ['.webp', '.wp', '.wep', '.wbp'], answer: 0, fact: 'WebP is a modern image format by Google supporting lossy and lossless compression.' },
+        { q: 'What extension do TAR archives use?', options: ['.tar', '.ta', '.tgz', '.tar.gz'], answer: 0, fact: 'TAR = Tape Archive, often combined with gzip (.tar.gz) or bzip2 (.tar.bz2).' },
+        { q: 'Which extension is used for TypeScript files?', options: ['.ts', '.tsx', 'Both .ts and .tsx', '.tss'], answer: 2, fact: '.ts for TypeScript, .tsx for TypeScript with JSX (React).' },
+        { q: 'What extension do Python scripts use?', options: ['.py', '.pys', '.pyt', '.python'], answer: 0, fact: 'Python uses .py; compiled bytecode uses .pyc.' },
+        { q: 'Which extension indicates a Markdown file?', options: ['.md', '.markdown', 'Both .md and .markdown', '.mkd'], answer: 2, fact: 'Both .md and .markdown are common; .md is more popular.' },
+        { q: 'What extension do Rust source files use?', options: ['.rs', '.rust', '.rst', '.rl'], answer: 0, fact: 'Rust uses .rs; Cargo.toml is the manifest file.' },
+        { q: 'Which extension is used for Go source files?', options: ['.go', '.golang', '.g', '.goo'], answer: 0, fact: 'Go uses .go for all source files.' },
+        { q: 'What extension do C++ source files commonly use?', options: ['.cpp', '.cc', '.cxx', 'All of the above'], answer: 3, fact: '.cpp, .cc, .cxx, and .C are all used for C++ source files.' },
+        { q: 'Which extension indicates a CSV file?', options: ['.csv', '.cvs', '.txt', '.tsv'], answer: 0, fact: 'CSV = Comma-Separated Values; .tsv is for Tab-Separated Values.' },
+        { q: 'What extension do YAML files typically use?', options: ['.yaml', '.yml', 'Both .yaml and .yml', '.ym'], answer: 2, fact: 'Both .yaml and .yml are used; .yml is shorter and common in CI configs.' },
+        { q: 'Which extension is used for SQLite databases?', options: ['.sqlite', '.db', '.sqlite3', 'All of the above'], answer: 3, fact: 'SQLite uses .db, .sqlite, .sqlite3, or no extension at all.' },
+        { q: 'What extension do Docker image layers use?', options: ['No standard extension', '.docker', '.img', '.layer'], answer: 0, fact: 'Docker images are stored as layered tarballs without a user-facing file extension.' },
+        { q: 'Which extension indicates a TrueType font?', options: ['.ttf', '.otf', '.fon', '.fnt'], answer: 0, fact: 'TTF = TrueType Font; OTF = OpenType Font (also .otf).' },
+        { q: 'What extension do WebM video files use?', options: ['.webm', '.wmv', '.webv', '.wm'], answer: 0, fact: 'WebM is an open, royalty-free video format for the web.' },
+        { q: 'Which extension is used for OpenDocument Text?', options: ['.odt', '.ods', '.odp', '.odf'], answer: 0, fact: '.odt = text, .ods = spreadsheet, .odp = presentation.' },
+      ],
+      facts: [
+        { q: 'PNG supports transparency.', options: ['True', 'False'], answer: 0, fact: 'PNG supports full alpha channel transparency, unlike JPEG.' },
+        { q: 'JPEG uses lossless compression.', options: ['True', 'False'], answer: 1, fact: 'JPEG uses lossy compression; PNG and WebP support lossless.' },
+        { q: 'GIF supports 24-bit color.', options: ['True', 'False'], answer: 1, fact: 'GIF is limited to 256 colors (8-bit palette).' },
+        { q: 'MP3 is a lossy audio format.', options: ['True', 'False'], answer: 0, fact: 'MP3 discards inaudible data to reduce file size.' },
+        { q: 'SVG files are raster images.', options: ['True', 'False'], answer: 1, fact: 'SVG = Scalable Vector Graphics, defined by XML paths/shapes.' },
+        { q: 'ZIP files can contain folders.', options: ['True', 'False'], answer: 0, fact: 'ZIP archives preserve directory structure.' },
+        { q: 'PDF files are always read-only.', options: ['True', 'False'], answer: 1, fact: 'PDFs can be edited, annotated, and have fillable forms.' },
+        { q: 'WebP supports animation.', options: ['True', 'False'], answer: 0, fact: 'Animated WebP is an alternative to GIF with better compression.' },
+        { q: 'BMP files are compressed by default.', options: ['True', 'False'], answer: 1, fact: 'BMP is typically uncompressed; RLE compression is optional and rare.' },
+        { q: 'TIFF supports multiple pages.', options: ['True', 'False'], answer: 0, fact: 'TIFF can store multiple images (pages) in one file.' },
+        { q: 'MP4 is a video container format.', options: ['True', 'False'], answer: 0, fact: 'MP4 (MPEG-4 Part 14) contains video, audio, subtitles, chapters.' },
+        { q: 'JSON supports comments.', options: ['True', 'False'], answer: 1, fact: 'Standard JSON does not support comments; JSONC/JSON5 add them.' },
+        { q: 'CSV files have a formal standard.', options: ['True', 'False'], answer: 1, fact: 'RFC 4180 describes a common format, but CSV has many variants.' },
+        { q: 'HEIC is based on HEVC.', options: ['True', 'False'], answer: 0, fact: 'HEIC = High Efficiency Image Container, uses HEVC (H.265) compression.' },
+        { q: 'AVIF is based on AV1 video codec.', options: ['True', 'False'], answer: 0, fact: 'AVIF = AV1 Image File Format, uses AV1 intra-frame coding.' },
+        { q: 'ICO files can contain multiple sizes.', options: ['True', 'False'], answer: 0, fact: 'Windows ICO files store multiple resolutions (16×16, 32×32, 48×48, etc.).' },
+        { q: 'RAW camera formats are standardized.', options: ['True', 'False'], answer: 1, fact: 'Each camera maker has proprietary RAW formats (.cr2, .nef, .arw, .dng, etc.).' },
+        { q: 'EPS is a vector format.', options: ['True', 'False'], answer: 0, fact: 'EPS = Encapsulated PostScript, can contain vector and raster data.' },
+        { q: 'DOCX files are ZIP archives.', options: ['True', 'False'], answer: 0, fact: 'DOCX (OOXML) is a ZIP package containing XML files and resources.' },
+        { q: 'A .tar.gz file is a gzipped tar archive.', options: ['True', 'False'], answer: 0, fact: 'tar creates the archive, gzip compresses it; .tgz is a shorthand.' },
+        { q: 'FLAC is a lossy audio format.', options: ['True', 'False'], answer: 1, fact: 'FLAC = Free Lossless Audio Codec, preserves all audio data.' },
+        { q: 'EXIF data is only in JPEGs.', options: ['True', 'False'], answer: 1, fact: 'EXIF can be in JPEG, TIFF, PNG, WebP, HEIC, and others.' },
+        { q: 'Base64 increases file size by ~33%.', options: ['True', 'False'], answer: 0, fact: 'Base64 encodes 3 bytes into 4 characters (4/3 = 1.333...).' },
+      ],
+      speed: [
+        { q: 'Extension for Portable Network Graphics?', options: ['.png', '.jpg', '.gif', '.bmp'], answer: 0 },
+        { q: 'MIME type for JSON?', options: ['application/json', 'text/json', 'application/x-json', 'text/plain'], answer: 0 },
+        { q: 'What does PDF stand for?', options: ['Portable Document Format', 'Print Document File', 'Portable Data Format', 'Print Data Format'], answer: 0 },
+        { q: 'Extension for MPEG-4 video?', options: ['.mp4', '.mpeg', '.mpg', '.m4v'], answer: 0 },
+        { q: 'Which format is lossless?', options: ['FLAC', 'MP3', 'AAC', 'OGG'], answer: 0 },
+        { q: 'Extension for Comma-Separated Values?', options: ['.csv', '.tsv', '.txt', '.dat'], answer: 0 },
+        { q: 'What does GIF stand for?', options: ['Graphics Interchange Format', 'General Image Format', 'Graphical Interchange File', 'Global Image Format'], answer: 0 },
+        { q: 'MIME type for PNG?', options: ['image/png', 'image/x-png', 'application/png', 'text/png'], answer: 0 },
+        { q: 'Which is a vector format?', options: ['SVG', 'PNG', 'JPEG', 'GIF'], answer: 0 },
+        { q: 'Extension for TypeScript?', options: ['.ts', '.tsx', '.js', '.jsx'], answer: 0 },
+        { q: 'What does ZIP stand for?', options: ['Nothing (just a name)', 'Zero Information Package', 'Zipped Information Package', 'Zeta Interchange Protocol'], answer: 0 },
+        { q: 'Extension for OpenType Font?', options: ['.otf', '.ttf', '.fon', '.woff'], answer: 0 },
+        { q: 'Which format supports animation?', options: ['WebP', 'JPEG', 'BMP', 'ICO'], answer: 0 },
+        { q: 'MIME type for PDF?', options: ['application/pdf', 'application/x-pdf', 'text/pdf', 'image/pdf'], answer: 0 },
+        { q: 'Extension for YAML?', options: ['.yaml', '.yml', 'Both', '.ym'], answer: 2 },
+        { q: 'What does HTML stand for?', options: ['HyperText Markup Language', 'HighText Machine Language', 'HyperTransfer Markup Language', 'Home Tool Markup Language'], answer: 0 },
+        { q: 'Which is an archive format?', options: ['ZIP', 'JPG', 'MP3', 'PDF'], answer: 0 },
+        { q: 'Extension for Rust?', options: ['.rs', '.rust', '.rl', '.rn'], answer: 0 },
+        { q: 'MIME type for SVG?', options: ['image/svg+xml', 'image/svg', 'application/svg', 'text/svg'], answer: 0 },
+        { q: 'What does CSV stand for?', options: ['Comma-Separated Values', 'Character-Separated Values', 'Code-Separated Values', 'Column-Separated Values'], answer: 0 },
+        { q: 'Which format is for spreadsheets?', options: ['XLSX', 'DOCX', 'PPTX', 'PDF'], answer: 0 },
+      ],
+    };
+
+    const MODES = {
+      extension: { label: 'Extension Match', icon: '🔤', desc: 'Match file extensions to their formats' },
+      facts: { label: 'Format Facts', icon: '📋', desc: 'True/false questions about file formats' },
+      speed: { label: 'Speed Round', icon: '⚡', desc: 'Rapid-fire questions, bonus for speed' },
+    };
+
+    const DIFFICULTIES = {
+      easy: { questions: 5, timePerQuestion: 30, label: 'Easy (5 Q)' },
+      medium: { questions: 10, timePerQuestion: 20, label: 'Medium (10 Q)' },
+      hard: { questions: 15, timePerQuestion: 15, label: 'Hard (15 Q)' },
+    };
+
+    function shuffle(array) {
+      const copy = array.slice();
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    function bestKey(mode, difficulty) {
+      return `ilovemyfiles-quiz-best-${mode}-${difficulty}`;
+    }
+
+    function createQuiz({ container } = {}) {
+      if (!container) return;
+
+      let state = {
+        mode: 'extension',
+        difficulty: 'medium',
+        questions: [],
+        currentIndex: 0,
+        score: 0,
+        streak: 0,
+        bestStreak: 0,
+        startTime: 0,
+        totalTime: 0,
+        timer: null,
+        questionTimer: null,
+        timeLeft: 0,
+        answered: false,
+        phase: 'setup', // setup, playing, results
+      };
+
+      const elements = {};
+
+      function buildUI() {
+        container.innerHTML = '';
+        container.className = 'quiz-root';
+
+        const shell = document.createElement('div');
+        shell.className = 'quiz-shell';
+        shell.setAttribute('data-quiz-shell', 'true');
+
+        const head = document.createElement('header');
+        head.className = 'quiz-head';
+        const title = document.createElement('div');
+        title.className = 'quiz-title';
+        title.textContent = 'File Format Quiz';
+        const subtitle = document.createElement('span');
+        subtitle.className = 'quiz-subtitle';
+        subtitle.textContent = 'Test your file format knowledge';
+        head.append(title, subtitle);
+
+        const controls = document.createElement('div');
+        controls.className = 'quiz-controls';
+
+        const modeSelect = document.createElement('select');
+        modeSelect.id = 'quiz-mode';
+        modeSelect.setAttribute('aria-label', 'Game mode');
+        Object.entries(MODES).forEach(([key, value]) => {
+          const opt = document.createElement('option');
+          opt.value = key;
+          opt.textContent = `${value.icon} ${value.label}`;
+          if (key === state.mode) opt.selected = true;
+          modeSelect.append(opt);
+        });
+        elements.modeSelect = modeSelect;
+
+        const diffSelect = document.createElement('select');
+        diffSelect.id = 'quiz-difficulty';
+        diffSelect.setAttribute('aria-label', 'Difficulty');
+        Object.entries(DIFFICULTIES).forEach(([key, value]) => {
+          const opt = document.createElement('option');
+          opt.value = key;
+          opt.textContent = value.label;
+          if (key === state.difficulty) opt.selected = true;
+          diffSelect.append(opt);
+        });
+        elements.diffSelect = diffSelect;
+
+        const newBtn = document.createElement('button');
+        newBtn.id = 'quiz-new';
+        newBtn.type = 'button';
+        newBtn.className = 'button button-primary';
+        newBtn.textContent = 'New Quiz';
+        elements.newBtn = newBtn;
+
+        controls.append(modeSelect, diffSelect, newBtn);
+        head.append(controls);
+
+        const stats = document.createElement('div');
+        stats.className = 'quiz-stats';
+        const makeStat = (label, id, value) => {
+          const wrap = document.createElement('span');
+          wrap.className = 'quiz-stat';
+          const b = document.createElement('b');
+          b.id = id;
+          b.textContent = value;
+          wrap.appendChild(document.createTextNode(label + ' '));
+          wrap.appendChild(b);
+          return wrap;
+        };
+        elements.statScore = makeStat('Score', 'stat-score', '0');
+        elements.statStreak = makeStat('Streak', 'stat-streak', '0');
+        elements.statTime = makeStat('Time', 'stat-time', '0:00');
+        elements.statBest = makeStat('Best', 'stat-best', '–');
+        stats.append(elements.statScore, elements.statStreak, elements.statTime, elements.statBest);
+
+        const progress = document.createElement('div');
+        progress.className = 'quiz-progress';
+        progress.setAttribute('role', 'progressbar');
+        progress.setAttribute('aria-valuemin', '0');
+        progress.setAttribute('aria-valuemax', '100');
+        progress.setAttribute('aria-valuenow', '0');
+        const progressBar = document.createElement('div');
+        progressBar.className = 'quiz-progress-bar';
+        progress.appendChild(progressBar);
+        elements.progress = progress;
+        elements.progressBar = progressBar;
+
+        const timerEl = document.createElement('div');
+        timerEl.className = 'quiz-timer';
+        timerEl.hidden = true;
+        elements.timerEl = timerEl;
+
+        const questionArea = document.createElement('div');
+        questionArea.className = 'quiz-question-area';
+        questionArea.setAttribute('role', 'region');
+        questionArea.setAttribute('aria-live', 'polite');
+        elements.questionArea = questionArea;
+
+        const feedback = document.createElement('div');
+        feedback.className = 'quiz-feedback';
+        feedback.setAttribute('role', 'status');
+        feedback.setAttribute('aria-live', 'polite');
+        elements.feedback = feedback;
+
+        const factBox = document.createElement('div');
+        factBox.className = 'quiz-fact';
+        factBox.hidden = true;
+        elements.factBox = factBox;
+
+        const results = document.createElement('div');
+        results.className = 'quiz-results';
+        results.hidden = true;
+        elements.results = results;
+
+        shell.append(head, stats, progress, timerEl, questionArea, feedback, factBox, results);
+        container.appendChild(shell);
+      }
+
+      function startGame() {
+        state.phase = 'playing';
+        state.score = 0;
+        state.streak = 0;
+        state.bestStreak = 0;
+        state.currentIndex = 0;
+        state.totalTime = 0;
+        state.startTime = Date.now();
+        state.answered = false;
+
+        const pool = shuffle(QUESTIONS[state.mode]);
+        state.questions = pool.slice(0, DIFFICULTIES[state.difficulty].questions);
+
+        updateBestDisplay();
+        renderQuestion();
+        startTimers();
+        elements.newBtn.textContent = 'Restart';
+        elements.results.hidden = true;
+      }
+
+      function startTimers() {
+        stopTimers();
+        state.startTime = Date.now();
+        state.timer = setInterval(() => {
+          state.totalTime = Math.floor((Date.now() - state.startTime) / 1000);
+          elements.statTime.textContent = formatTime(state.totalTime);
+        }, 1000);
+
+        if (state.mode === 'speed') {
+          elements.timerEl.hidden = false;
+          startQuestionTimer();
+        }
+      }
+
+      function startQuestionTimer() {
+        const diff = DIFFICULTIES[state.difficulty];
+        state.timeLeft = diff.timePerQuestion;
+        updateTimerDisplay();
+        state.questionTimer = setInterval(() => {
+          state.timeLeft--;
+          updateTimerDisplay();
+          if (state.timeLeft <= 0) {
+            handleTimeout();
+          }
+        }, 1000);
+      }
+
+      function updateTimerDisplay() {
+        elements.timerEl.textContent = `⏱ ${state.timeLeft}s`;
+        elements.timerEl.style.color = state.timeLeft <= 3 ? '#ef4444' : 'var(--color-text-primary)';
+      }
+
+      function stopTimers() {
+        if (state.timer) { clearInterval(state.timer); state.timer = null; }
+        if (state.questionTimer) { clearInterval(state.questionTimer); state.questionTimer = null; }
+        elements.timerEl.hidden = true;
+      }
+
+      function updateBestDisplay() {
+        const key = bestKey(state.mode, state.difficulty);
+        const stored = sessionStorage.getItem(key);
+        if (stored !== null) {
+          elements.statBest.textContent = `${stored} pts`;
+        } else {
+          elements.statBest.textContent = '–';
+        }
+      }
+
+      function checkBestScore() {
+        const key = bestKey(state.mode, state.difficulty);
+        const stored = sessionStorage.getItem(key);
+        const currentBest = stored ? Number(stored) : null;
+        if (currentBest === null || state.score > currentBest) {
+          sessionStorage.setItem(key, String(state.score));
+          elements.statBest.textContent = `${state.score} pts`;
+          return true;
+        }
+        return false;
+      }
+
+      function renderQuestion() {
+        if (state.currentIndex >= state.questions.length) {
+          showResults();
+          return;
+        }
+
+        state.answered = false;
+        const q = state.questions[state.currentIndex];
+        const progressPct = Math.round((state.currentIndex / state.questions.length) * 100);
+        elements.progressBar.style.width = `${progressPct}%`;
+        elements.progress.setAttribute('aria-valuenow', String(progressPct));
+
+        elements.questionArea.innerHTML = '';
+        elements.feedback.textContent = '';
+        elements.feedback.className = 'quiz-feedback';
+        elements.factBox.hidden = true;
+
+        const qEl = document.createElement('div');
+        qEl.className = 'quiz-question';
+        qEl.innerHTML = `
+          <div class="quiz-q-num">Question ${state.currentIndex + 1} of ${state.questions.length}</div>
+          <div class="quiz-q-text">${q.q}</div>
+        `;
+
+        const optionsEl = document.createElement('div');
+        optionsEl.className = 'quiz-options';
+        optionsEl.setAttribute('role', 'radiogroup');
+        optionsEl.setAttribute('aria-label', 'Answer options');
+
+        q.options.forEach((opt, idx) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'quiz-option';
+          btn.setAttribute('role', 'radio');
+          btn.setAttribute('aria-checked', 'false');
+          btn.dataset.index = String(idx);
+          btn.textContent = opt;
+          btn.addEventListener('click', () => handleAnswer(idx));
+          optionsEl.appendChild(btn);
+        });
+
+        elements.questionArea.append(qEl, optionsEl);
+      }
+
+      function handleAnswer(selectedIdx) {
+        if (state.answered) return;
+        state.answered = true;
+        stopTimers();
+
+        const q = state.questions[state.currentIndex];
+        const correct = selectedIdx === q.answer;
+        const options = elements.questionArea.querySelectorAll('.quiz-option');
+        options.forEach((btn, idx) => {
+          btn.disabled = true;
+          if (idx === q.answer) btn.classList.add('correct');
+          if (idx === selectedIdx && !correct) btn.classList.add('incorrect');
+        });
+
+        if (correct) {
+          state.score += 10;
+          state.streak++;
+          state.bestStreak = Math.max(state.bestStreak, state.streak);
+          let bonus = 0;
+          if (state.mode === 'speed') {
+            bonus = state.timeLeft * 2;
+            state.score += bonus;
+          }
+          elements.feedback.textContent = bonus > 0 ? `✓ Correct! +${10 + bonus} pts (${bonus} time bonus)` : '✓ Correct! +10 pts';
+          elements.feedback.classList.add('correct');
+        } else {
+          state.streak = 0;
+          elements.feedback.textContent = `✗ Wrong. The answer was: ${q.options[q.answer]}`;
+          elements.feedback.classList.add('incorrect');
+        }
+        elements.statScore.textContent = String(state.score);
+        elements.statStreak.textContent = String(state.streak);
+
+        if (q.fact) {
+          elements.factBox.textContent = `💡 ${q.fact}`;
+          elements.factBox.hidden = false;
+        }
+
+        setTimeout(() => {
+          state.currentIndex++;
+          renderQuestion();
+          if (state.mode === 'speed' && state.phase === 'playing') {
+            startQuestionTimer();
+          }
+        }, 1500);
+      }
+
+      function handleTimeout() {
+        if (state.answered) return;
+        state.answered = true;
+        stopTimers();
+
+        const q = state.questions[state.currentIndex];
+        const options = elements.questionArea.querySelectorAll('.quiz-option');
+        options.forEach((btn, idx) => {
+          btn.disabled = true;
+          if (idx === q.answer) btn.classList.add('correct');
+        });
+        state.streak = 0;
+        elements.feedback.textContent = `⏱ Time's up! Answer: ${q.options[q.answer]}`;
+        elements.feedback.classList.add('incorrect');
+        elements.statStreak.textContent = String(state.streak);
+
+        if (q.fact) {
+          elements.factBox.textContent = `💡 ${q.fact}`;
+          elements.factBox.hidden = false;
+        }
+
+        setTimeout(() => {
+          state.currentIndex++;
+          renderQuestion();
+          if (state.mode === 'speed' && state.phase === 'playing') {
+            startQuestionTimer();
+          }
+        }, 1500);
+      }
+
+      function showResults() {
+        state.phase = 'results';
+        stopTimers();
+        elements.progressBar.style.width = '100%';
+        elements.progress.setAttribute('aria-valuenow', '100');
+
+        const isBest = checkBestScore();
+        const accuracy = Math.round((state.score / (state.questions.length * 10)) * 100);
+
+        elements.questionArea.innerHTML = '';
+        elements.feedback.textContent = '';
+        elements.factBox.hidden = true;
+        elements.results.hidden = false;
+
+        elements.results.innerHTML = `
+          <h3>Quiz Complete!</h3>
+          <div class="quiz-result-stats">
+            <div><b>${state.score}</b> points</div>
+            <div><b>${accuracy}%</b> accuracy</div>
+            <div><b>${state.bestStreak}</b> best streak</div>
+            <div><b>${formatTime(state.totalTime)}</b> total time</div>
+          </div>
+          <p class="${isBest ? 'quiz-new-best' : ''}">${isBest ? '🎉 New best score!' : `Best: ${sessionStorage.getItem(bestKey(state.mode, state.difficulty)) || '–'} pts`}</p>
+          <button type="button" class="button button-primary" id="play-again">Play Again</button>
+        `;
+
+        elements.results.querySelector('#play-again')?.addEventListener('click', startGame);
+      }
+
+      elements.modeSelect?.addEventListener('change', () => {
+        state.mode = elements.modeSelect.value;
+        startGame();
+      });
+      elements.diffSelect?.addEventListener('change', () => {
+        state.difficulty = elements.diffSelect.value;
+        startGame();
+      });
+      elements.newBtn?.addEventListener('click', startGame);
+
+      buildUI();
+      startGame();
+
+      return {
+        destroy() {
+          stopTimers();
+          container.innerHTML = '';
+        },
+        setMode(value) {
+          if (MODES[value]) {
+            state.mode = value;
+            elements.modeSelect.value = value;
+            startGame();
+          }
+        },
+        setDifficulty(value) {
+          if (DIFFICULTIES[value]) {
+            state.difficulty = value;
+            elements.diffSelect.value = value;
+            startGame();
+          }
+        },
+      };
+    }
+
+    window.iLoveMyFilesModules['game-quiz'] = {
+      MODES,
+      DIFFICULTIES,
+      init: createQuiz,
+    };
+  });
+</script>
+
+<style>
+  :root{
+    --game-radius: 20px;
+    --game-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .quiz-root{font:inherit;display:flex;flex-direction:column;align-items:center;gap:0;width:100%}
+  .quiz-shell{max-width:620px;width:100%;border:1px solid var(--color-border);border-radius:var(--game-radius);background:var(--color-surface);color:var(--color-text-primary);display:flex;flex-direction:column;gap:0;padding:0;box-shadow:var(--game-shadow);overflow:hidden}
+  .quiz-head{display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px 20px 16px;border-bottom:1px solid var(--color-border);text-align:center;background:linear-gradient(180deg,var(--color-surface),rgba(0,0,0,0.02))}
+  .quiz-title{font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--color-text-primary);margin:0}
+  .quiz-subtitle{font-size:13px;color:var(--color-text-muted);margin:0}
+  .quiz-controls{display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap;padding:12px 20px;background:var(--color-background);border-bottom:1px solid var(--color-border)}
+  .quiz-controls select{min-height:40px;padding:0 14px;border:1px solid var(--color-border);border-radius:12px;background:var(--color-surface);color:var(--color-text-primary);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+  .quiz-controls select:hover{border-color:var(--color-action)}
+  .quiz-controls select:focus{outline:none;border-color:var(--color-action);box-shadow:0 0 0 3px var(--color-action-transparent)}
+  .quiz-stats{display:flex;gap:0;justify-content:center;padding:14px 20px;border-bottom:1px solid var(--color-border);background:var(--color-background)}
+  .quiz-stat{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 14px;flex:1;min-width:90px}
+  .quiz-stat-label{font-size:10px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.6px}
+  .quiz-stat-value{font-size:15px;font-weight:800;color:var(--color-text-primary);font-variant-numeric:tabular-nums}
+  .quiz-progress{height:8px;background:var(--color-border);border-radius:999px;overflow:hidden;margin:0 20px}
+  .quiz-progress-bar{height:100%;background:linear-gradient(90deg,var(--color-action),#7c3aed);width:0%;transition:width .35s ease;border-radius:999px}
+  .quiz-timer{font-size:14px;font-weight:700;text-align:center;padding:8px 16px;font-variant-numeric:tabular-nums;background:var(--color-background);border:1px solid var(--color-border);border-radius:12px;margin:0 20px;color:var(--color-action)}
+  .quiz-question-area{padding:20px;min-height:260px;display:flex;flex-direction:column;justify-content:center}
+  .quiz-q-num{font-size:11px;font-weight:700;color:var(--color-text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.6px;align-self:flex-start}
+  .quiz-q-text{font-size:18px;font-weight:700;line-height:1.5;margin-bottom:20px;color:var(--color-text-primary)}
+  .quiz-options{display:grid;gap:12px;width:100%}
+  .quiz-option{min-height:52px;padding:16px 18px;border:2px solid var(--color-border);border-radius:14px;background:var(--color-background);color:var(--color-text-primary);font-size:15px;text-align:left;cursor:pointer;transition:all .15s;line-height:1.4}
+  .quiz-option:hover:not(:disabled){border-color:var(--color-action);background:var(--color-surface-soft);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.04)}
+  .quiz-option:active:not(:disabled){transform:scale(.99)}
+  .quiz-option:disabled{cursor:default}
+  .quiz-option.correct{border-color:#22c55e;background:linear-gradient(135deg,#ecfdf5,#d1fae5);color:#065f46}
+  .quiz-option.incorrect{border-color:#ef4444;background:linear-gradient(135deg,#fef2f2,#fee2e2);color:#991b1b}
+  .quiz-feedback{min-height:44px;font-size:14px;font-weight:600;text-align:center;padding:12px 20px;border-top:1px solid var(--color-border);background:var(--color-surface)}
+  .quiz-feedback.correct{color:#15803d;background:#f0fdf4;border-color:#a7f3d0}
+  .quiz-feedback.incorrect{color:#b91c1c;background:#fef2f2;border-color:#fecaca}
+  .quiz-fact{margin-top:8px;padding:12px 20px;background:var(--color-surface-soft);border:1px solid var(--color-border);border-radius:0 0 var(--game-radius) var(--game-radius);font-size:13px;color:var(--color-text-secondary);line-height:1.6}
+  .quiz-results{padding:32px 20px;text-align:center;background:var(--color-background);border-top:1px solid var(--color-border)}
+  .quiz-results h3{margin:0 0 16px;font-size:20px;color:var(--color-text-primary)}
+  .quiz-result-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:16px}
+  .quiz-result-stats div{padding:14px;border:1px solid var(--color-border);border-radius:12px;background:var(--color-surface);color:var(--color-text-secondary);font-size:12px}
+  .quiz-result-stats b{display:block;color:var(--color-text-primary);font-size:20px;margin-bottom:2px}
+  .quiz-new-best{color:#15803d;font-weight:700;font-size:15px;margin:8px 0 16px}
+  [data-theme='dark'] .quiz-shell{box-shadow:0 8px 32px rgba(0,0,0,0.35),0 2px 8px rgba(0,0,0,0.2)}
+  [data-theme='dark'] .quiz-head{background:linear-gradient(180deg,var(--color-surface),rgba(0,0,0,0.15))}
+  [data-theme='dark'] .quiz-controls{background:rgba(0,0,0,0.15);border-bottom-color:var(--color-border)}
+  [data-theme='dark'] .quiz-stats{background:rgba(0,0,0,0.15)}
+  [data-theme='dark'] .quiz-option{background:#111a2a;border-color:#2c3150}
+  [data-theme='dark'] .quiz-option:hover:not(:disabled){border-color:#6366f1;background:#151d30;box-shadow:0 4px 12px rgba(99,102,241,0.15)}
+  [data-theme='dark'] .quiz-option.correct{background:linear-gradient(135deg,#064e3b,#022c22);border-color:#22c55e;color:#4ade80}
+  [data-theme='dark'] .quiz-option.incorrect{background:linear-gradient(135deg,#450a0a,#2a0a0a);border-color:#ef4444;color:#fca5a5}
+  [data-theme='dark'] .quiz-stat,[data-theme='dark'] .quiz-timer,[data-theme='dark'] .quiz-controls select{background:#111a2a;border-color:#2c3150}
+  [data-theme='dark'] .quiz-controls select:hover{border-color:#6366f1}
+  [data-theme='dark'] .quiz-feedback.correct{color:#4ade80;background:#064e3b;border-color:#065f46}
+  [data-theme='dark'] .quiz-feedback.incorrect{color:#fca5a5;background:#450a0a;border-color:#7f1d1d}
+  [data-theme='dark'] .quiz-fact{background:#111a2a;border-color:#2c3150}
+  [data-theme='dark'] .quiz-results{background:rgba(0,0,0,0.15)}
+  [data-theme='dark'] .quiz-result-stats div{background:#111a2a;border-color:#2c3150}
+  [data-theme='dark'] .quiz-new-best{color:#4ade80}
+  @media(max-width:640px){.quiz-shell{border-radius:0}.quiz-head{padding:20px 16px 14px}.quiz-title{font-size:20px}.quiz-controls{padding:10px 16px}.quiz-stats{padding:10px 16px}.quiz-progress,.quiz-timer{margin:0 16px}.quiz-question-area{padding:20px 16px}.quiz-option{min-height:48px;padding:14px 16px}.quiz-results{padding:28px 16px;border-radius:0 0 var(--game-radius) var(--game-radius)}}
+  @media(max-width:420px){.quiz-option{min-height:46px}.quiz-q-text{font-size:16px}}
+</style>

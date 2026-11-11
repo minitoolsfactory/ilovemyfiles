@@ -55,6 +55,10 @@
     {
       "id": "seo",
       "label": "SEO tools"
+    },
+    {
+      "id": "games",
+      "label": "Games"
     }
   ],
   "TOOLS": [
@@ -4495,6 +4499,98 @@
           "data-json",
           "data-base64",
           "data-json-csv"
+        ]
+      }
+    },
+    {
+      "id": "file-memory",
+      "slug": "file-memory",
+      "section": "games",
+      "category": "games",
+      "cardTitle": "File Memory Match",
+      "cardText": "A concentration game with file-type cards. Pick a difficulty and match pairs.",
+      "tag": "BRAIN GAME",
+      "icon": "purple",
+      "svg": "<path d=\"M12 2L2 7l10 5 10-5-10-5z\"/><path d=\"M2 17l10 5 10-5\"/><path d=\"M2 12l10 5 10-5\"/>",
+      "keywords": [
+        "memory game",
+        "file types",
+        "concentration game",
+        "brain game"
+      ],
+      "seo": {
+        "title": "File Memory Match Game - Free Online Brain Game | iLoveMyFiles",
+        "description": "Play File Memory Match, a free concentration game with file-type cards. Match pairs of PDF, JPG, PNG and more - entirely in your browser, no sign-up.",
+        "intro": "Train your memory with File Memory Match. Flip cards to find matching file types across three difficulty levels. Everything runs locally in your browser.",
+        "steps": [
+          "Choose a difficulty: Easy, Medium or Hard.",
+          "Flip two cards to reveal the file-type icons.",
+          "Match identical pairs to clear the board in as few moves as possible."
+        ],
+        "faqs": [
+          [
+            "Do I need to upload files?",
+            "No. The game uses no files and runs entirely in your browser."
+          ],
+          [
+            "Can I play on mobile?",
+            "Yes. The board adapts to your screen size."
+          ],
+          [
+            "Are scores saved?",
+            "Best times and moves are kept for the current session only."
+          ]
+        ],
+        "related": [
+          "data-json",
+          "text-reverse",
+          "generate-lorem"
+        ]
+      }
+    },
+    {
+      "id": "file-format-quiz",
+      "slug": "file-format-quiz",
+      "section": "games",
+      "category": "games",
+      "cardTitle": "File Format Quiz",
+      "cardText": "Test your knowledge of file extensions, formats and icons. Three modes, 50+ questions.",
+      "tag": "QUIZ GAME",
+      "icon": "teal",
+      "svg": "<path d=\"M12 2L2 7l10 5 10-5-10-5z\"/><path d=\"M2 17l10 5 10-5\"/><path d=\"M2 12l10 5 10-5\"/><path d=\"M16 12h-4\"/><path d=\"M12 8v4\"/>",
+      "keywords": [
+        "file format quiz",
+        "file extensions",
+        "format identification",
+        "file types quiz"
+      ],
+      "seo": {
+        "title": "File Format Quiz - Test Your File Knowledge | iLoveMyFiles",
+        "description": "Play File Format Quiz and test your knowledge of file extensions, MIME types, and file formats. Three game modes, 50+ questions, runs in your browser.",
+        "intro": "How well do you know your file formats? File Format Quiz challenges you to identify extensions, match formats to descriptions, and recognize file types across multiple game modes. Runs entirely in your browser with no sign-up.",
+        "steps": [
+          "Choose a mode: Extension Match, Format Facts, or Speed Round.",
+          "Answer questions about file extensions, MIME types, and format characteristics.",
+          "Track your score and learn something new with each question."
+        ],
+        "faqs": [
+          [
+            "Do I need to upload files?",
+            "No. The quiz runs entirely in your browser with built-in questions."
+          ],
+          [
+            "How many questions are there?",
+            "Over 50 questions across three game modes, randomized each round."
+          ],
+          [
+            "Are scores saved?",
+            "Your best score for each mode is saved in the current session."
+          ]
+        ],
+        "related": [
+          "file-memory",
+          "image-convert",
+          "data-json"
         ]
       }
     }

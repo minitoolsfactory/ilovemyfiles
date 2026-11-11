@@ -9,8 +9,8 @@ const categoryCount = category => category === 'all' ? TOOLS.length
   : category === 'other-work' ? TOOLS.filter(tool => !isPdfCategory(tool.category)).length
   : TOOLS.filter(tool => tool.category === category).length;
 const categoryLabel = id => CATEGORIES.find(category => category.id === id)?.label ?? 'Utilities';
-const categoryIcon = id => ({'pdf-tools':'▤','other-work':'✦','organize-pdf':'↕','optimize-pdf':'◌','to-pdf':'＋','convert-pdf':'⇄','security-pdf':'⌑','edit-pdf':'✎',image:'▧',data:'{}',developer:'⌘',ai:'✧',seo:'⌕'})[id] ?? '•';
-const toolPath = tool => tool.section === 'tools' ? `/tools/${tool.slug}/` : `/${tool.slug}/`;
+const categoryIcon = id => ({'pdf-tools':'▤','other-work':'✦','organize-pdf':'↕','optimize-pdf':'◌','to-pdf':'＋','convert-pdf':'⇄','security-pdf':'⌑','edit-pdf':'✎',image:'▧',data:'{}',developer:'⌘',ai:'✧',seo:'⌕',games:'🎮'})[id] ?? '•';
+const toolPath = tool => tool.section === 'tools' ? `/tools/${tool.slug}/` : tool.section === 'games' ? `/games/${tool.slug}/` : `/${tool.slug}/`;
 const toolIcon = tool => `<span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24">${tool.svg}</svg></span>`;
 const searchText = tool => `${tool.cardTitle} ${tool.cardText} ${tool.keywords.join(' ')}`.toLowerCase();
 ---
@@ -30,7 +30,7 @@ const searchText = tool => `${tool.cardTitle} ${tool.cardText} ${tool.keywords.j
       <label class="directory-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input id="directory-search" type="search" placeholder="Try “reduce photo size” or “merge PDF”" aria-label="Search all tools" autocomplete="off"><kbd>/</kbd></label>
     </header>
     <div class="directory-layout">
-      <aside class="directory-sidebar" aria-label="Tool categories">
+      <aside class="directory-sidebar" id="categories" aria-label="Tool categories">
         <h2>Categories</h2>
         <button class="directory-category is-active" type="button" data-category="all" aria-pressed="true"><span class="directory-category-icon" aria-hidden="true">▦</span><span class="directory-category-name">All tools</span><small class="directory-category-count">{TOOLS.length}</small></button>
         {CATEGORIES.filter(category => category.id !== 'all').map(category => <button class="directory-category" type="button" data-category={category.id} aria-pressed="false"><span class="directory-category-icon" aria-hidden="true">{categoryIcon(category.id)}</span><span class="directory-category-name">{category.label}</span><small class="directory-category-count">{categoryCount(category.id)}</small></button>)}

@@ -1,0 +1,41 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const { title, description, canonical } = Astro.props;
+---
+<BaseLayout>
+  <Fragment slot="head">
+    <title>{title} | iLoveMyFiles</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href={`https://ilovemyfiles.com${canonical}`} />
+  </Fragment>
+  <article class="info-page">
+    <nav class="info-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">{title}</span>
+    </nav>
+    <header>
+      <p class="info-eyebrow">iLoveMyFiles</p>
+      <h1>{title}</h1>
+      <p class="info-description">{description}</p>
+    </header>
+    <div class="info-content"><slot /></div>
+  </article>
+  <style is:global>
+    .info-page{max-width:900px;margin:0 auto;padding:34px 26px 72px;color:var(--color-text-primary)}
+    .info-breadcrumb{display:flex;align-items:center;gap:9px;margin-bottom:38px;color:var(--color-text-muted);font-size:12px}
+    .info-breadcrumb a{color:var(--color-text-secondary);text-decoration:none}.info-breadcrumb a:hover{color:#2563eb}
+    .info-page header{max-width:720px;margin-bottom:34px}
+    .info-eyebrow{margin:0 0 10px;color:#315fc2;font-size:11px;font-weight:750;letter-spacing:1.3px;text-transform:uppercase}
+    .info-page h1{margin:0 0 12px;font-size:clamp(34px,5vw,48px);line-height:1.1;letter-spacing:-1.5px}
+    .info-description{margin:0;color:var(--color-text-secondary);font-size:16px;line-height:1.65}
+    .info-content{max-width:760px;color:var(--color-text-secondary);font-size:14px;line-height:1.75}
+    .info-content section{margin:26px 0}
+    .info-content h2{margin:0 0 8px;color:var(--color-text-primary);font-size:19px;line-height:1.35}
+    .info-content p{margin:8px 0}
+    .info-content ul{padding-left:22px}
+    .info-content a{color:#2563eb;text-underline-offset:3px}
+    [data-theme="dark"] .info-eyebrow,[data-theme="dark"] .info-content a{color:#93c5fd}
+    @media(max-width:600px){.info-page{padding:24px 17px 48px}.info-breadcrumb{margin-bottom:28px}.info-page h1{font-size:36px;letter-spacing:-1px}}
+  </style>
+</BaseLayout>

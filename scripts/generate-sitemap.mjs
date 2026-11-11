@@ -4,11 +4,18 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { TOOLS } = JSON.parse(fs.readFileSync(path.join(root, 'src/data/tools.json'), 'utf8'));
+const arcadeGames = JSON.parse(fs.readFileSync(path.join(root, 'src/data/arcade-games.json'), 'utf8'));
+const retiredGames = new Set(['file-memory', 'file-format-quiz']);
 const blogDir = path.join(root, 'src/data/blog');
 const blogSlugs = fs.existsSync(blogDir) ? fs.readdirSync(blogDir).filter(name => name.endsWith('.json')).map(name => name.replace(/\.json$/, '')) : [];
 const urls = [
   'https://ilovemyfiles.com/',
-  ...TOOLS.map(tool => `https://ilovemyfiles.com${tool.section === 'tools' ? `/tools/${tool.slug}/` : `/${tool.slug}/`}`),
+  'https://ilovemyfiles.com/contact/',
+  'https://ilovemyfiles.com/privacy/',
+  'https://ilovemyfiles.com/terms/',
+  ...TOOLS.filter(tool => !(tool.section === 'games' && retiredGames.has(tool.slug))).map(tool => `https://ilovemyfiles.com${tool.section === 'tools' ? `/tools/${tool.slug}/` : tool.section === 'games' ? `/games/${tool.slug}/` : `/${tool.slug}/`}`),
+  ...arcadeGames.map(game => `https://ilovemyfiles.com/games/${game.slug}/`),
+  'https://ilovemyfiles.com/games/',
   'https://ilovemyfiles.com/tools/cbse-result-analyzer/',
   'https://ilovemyfiles.com/blog/',
   ...blogSlugs.map(slug => `https://ilovemyfiles.com/blog/${slug}/`)

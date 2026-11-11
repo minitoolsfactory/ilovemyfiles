@@ -4,7 +4,7 @@
   window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
     window.iLoveMyFilesModules ??= {};
       const { formatBytes, downloadBlob, safeBaseName, updateProgress, parsePageSelection, parsePageOrder } = window.iLoveMyFilesModules['file-utils'];
-      const { convertImage, compressImage, resizeImage, rotateImage, cropImage, watermarkImage, readImageDimensions, getImageInfo } = window.iLoveMyFilesModules['image-tools'];
+      const { convertImage, compressImage, resizeImage, resizeDsssbImage, rotateImage, cropImage, watermarkImage, readImageDimensions, getImageInfo } = window.iLoveMyFilesModules['image-tools'];
       const sessionStore = window.iLoveMyFilesModules['session-store'];
       const { imagesToPdf, mergePdfs, mergePdfPages, splitPdf, deletePdfPages, rotatePdfPages, addPageNumbers, addPdfPageLabels, addPdfWatermark, loadWatermarkFont, organizePdfPages, pdfToImages, compressPdf, resizePdfPages, normalizeAngle, COMPRESSION_LEVELS, PDF_PAGE_SIZES } = window.iLoveMyFilesModules['pdf-tools'];
       const { inspectPdfMetadata, removePdfMetadata } = window.iLoveMyFilesModules['metadata-tools'];
@@ -107,7 +107,12 @@
   let imageResizeSettings = createItemSettingsStore(() => imageResizeDefaultSettings);
   let imageResizeKbDefaultSettings = { format: 'image/webp', targetKb: '100', margin: 0 };
   let imageResizeKbSettings = createItemSettingsStore(() => imageResizeKbDefaultSettings);
-  let dsssbPhotoDefaultSettings = { width: '480', height: '672', targetKb: '300', format: 'image/jpeg', margin: 0, role: 'photo' };
+  const dsssbRoleDefaults = {
+    photo: { label: 'Photograph', width: '480', height: '672', minKb: '10', maxKb: '300', targetKb: '300', dpi: '200' },
+    signature: { label: 'Signature', width: '140', height: '110', minKb: '5', maxKb: '40', targetKb: '40', dpi: '200' },
+    thumb: { label: 'Thumb impression', width: '140', height: '110', minKb: '5', maxKb: '40', targetKb: '40', dpi: '200' }
+  };
+  let dsssbPhotoDefaultSettings = { ...dsssbRoleDefaults.photo, targetKb: '300', format: 'image/jpeg', ext: 'jpg', quality: '85', fit: 'stretch', margin: 0, role: 'photo' };
   let dsssbPhotoSettings = createItemSettingsStore(() => dsssbPhotoDefaultSettings);
   let imageRotateDefaultSettings = { rotation: 0, flipH: false, flipV: false, format: 'image/png', margin: 0 };
   let imageRotateSettings = createItemSettingsStore(() => imageRotateDefaultSettings);
@@ -631,6 +636,9 @@
     ['dragleave', 'drop'].forEach(type => stage.addEventListener(type, event => { event.preventDefault(); stage.classList.remove('dragging-over'); }));
     stage.addEventListener('drop', event => addFiles([...event.dataTransfer.files]));
     runButton.addEventListener('click', runTool);
+    $('#dsssb-upload-role')?.addEventListener('change', () => {
+      if (activeTool === 'dsssb-photo-resizer') applyDsssbRole(files[previewIndex] || null);
+    });
     optionsBox.addEventListener('change', event => {
       if (fileOutputTools.has(activeTool) && event.target.id === 'font-output-format') runButton.disabled = !canRun();
     });
@@ -722,11 +730,7 @@
       if (event.target.id === 'kb-format' && activeTool === 'image-resize-kb' && files[previewIndex]) saveResizeKbSettings(files[previewIndex]);
       if (event.target.id === 'target-kb' && activeTool === 'image-resize-kb' && files[previewIndex]) saveResizeKbSettings(files[previewIndex]);
       if (['dsssb-preset','dsssb-signature-preset','dsssb-thumb-preset'].includes(event.target.id) && activeTool === 'dsssb-photo-resizer') syncDsssbRolePanels();
-      if (event.target.id === 'dsssb-upload-role' && activeTool === 'dsssb-photo-resizer') {
-        applyDsssbRole(files[previewIndex] || null);
-      }
-      if (['dsssb-width','dsssb-height','dsssb-target-kb'].includes(event.target.id) && activeTool === 'dsssb-photo-resizer' && files[previewIndex]) { if ($('#dsssb-upload-role')?.value !== 'photo') $('#dsssb-preset').value = 'custom'; saveDsssbSettings(files[previewIndex]); }
-      if (event.target.id === 'dsssb-format' && activeTool === 'dsssb-photo-resizer' && files[previewIndex]) saveDsssbSettings(files[previewIndex]);
+      if (['dsssb-width','dsssb-height','dsssb-target-kb','dsssb-dpi','dsssb-quality','dsssb-format','dsssb-fit'].includes(event.target.id) && activeTool === 'dsssb-photo-resizer' && files[previewIndex]) saveDsssbSettings(files[previewIndex]);
       if (event.target.id === 'rotate-format' && activeTool === 'image-rotate' && files[previewIndex]) saveRotateSettings(files[previewIndex]);
       if (event.target.id === 'crop-format' && activeTool === 'image-crop' && files[previewIndex]) saveCropSettings(files[previewIndex]);
       if (event.target.id === 'wm-format' && activeTool === 'image-watermark' && files[previewIndex]) saveWatermarkSettings(files[previewIndex]);
@@ -790,8 +794,11 @@
       if (event.target.id === 'resize-width' || event.target.id === 'resize-height') { updateResizeDimension(event.target.id); if (activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]); }
       if (event.target.id === 'resize-format' && activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]);
       if (event.target.id === 'target-kb' && activeTool === 'image-resize-kb' && files[previewIndex]) saveResizeKbSettings(files[previewIndex]);
-      if (['dsssb-width','dsssb-height','dsssb-target-kb'].includes(event.target.id) && activeTool === 'dsssb-photo-resizer' && files[previewIndex]) { if ($('#dsssb-upload-role')?.value !== 'photo') $('#dsssb-preset').value = 'custom'; saveDsssbSettings(files[previewIndex]); }
-      if (event.target.id === 'dsssb-format' && activeTool === 'dsssb-photo-resizer' && files[previewIndex]) saveDsssbSettings(files[previewIndex]);
+      if (event.target.id === 'dsssb-quality') {
+        const qualityValue = $('#dsssb-quality-value');
+        if (qualityValue) qualityValue.textContent = `${event.target.value}%`;
+      }
+      if (['dsssb-width','dsssb-height','dsssb-target-kb','dsssb-dpi','dsssb-quality','dsssb-format','dsssb-fit'].includes(event.target.id) && activeTool === 'dsssb-photo-resizer' && files[previewIndex]) saveDsssbSettings(files[previewIndex]);
       if (event.target.id === 'keep-ratio' && activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]);
       if (event.target.id === 'image-resize-margin' && activeTool === 'image-resize' && files[previewIndex]) saveResizeSettings(files[previewIndex]);
       if (event.target.id === 'rotate-format' && activeTool === 'image-rotate' && files[previewIndex]) saveRotateSettings(files[previewIndex]);
@@ -1233,7 +1240,8 @@
     } else if (activeTool === 'dsssb-photo-resizer') {
       plan.format = formatLabel(settings.format);
       plan.dimensions = `${settings.width} × ${settings.height} px`;
-      plan.note = `Target ~${settings.targetKb} KB`;
+      const fit = settings.fit === 'cover' ? 'fill and crop' : settings.fit === 'contain' ? 'fit inside with padding' : 'stretch to exact size';
+      plan.note = `Max ${settings.targetKb} KB · ${settings.dpi} DPI · ${settings.quality}% quality · ${fit}`;
     } else if (activeTool === 'image-compress') {
       plan.format = formatLabel(settings.format);
       plan.note = settings.mode === 'target' ? `Target ~${settings.targetKb} KB` : `Quality ${settings.quality}%`;
@@ -2036,7 +2044,16 @@
       else if (activeTool === 'dsssb-photo-resizer') {
         const key = fileKey(file);
         const s = dsssbPhotoSettings.get(key) || dsssbPhotoDefaultSettings;
-        result = await resizeImage(file, Number(s.width), Number(s.height), true, s.format, s.margin, null);
+        result = await resizeDsssbImage(file, {
+          width: s.width,
+          height: s.height,
+          minKb: dsssbRoleDefaults[s.role || 'photo']?.minKb || dsssbRoleDefaults.photo.minKb,
+          targetKb: s.targetKb,
+          type: s.format,
+          dpi: s.dpi,
+          quality: s.quality,
+          fit: s.fit
+        });
       }
       else if (activeTool === 'image-compress') {
         const key = fileKey(file);
@@ -2067,6 +2084,9 @@
       if (result) {
         cacheImagePreview(cacheKey, result);
         ws.setImageProcessed({ blob: result.blob, details: result.details, cacheKey });
+        if (activeTool === 'dsssb-photo-resizer') {
+          showStatus(result.withinSizeLimits ? 'Preview is within the selected file-size range.' : result.details, result.withinSizeLimits ? 'success' : 'warning');
+        }
         const saved = file.size && result.blob.size ? Math.round((1 - result.blob.size / file.size) * 100) : 0;
         const savedText = saved > 0 ? ` · ${saved}% smaller` : (saved < 0 ? ` · ${Math.abs(saved)}% larger` : '');
         const transformText = activeTool === 'image-rotate'
@@ -2162,7 +2182,11 @@
     if (tool === 'image-compress') { imageCompressSettings.clear(); imageCompressDefaultSettings = { format: 'image/webp', mode: 'quality', quality: '78', targetKb: '200' }; }
     if (tool === 'image-resize') { imageResizeSettings.clear(); imageResizeDefaultSettings = { width: '1200', height: '1200', keepRatio: true, format: 'image/webp', margin: 0 }; }
     if (tool === 'image-resize-kb') { imageResizeKbSettings.clear(); imageResizeKbDefaultSettings = { format: 'image/webp', targetKb: '100', margin: 0 }; }
-    if (tool === 'dsssb-photo-resizer') { dsssbPhotoSettings.clear(); dsssbPhotoDefaultSettings = { width: '480', height: '672', targetKb: '300', format: 'image/jpeg', margin: 0, role: 'photo' }; syncDsssbRolePanels(); }
+    if (tool === 'dsssb-photo-resizer') {
+      dsssbPhotoSettings.clear();
+      dsssbPhotoDefaultSettings = { ...dsssbRoleDefaults.photo, targetKb: '300', format: 'image/jpeg', ext: 'jpg', quality: '85', fit: 'stretch', margin: 0, role: 'photo' };
+      syncDsssbRolePanels();
+    }
     if (tool === 'image-rotate') { imageRotateSettings.clear(); imageRotateDefaultSettings = { rotation: 0, flipH: false, flipV: false, format: 'image/png', margin: 0 }; }
     if (tool === 'image-crop') { imageCropSettings.clear(); imageCropDefaultSettings = { format: 'image/png', margin: 0 }; }
     if (tool === 'image-watermark') { imageWatermarkSettings.clear(); imageWatermarkDefaultSettings = { text: '© iLoveMyFiles', position: 'bottom-right', color: '#ffffff', opacity: '0.6', size: '6', format: 'image/png' }; }
@@ -2214,13 +2238,22 @@
     if (dsssbRoleSelect) dsssbRoleSelect.value = 'photo';
     if (dsssbRolePanel) dsssbRolePanel.hidden = tool !== 'dsssb-photo-resizer';
     if (tool === 'dsssb-photo-resizer') {
-      const roleSettings = { role:'photo', width:'480', height:'672', targetKb:'300', format:'image/jpeg', ext:'jpg', preset:'photo480x672', margin:0 };
+      const roleSettings = { ...dsssbRoleDefaults.photo, role:'photo', format:'image/jpeg', ext:'jpg', quality:'85', fit:'stretch', margin:0 };
       dsssbPhotoSettings.clear();
       dsssbPhotoDefaultSettings = { ...roleSettings };
       const width = $('#dsssb-width'); if (width) width.value = roleSettings.width;
       const height = $('#dsssb-height'); if (height) height.value = roleSettings.height;
       const target = $('#dsssb-target-kb'); if (target) target.value = roleSettings.targetKb;
-      const preset = $('#dsssb-preset'); if (preset) preset.value = roleSettings.preset;
+      const dpi = $('#dsssb-dpi'); if (dpi) dpi.value = roleSettings.dpi;
+      const quality = $('#dsssb-quality'); if (quality) quality.value = roleSettings.quality;
+      const fit = $('#dsssb-fit'); if (fit) fit.value = roleSettings.fit;
+      const format = $('#dsssb-format'); if (format) format.value = roleSettings.format;
+      const targetMin = $('#dsssb-target-kb');
+      if (targetMin) {
+        targetMin.min = roleSettings.minKb;
+        targetMin.max = roleSettings.maxKb;
+      }
+      const qualityValue = $('#dsssb-quality-value'); if (qualityValue) qualityValue.textContent = `${roleSettings.quality}%`;
       syncDsssbRolePanels();
     }
     const jwtInput = $('#jwt-input');
@@ -2402,8 +2435,9 @@
       valid.forEach(file => {
         const key = fileKey(file);
         const selectedRole = $('#dsssb-upload-role')?.value || 'photo';
-        const defaults = selectedRole === 'photo' ? { role:'photo',width:'480',height:'672',targetKb:'300',format:'image/jpeg',ext:'jpg',preset:'photo480x672' } : selectedRole === 'signature' ? { role:'signature',width:'110',height:'140',targetKb:'40',format:'image/jpeg',ext:'jpg',preset:'signature-reference' } : { role:'thumb',width:'110',height:'140',targetKb:'40',format:'image/jpeg',ext:'jpg',preset:'thumb-reference' };
-        dsssbPhotoSettings.set(key, defaults);
+        const defaults = dsssbRoleDefaults[selectedRole] || dsssbRoleDefaults.photo;
+        const settings = { ...defaults, role: selectedRole, format: 'image/jpeg', ext: 'jpg', quality: '85', fit: 'stretch', margin: 0 };
+        dsssbPhotoSettings.set(key, settings);
       });
       if (files.length) syncDsssbSettings(files[previewIndex]);
     }
@@ -3130,12 +3164,11 @@
     const heightInput = $('#dsssb-height');
     const targetInput = $('#dsssb-target-kb');
     const formatSelect = $('#dsssb-format');
+    const dpiInput = $('#dsssb-dpi');
+    const qualityInput = $('#dsssb-quality');
+    const fitSelect = $('#dsssb-fit');
     const role = s.role || 'photo';
-    const roleDefaults = role === 'photo'
-      ? { width:'480', height:'672', targetKb:'300', preset:'photo480x672', format:'image/jpeg', ext:'jpg' }
-      : role === 'signature'
-        ? { width:'110', height:'140', targetKb:'40', preset:'signature-reference', format:'image/jpeg', ext:'jpg' }
-        : { width:'110', height:'140', targetKb:'40', preset:'thumb-reference', format:'image/jpeg', ext:'jpg' };
+    const roleDefaults = dsssbRoleDefaults[role] || dsssbRoleDefaults.photo;
     const photoOptions = $('#dsssb-photo-options');
     const signatureOptions = $('#dsssb-signature-options');
     const thumbOptions = $('#dsssb-thumb-options');
@@ -3145,61 +3178,80 @@
     if (widthInput) widthInput.value = s.width || roleDefaults.width;
     if (heightInput) heightInput.value = s.height || roleDefaults.height;
     if (targetInput) targetInput.value = s.targetKb || roleDefaults.targetKb;
+    if (dpiInput) dpiInput.value = s.dpi || roleDefaults.dpi;
+    if (qualityInput) qualityInput.value = s.quality || '85';
+    if (fitSelect) fitSelect.value = s.fit || 'stretch';
+    const qualityValue = $('#dsssb-quality-value');
+    if (qualityValue && qualityInput) qualityValue.textContent = `${qualityInput.value}%`;
     const roleSelect = $('#dsssb-upload-role');
     if (roleSelect) roleSelect.value = s.role || 'photo';
     syncDsssbRolePanels();
     if (formatSelect) {
       for (const opt of formatSelect.options) { opt.selected = opt.value === (s.format || roleDefaults.format) && (opt.dataset.ext || '') === (s.ext || roleDefaults.ext); }
     }
+    syncDsssbRolePanels();
     schedulePreviewUpdate();
   }
 
   function syncDsssbRolePanels() {
     if (activeTool !== 'dsssb-photo-resizer') return;
     const role = $('#dsssb-upload-role')?.value || 'photo';
-    const knownRoleDefaults = role === 'photo'
-      ? { width:'480',height:'672',targetKb:'300',preset:'photo480x672',format:'image/jpeg',ext:'jpg' }
-      : role === 'signature'
-        ? { width:'110',height:'140',targetKb:'40',preset:'signature-reference',format:'image/jpeg',ext:'jpg' }
-        : { width:'110',height:'140',targetKb:'40',preset:'thumb-reference',format:'image/jpeg',ext:'jpg' };
-    const photoPreset = $('#dsssb-preset'); if (photoPreset && role === 'photo') photoPreset.value = knownRoleDefaults.preset;
-    const format = $('#dsssb-format');
-    if (format) { const jpg = [...format.options].find(option => option.value === 'image/jpeg' && option.dataset.ext === 'jpg'); if (jpg) { format.value = jpg.value; jpg.selected = true; } }
+    const knownRoleDefaults = dsssbRoleDefaults[role] || dsssbRoleDefaults.photo;
     const photoOptions = $('#dsssb-photo-options');
     const signatureOptions = $('#dsssb-signature-options');
     const thumbOptions = $('#dsssb-thumb-options');
     const help = $('#dsssb-role-help');
     const sizeSummary = $('#dsssb-role-size-summary');
+    const settingsNote = $('#dsssb-settings-note');
     if (photoOptions) photoOptions.hidden = role !== 'photo';
     if (signatureOptions) signatureOptions.hidden = role !== 'signature';
     if (thumbOptions) thumbOptions.hidden = role !== 'thumb';
-    const width = $('#dsssb-width'); if (width && (!width.value || width.value === '480' || width.value === '110')) width.value = knownRoleDefaults.width;
-    const height = $('#dsssb-height'); if (height && (!height.value || height.value === '672' || height.value === '140')) height.value = knownRoleDefaults.height;
-    const target = $('#dsssb-target-kb'); if (target && (!target.value || target.value === '300' || target.value === '40')) target.value = knownRoleDefaults.targetKb;
-    if (sizeSummary) sizeSummary.textContent = `${knownRoleDefaults.width} × ${knownRoleDefaults.height} px · max ${knownRoleDefaults.targetKb} KB (JPEG/JPG) · reference preset`;
+    const width = $('#dsssb-width')?.value || knownRoleDefaults.width;
+    const height = $('#dsssb-height')?.value || knownRoleDefaults.height;
+    const target = $('#dsssb-target-kb')?.value || knownRoleDefaults.targetKb;
+    const dpi = $('#dsssb-dpi')?.value || knownRoleDefaults.dpi;
+    const targetInput = $('#dsssb-target-kb');
+    if (targetInput) {
+      targetInput.min = knownRoleDefaults.minKb;
+      targetInput.max = knownRoleDefaults.maxKb;
+    }
+    const format = $('#dsssb-format');
+    const selectedFormat = format?.selectedOptions[0]?.textContent?.trim() || 'JPG';
+    const fitMode = $('#dsssb-fit')?.value;
+    const fit = fitMode === 'cover' ? 'fill and crop edges' : fitMode === 'contain' ? 'fit inside with padding' : 'stretch to exact size';
+    if (sizeSummary) {
+      sizeSummary.textContent = `Reference for ${knownRoleDefaults.label.toLowerCase()}: ${knownRoleDefaults.width} × ${knownRoleDefaults.height} px · ${knownRoleDefaults.minKb}–${knownRoleDefaults.maxKb} KB · ${knownRoleDefaults.dpi} DPI. Current output: ${width} × ${height} px · ${knownRoleDefaults.minKb}–${target} KB · ${dpi} DPI · ${selectedFormat} · ${fit}.`;
+    }
+    if (settingsNote) {
+      settingsNote.textContent = `The minimum is ${knownRoleDefaults.minKb} KB; choose a maximum from ${knownRoleDefaults.minKb} to ${knownRoleDefaults.maxKb} KB. JPG/WebP quality is adjusted to try to meet both limits. Exact dimensions and lossless PNG may make a size range impossible; the preview and result will warn if so. Confirm requirements against the current DSSSB notice.`;
+    }
     if (help) help.textContent = role === 'photo'
-      ? 'The photo preset is based on supplied guidance. Verify dimensions and size with your current official DSSSB notice.'
+      ? 'Use these as reference defaults only. Verify the current official DSSSB notice before submitting.'
       : role === 'signature'
-        ? 'Using the supplied third-party signature reference (110 × 140 px, up to 40 KB). Verify the current official DSSSB notice before submitting.'
-        : 'Using the supplied third-party thumb reference (110 × 140 px, up to 40 KB). Verify the current official DSSSB notice before submitting.';
+        ? 'Use these as reference defaults only. Verify the current official DSSSB notice before submitting.'
+        : 'Use these as reference defaults only. Verify the current official DSSSB notice before submitting.';
   }
 
   function saveDsssbSettings(file) {
     if (activeTool !== 'dsssb-photo-resizer' || !file) return;
     const key = fileKey(file);
+    const role = $('#dsssb-upload-role')?.value || 'photo';
+    const roleDefaults = dsssbRoleDefaults[role] || dsssbRoleDefaults.photo;
     const formatSelect = $('#dsssb-format');
     const opt = formatSelect?.options[formatSelect?.selectedIndex || 0];
-    const presetSelect = $('#dsssb-preset');
-      dsssbPhotoSettings.set(key, {
-        width: $('#dsssb-width')?.value ?? '',
-        height: $('#dsssb-height')?.value ?? '',
-        targetKb: $('#dsssb-target-kb')?.value ?? '',
-        format: formatSelect?.value || 'image/jpeg',
-        ext: opt?.dataset.ext || null,
-        preset: ($('#dsssb-upload-role')?.value || 'photo') === 'photo' ? (presetSelect?.value || 'photo480x672') : 'custom',
-        role: $('#dsssb-upload-role')?.value || 'photo',
+    dsssbPhotoSettings.set(key, {
+      width: $('#dsssb-width')?.value ?? '',
+      height: $('#dsssb-height')?.value ?? '',
+      targetKb: $('#dsssb-target-kb')?.value ?? '',
+      dpi: $('#dsssb-dpi')?.value ?? roleDefaults.dpi,
+      quality: $('#dsssb-quality')?.value ?? '85',
+      fit: $('#dsssb-fit')?.value || 'stretch',
+      format: formatSelect?.value || 'image/jpeg',
+      ext: opt?.dataset.ext || null,
+      role,
       margin: 0
     });
+    syncDsssbRolePanels();
     imageOutput.delete(key);
     updateImageInfo();
     schedulePersist();
@@ -3489,67 +3541,76 @@
     return option ? (option.dataset.ext || null) : null;
   }
   
-  function applyDsssbPreset(file) {
-    if (activeTool !== 'dsssb-photo-resizer' || !file) return;
-    if (($('#dsssb-upload-role')?.value || 'photo') !== 'photo') return;
-    const preset = 'photo480x672';
-    const widths = { photo480x672: '480' };
-    const heights = { photo480x672: '672' };
-    const width = widths[preset];
-    const height = heights[preset];
-    if (width) $('#dsssb-width').value = width;
-    if (height) $('#dsssb-height').value = height;
-    const role = $('#dsssb-upload-role')?.value || 'photo';
-    $('#dsssb-target-kb').value = '300';
-    if (file && width && height) {
-      const key = fileKey(file);
-      const s = dsssbPhotoSettings.get(key) || dsssbPhotoDefaultSettings;
-      dsssbPhotoSettings.set(key, { ...s, width, height, role, preset });
-      imageOutput.delete(fileKey(file));
-      updateImageInfo();
-      schedulePreviewUpdate(0);
-    }
-  }
-
   function applyDsssbRole(file) {
     if (activeTool !== 'dsssb-photo-resizer') return;
     const role = $('#dsssb-upload-role')?.value || 'photo';
-    const presetValue = role === 'photo' ? 'photo480x672' : role === 'signature' ? 'signature-reference' : 'thumb-reference';
-    const width = role === 'photo' ? '480' : '110';
-    const height = role === 'photo' ? '672' : '140';
-    const targetKb = role === 'photo' ? '300' : '40';
+    const defaults = dsssbRoleDefaults[role] || dsssbRoleDefaults.photo;
     const widthInput = $('#dsssb-width');
     const heightInput = $('#dsssb-height');
     const targetInput = $('#dsssb-target-kb');
-    if (widthInput && (!widthInput.value || widthInput.value === '480' || widthInput.value === '110')) widthInput.value = width;
-    if (heightInput && (!heightInput.value || heightInput.value === '672' || heightInput.value === '140')) heightInput.value = height;
-    if (targetInput && (!targetInput.value || targetInput.value === '300' || targetInput.value === '40')) targetInput.value = targetKb;
+    if (widthInput) widthInput.value = defaults.width;
+    if (heightInput) heightInput.value = defaults.height;
+    if (targetInput) targetInput.value = defaults.targetKb;
+    const dpiInput = $('#dsssb-dpi');
+    const qualityInput = $('#dsssb-quality');
+    const fitSelect = $('#dsssb-fit');
+    const formatSelect = $('#dsssb-format');
+    if (dpiInput) dpiInput.value = defaults.dpi;
+    if (qualityInput) qualityInput.value = '85';
+    if (fitSelect) fitSelect.value = 'stretch';
+    const jpgOption = formatSelect && [...formatSelect.options].find(option => option.value === 'image/jpeg' && option.dataset.ext === 'jpg');
+    if (formatSelect && jpgOption) formatSelect.value = jpgOption.value;
+    const qualityValue = $('#dsssb-quality-value');
+    if (qualityValue) qualityValue.textContent = '85%';
+    if (targetInput) {
+      targetInput.min = defaults.minKb;
+      targetInput.max = defaults.maxKb;
+    }
     syncDsssbRolePanels();
-    if (!file) return;
+    if (!file) {
+      schedulePreviewUpdate(0);
+      return;
+    }
     const key = fileKey(file);
     const s = dsssbPhotoSettings.get(key) || dsssbPhotoDefaultSettings;
-    dsssbPhotoSettings.set(key, { ...s, role, width: widthInput.value, height: heightInput.value, targetKb: targetInput.value, preset: presetValue });
+    const formatOption = formatSelect?.options[formatSelect.selectedIndex];
+    dsssbPhotoSettings.set(key, {
+      ...s,
+      role,
+      width: widthInput?.value || defaults.width,
+      height: heightInput?.value || defaults.height,
+      targetKb: targetInput?.value || defaults.targetKb,
+      dpi: dpiInput?.value || defaults.dpi,
+      quality: qualityInput?.value || '85',
+      fit: fitSelect?.value || 'stretch',
+      format: formatSelect?.value || 'image/jpeg',
+      ext: formatOption?.dataset.ext || 'jpg'
+    });
     imageOutput.delete(key);
     updateImageInfo();
     schedulePreviewUpdate(0);
-    syncDsssbRolePanels();
     hideDsssbSizeWarn();
-    checkDsssbRoleSizeMatch(file);
   }
 
-  async function validateDsssbUpload(file, settings) {
+  function validateDsssbUpload(file, settings) {
     const role = settings.role || 'photo';
     const width = Number(settings.width), height = Number(settings.height), targetKb = Number(settings.targetKb);
+    const dpi = Number(settings.dpi);
+    const quality = Number(settings.quality);
     const roleLabel = role === 'photo' ? 'DSSSB photo' : role === 'signature' ? 'DSSSB signature' : 'DSSSB thumb impression';
-    if (!width || !height || !targetKb) throw new Error(`Enter the current notice's width, height and maximum KB for the ${roleLabel.toLowerCase()} before processing.`);
+    const roleDefaults = dsssbRoleDefaults[role] || dsssbRoleDefaults.photo;
+    if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 20000 || height > 20000 || width * height > 16777216) throw new Error(`Enter valid output dimensions for the ${roleLabel.toLowerCase()}. The combined output size must not exceed 16 megapixels.`);
+    if (!Number.isFinite(targetKb) || targetKb < Number(roleDefaults.minKb) || targetKb > Number(roleDefaults.maxKb)) throw new Error(`Enter a maximum file size between ${roleDefaults.minKb} KB and ${roleDefaults.maxKb} KB for the ${roleLabel.toLowerCase()}.`);
+    if (!Number.isInteger(dpi) || dpi < 1 || dpi > 1200) throw new Error('DPI must be a whole number between 1 and 1,200.');
+    if (!Number.isFinite(quality) || quality < 20 || quality > 100) throw new Error('Quality must be between 20% and 100%.');
     if (!['image/jpeg','image/png','image/webp'].includes(settings.format)) throw new Error(`${roleLabel} output format is unsupported.`);
-    return { width, height, targetKb };
+    if (!['stretch','cover','contain'].includes(settings.fit)) throw new Error('Choose how the image should fit the output dimensions.');
+    return { width, height, minKb: Number(roleDefaults.minKb), targetKb, dpi, quality, fit: settings.fit };
   }
 
   function dsssbExpectedSize(role) {
-    if (role === 'photo') return { width: 480, height: 672 };
-    if (role === 'signature') return { width: 110, height: 140 };
-    return { width: 110, height: 140 };
+    const defaults = dsssbRoleDefaults[role] || dsssbRoleDefaults.photo;
+    return { width: Number(defaults.width), height: Number(defaults.height) };
   }
 
   function hideDsssbSizeWarn() {
@@ -3569,21 +3630,6 @@
       const info = await getImageInfo(file);
       const actualW = Number(info.width), actualH = Number(info.height);
       if (!actualW || !actualH) return;
-      let detectedRole = null;
-      if (actualW === 480 && actualH === 672) {
-        detectedRole = 'photo';
-      } else if (actualW === 110 && actualH === 140) {
-        detectedRole = (currentRole === 'signature') ? 'signature' : 'thumb';
-      } else if (actualW >= 200 || actualH >= 200) {
-        detectedRole = 'photo';
-      } else {
-        detectedRole = (currentRole === 'signature' || currentRole === 'thumb') ? currentRole : 'thumb';
-      }
-      if (detectedRole && detectedRole !== currentRole && roleSelect) {
-        roleSelect.value = detectedRole;
-        applyDsssbRole(file);
-        return;
-      }
       const expected = dsssbExpectedSize(currentRole);
       if (actualW !== expected.width || actualH !== expected.height) {
         const roleLabel = currentRole === 'photo' ? 'Photograph' : currentRole === 'signature' ? 'Signature' : 'Thumb impression';
@@ -4271,7 +4317,13 @@
           const key = fileKey(file);
           const s = dsssbPhotoSettings.get(key) || dsssbPhotoDefaultSettings;
           const verified = validateDsssbUpload(file, s);
-          return resizeImage(file, verified.width, verified.height, true, s.format, s.margin, s.ext || null);
+          return resizeDsssbImage(file, {
+            ...verified,
+            type: s.format,
+            dpi: s.dpi,
+            quality: s.quality,
+            fit: s.fit
+          });
         });
       } else if (activeTool === 'image-rotate') {
         outputs = await processMany(file => {
@@ -4439,7 +4491,8 @@ const fontKey = WM_FONTS[selectedFont]?.googleFamily
       }
       setProgress({ percent: 100, label: 'Done' });
       renderResults(outputs);
-      showStatus('Finished. Your files are ready to download.', 'success');
+      const sizeRangeMiss = activeTool === 'dsssb-photo-resizer' && outputs.find(output => output.withinSizeLimits === false);
+      showStatus(sizeRangeMiss ? `Size range not met. ${sizeRangeMiss.details}` : 'Finished. Your files are ready to download.', sizeRangeMiss ? 'warning' : 'success');
       revealResults();
     } catch (error) {
       showStatus(error?.message || 'Something went wrong while processing the files.', 'error');

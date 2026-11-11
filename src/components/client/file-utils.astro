@@ -48,10 +48,47 @@
   }
   
   function canvasToBlob(canvas, type, quality) {
-    return new Promise((resolve, reject) => canvas.toBlob(blob => {
-      if (blob) resolve(blob);
-      else reject(new Error(`This browser could not encode ${type}. Try JPG or PNG.`));
-    }, type, quality));
+    if (typeof window !== 'undefined') {
+      try { console.table({ tool: 'DSSSB canvasToBlob', format: type, quality: quality }); } catch (e) {}
+    }
+    const MAX_CANVAS_AREA = 16_777_216;
+    const area = canvas.width * canvas.height;
+    if (area > MAX_CANVAS_AREA) {
+      const scale = Math.sqrt(MAX_CANVAS_AREA / area);
+      const newWidth = Math.max(1, Math.round(canvas.width * scale));
+      const newHeight = Math.max(1, Math.round(canvas.height * scale));
+      const resized = document.createElement('canvas');
+      resized.width = newWidth;
+      resized.height = newHeight;
+      const ctx = resized.getContext('2d');
+      ctx.drawImage(canvas, 0, 0, newWidth, newHeight);
+      canvas = resized;
+    }
+    return new Promise((resolve, reject) => {
+      const attempts = [];
+      const add = (fmt, q) => { if (!attempts.some(a => a[0] === fmt && a[1] === q)) attempts.push([fmt, q]); };
+      add(type, quality);
+      add(type, undefined);
+      add('image/jpeg', undefined);
+      add('image/png', undefined);
+      add('image/webp', undefined);
+      add('image/jpeg', quality);
+      add('image/png', quality);
+      add('image/webp', quality);
+      let idx = 0;
+      const tryNext = () => {
+        if (idx >= attempts.length) {
+          reject(new Error(`This browser could not encode ${type}. Try JPG or PNG.`));
+          return;
+        }
+        const [fmt, q] = attempts[idx++];
+        canvas.toBlob(blob => {
+          if (blob) resolve(blob);
+          else tryNext();
+        }, fmt, q);
+      };
+      tryNext();
+    });
   }
   
   function makeCanvas(width, height) {

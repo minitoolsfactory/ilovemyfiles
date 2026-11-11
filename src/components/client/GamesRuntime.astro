@@ -1,0 +1,14 @@
+---
+import GameTools from './game-tools.astro';
+---
+<GameTools />
+<div id="game-root"></div>
+<script>
+  window.iLoveMyFilesModulesReady.then(() => {
+    const module = window.iLoveMyFilesModules?.['game-tools'];
+    const root = document.getElementById('game-root');
+    if (module && root) {
+      module.init({ container: root, difficulty: 'medium', theme: 'files' });
+    }
+  });
+</script>

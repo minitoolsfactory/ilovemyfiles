@@ -38,15 +38,15 @@ function renderStructure(value, rootName) {
 }
 
 export function getStaticPaths() {
-  return toolData.TOOLS.map(tool => ({
+  return toolData.TOOLS.filter(tool => tool.section !== 'games').map(tool => ({
     params: { slug: tool.section === 'tools' ? `tools/${tool.slug}` : tool.slug }
   }));
 }
 
-const slug = Astro.params.slug;
-const isNestedToolRoute = String(slug ?? '').startsWith('tools/');
-const normalizedSlug = String(slug ?? '').replace(/^tools\//, '');
-const tool = TOOLS.find(item => item.slug === normalizedSlug);
+const slug = String(Astro.params.slug ?? '');
+const isNestedToolRoute = slug.startsWith('tools/');
+const normalizedSlug = slug.replace(/^tools\//, '');
+const tool = TOOLS.find(item => item.slug === normalizedSlug && item.section !== 'games');
 const routePath = isNestedToolRoute ? `/tools/${normalizedSlug}/` : `/${normalizedSlug}/`;
 const schemaPreview = tool?.id === 'json-typescript' ? renderStructure({
   candidate: { id: 123, displayName: 'Avery Example', active: true, roles: ['editor', 'reviewer'], profile: { country: 'IN', verified: false } },

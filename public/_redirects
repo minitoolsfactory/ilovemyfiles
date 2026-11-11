@@ -18,3 +18,7 @@
 /robots-txt-validator/ /tools/robots-txt-validator/ 301
 /xml-sitemap-validator /tools/xml-sitemap-validator/ 301
 /xml-sitemap-validator/ /tools/xml-sitemap-validator/ 301
+/tools/file-memory /games/file-memory/ 301
+/tools/file-memory/ /games/file-memory/ 301
+/tools/file-format-quiz /games/file-format-quiz/ 301
+/tools/file-format-quiz/ /games/file-format-quiz/ 301

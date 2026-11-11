@@ -9,6 +9,241 @@
     'image/gif': 'gif', 'image/x-icon': 'ico', 'image/svg+xml': 'svg', 'image/tiff': 'tiff'
   };
   function extensionFor(type) { return FORMATS[type] || 'webp'; }
+
+  function pngChunk(type, data) {
+    const typeBytes = new TextEncoder().encode(type);
+    const chunk = new Uint8Array(12 + data.length);
+    const view = new DataView(chunk.buffer);
+    view.setUint32(0, data.length);
+    chunk.set(typeBytes, 4);
+    chunk.set(data, 8);
+    let crc = 0xffffffff;
+    for (let i = 4; i < 8 + data.length; i++) {
+      crc ^= chunk[i];
+      for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+    }
+    view.setUint32(8 + data.length, (crc ^ 0xffffffff) >>> 0);
+    return chunk;
+  }
+
+  async function addDpiMetadata(blob, dpi) {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const density = Math.max(1, Math.min(1200, Math.round(Number(dpi) || 300)));
+
+    if (blob.type === 'image/jpeg') {
+      let offset = 2;
+      while (offset + 4 < bytes.length && bytes[offset] === 0xff) {
+        const marker = bytes[offset + 1];
+        if (marker === 0xda) break;
+        const segmentLength = (bytes[offset + 2] << 8) | bytes[offset + 3];
+        if (segmentLength < 2 || offset + 2 + segmentLength > bytes.length) break;
+        if (
+          marker === 0xe0 &&
+          bytes[offset + 4] === 0x4a &&
+          bytes[offset + 5] === 0x46 &&
+          bytes[offset + 6] === 0x49 &&
+          bytes[offset + 7] === 0x46 &&
+          bytes[offset + 8] === 0
+        ) {
+          bytes[offset + 11] = 1;
+          bytes[offset + 12] = density >> 8;
+          bytes[offset + 13] = density & 0xff;
+          bytes[offset + 14] = density >> 8;
+          bytes[offset + 15] = density & 0xff;
+          return new Blob([bytes], { type: blob.type });
+        }
+        offset += 2 + segmentLength;
+      }
+
+      const segment = new Uint8Array([
+        0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01,
+        0x01, 0x01, density >> 8, density & 0xff, density >> 8, density & 0xff,
+        0x00, 0x00
+      ]);
+      const output = new Uint8Array(bytes.length + segment.length);
+      output.set(bytes.subarray(0, 2));
+      output.set(segment, 2);
+      output.set(bytes.subarray(2), 2 + segment.length);
+      return new Blob([output], { type: blob.type });
+    }
+
+    if (blob.type === 'image/png') {
+      const pixelsPerMeter = Math.round(density / 0.0254);
+      const physicalData = new Uint8Array(9);
+      const physicalView = new DataView(physicalData.buffer);
+      physicalView.setUint32(0, pixelsPerMeter);
+      physicalView.setUint32(4, pixelsPerMeter);
+      physicalData[8] = 1;
+      const physicalChunk = pngChunk('pHYs', physicalData);
+      const chunks = [bytes.subarray(0, 8)];
+      let inserted = false;
+      for (let offset = 8; offset + 12 <= bytes.length;) {
+        const length = new DataView(bytes.buffer, bytes.byteOffset + offset, 4).getUint32(0);
+        const end = offset + length + 12;
+        if (end > bytes.length) return blob;
+        const type = new TextDecoder().decode(bytes.subarray(offset + 4, offset + 8));
+        if (type === 'IDAT' && !inserted) {
+          chunks.push(physicalChunk);
+          inserted = true;
+        }
+        if (type !== 'pHYs') chunks.push(bytes.subarray(offset, end));
+        offset = end;
+      }
+      if (inserted) return new Blob(chunks, { type: blob.type });
+    }
+
+    return blob;
+  }
+
+  async function resizeDsssbImage(file, options = {}) {
+    const width = Math.round(Number(options.width));
+    const height = Math.round(Number(options.height));
+    const minKb = Number(options.minKb);
+    const maxKb = Number(options.targetKb);
+    const dpi = Math.round(Number(options.dpi));
+    const quality = Math.max(20, Math.min(100, Number(options.quality) || 85));
+    const type = options.type || 'image/jpeg';
+    const fit = ['stretch', 'cover', 'contain'].includes(options.fit) ? options.fit : 'stretch';
+    const maxPixels = 16_777_216;
+
+    if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 20000 || height > 20000 || width * height > maxPixels) {
+      throw new Error('Enter valid output dimensions. The combined output size must not exceed 16 megapixels.');
+    }
+    if (!Number.isFinite(minKb) || minKb < 1 || !Number.isFinite(maxKb) || maxKb < minKb || maxKb > 50000) {
+      throw new Error('Enter a maximum file size between 1 KB and 50,000 KB.');
+    }
+    if (!Number.isFinite(dpi) || dpi < 1 || dpi > 1200) {
+      throw new Error('Enter a DPI value between 1 and 1,200.');
+    }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(type)) {
+      throw new Error('Choose JPG, PNG, or WebP as the output format.');
+    }
+
+    const image = await loadImage(file);
+    const canvas = makeCanvas(width, height);
+    const opaque = type === 'image/jpeg';
+    const context = canvas.getContext('2d', { alpha: !opaque });
+    if (opaque) {
+      context.fillStyle = '#fff';
+      context.fillRect(0, 0, width, height);
+    }
+    if (fit === 'stretch') {
+      context.drawImage(image, 0, 0, width, height);
+    } else {
+      const scale = fit === 'cover'
+        ? Math.max(width / image.naturalWidth, height / image.naturalHeight)
+        : Math.min(width / image.naturalWidth, height / image.naturalHeight);
+      const drawWidth = image.naturalWidth * scale;
+      const drawHeight = image.naturalHeight * scale;
+      context.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+    }
+
+    const minBytes = Math.ceil(minKb * 1024);
+    const maxBytes = Math.floor(maxKb * 1024);
+    const isLossy = type === 'image/jpeg' || type === 'image/webp';
+    const encode = async (value) => {
+      let output = await canvasToBlob(canvas, type, value);
+      const actualType = output.type || type;
+      if (actualType === 'image/jpeg' || actualType === 'image/png') {
+        output = await addDpiMetadata(output, dpi);
+      }
+      return { blob: output, actualType: output.type || actualType };
+    };
+    let chosenQuality = isLossy ? quality / 100 : null;
+    let { blob, actualType } = await encode(chosenQuality);
+
+    if (isLossy && blob.size > maxBytes) {
+      let low = 0.2;
+      let high = chosenQuality;
+      let best = null;
+      let bestQuality = low;
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const candidateQuality = (low + high) / 2;
+        const candidate = await encode(candidateQuality);
+        if (candidate.blob.size <= maxBytes && (!best || candidateQuality > bestQuality)) {
+          best = candidate;
+          bestQuality = candidateQuality;
+        }
+        if (candidate.blob.size > maxBytes) high = candidateQuality;
+        else low = candidateQuality;
+      }
+      if (best) {
+        ({ blob, actualType } = best);
+        chosenQuality = bestQuality;
+      } else {
+        ({ blob, actualType } = await encode(0.2));
+        chosenQuality = 0.2;
+      }
+    } else if (isLossy && blob.size < minBytes && chosenQuality < 1) {
+      let low = chosenQuality;
+      let high = 1;
+      let bestInRange = null;
+      let bestInRangeQuality = high;
+      let bestUnderMax = { blob, actualType };
+      let bestUnderMaxQuality = chosenQuality;
+      const maximumQuality = await encode(1);
+      if (maximumQuality.blob.size <= maxBytes && maximumQuality.blob.size >= minBytes) {
+        bestInRange = maximumQuality;
+        bestInRangeQuality = 1;
+      }
+      if (maximumQuality.blob.size <= maxBytes && maximumQuality.blob.size > bestUnderMax.blob.size) {
+        bestUnderMax = maximumQuality;
+        bestUnderMaxQuality = 1;
+      }
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const candidateQuality = (low + high) / 2;
+        const candidate = await encode(candidateQuality);
+        if (candidate.blob.size <= maxBytes && candidate.blob.size > bestUnderMax.blob.size) {
+          bestUnderMax = candidate;
+          bestUnderMaxQuality = candidateQuality;
+        }
+        if (candidate.blob.size >= minBytes && candidate.blob.size <= maxBytes) {
+          if (candidateQuality < bestInRangeQuality) {
+            bestInRange = candidate;
+            bestInRangeQuality = candidateQuality;
+          }
+          high = candidateQuality;
+        } else if (candidate.blob.size < minBytes) {
+          low = candidateQuality;
+        } else {
+          high = candidateQuality;
+        }
+      }
+      if (bestInRange) {
+        ({ blob, actualType } = bestInRange);
+        chosenQuality = bestInRangeQuality;
+      } else {
+        ({ blob, actualType } = bestUnderMax);
+        chosenQuality = bestUnderMaxQuality;
+      }
+    }
+
+    canvas.width = 1;
+    canvas.height = 1;
+
+    const actualExtension = extensionFor(blob.type || actualType);
+    const qualityDetail = chosenQuality === null ? 'lossless' : `${Math.round(chosenQuality * 100)}% quality`;
+    const withinSizeLimits = blob.size >= minBytes && blob.size <= maxBytes;
+    const rangeStatus = blob.size < minBytes
+      ? `below ${minKb} KB minimum; quality adjustment could not meet the ${minKb}–${maxKb} KB range`
+      : blob.size > maxBytes
+        ? `above ${maxKb} KB maximum; ${isLossy ? 'the minimum quality still exceeds the limit' : 'lossless encoding cannot be reduced to the limit'}`
+        : `within ${minKb}–${maxKb} KB range`;
+    const sizeDetail = `${formatBytes(blob.size)} · ${rangeStatus}`;
+    const dpiDetail = blob.type === 'image/jpeg' || blob.type === 'image/png'
+      ? `${dpi} DPI metadata`
+      : `DPI metadata unavailable for ${extensionFor(blob.type || actualType).toUpperCase()}`;
+    return {
+      blob,
+      name: `${safeBaseName(file.name)}-${width}x${height}.${actualExtension}`,
+      details: `${width} × ${height} px · ${sizeDetail} · ${qualityDetail} · ${dpiDetail}`,
+      width,
+      height,
+      sizeBytes: blob.size,
+      mimeType: blob.type || actualType,
+      withinSizeLimits
+    };
+  }
   
   const OPAQUE_FORMATS = new Set(['image/jpeg', 'image/bmp', 'image/gif', 'image/tiff', 'image/x-icon']);
   
@@ -191,12 +426,19 @@
     try {
       blob = encoder ? await encoder(canvas) : await canvasToBlob(canvas, type, quality);
     } catch (error) {
-      if (type === 'image/jpeg' || type === 'image/jpg') {
-        blob = await canvasToBlob(canvas, 'image/png');
-        type = 'image/png';
-      } else {
-        throw error;
+      const fallbackType = (type === 'image/jpeg' || type === 'image/jpg') ? 'image/png' : 'image/jpeg';
+      const opaque = OPAQUE_FORMATS.has(fallbackType);
+      const fallbackBase = drawImage(image, width, height, fallbackType);
+      const fallbackCanvas = padCanvas(fallbackBase, margin, fallbackType);
+      try {
+        blob = await canvasToBlob(fallbackCanvas, fallbackType, quality);
+        type = fallbackType;
+      } catch {
+        blob = await canvasToBlob(fallbackCanvas, 'image/jpeg', quality);
+        type = 'image/jpeg';
       }
+      if (fallbackCanvas !== fallbackBase) { fallbackCanvas.width = 1; fallbackCanvas.height = 1; }
+      fallbackBase.width = 1; fallbackBase.height = 1;
     }
     if (canvas !== base) { canvas.width = 1; canvas.height = 1; }
     base.width = 1; base.height = 1;
@@ -219,7 +461,13 @@
       width = Math.max(1, Math.round(image.naturalWidth * ratio));
       height = Math.max(1, Math.round(image.naturalHeight * ratio));
     }
-    const result = await encodeImage(image, width, height, type, 0.9, margin);
+    let result;
+    try {
+      result = await encodeImage(image, width, height, type, 0.9, margin);
+    } catch {
+      // Ultimate safety net: force JPEG output regardless of requested format.
+      result = await encodeImage(image, width, height, 'image/jpeg', 0.9, margin);
+    }
     const blob = result.blob; const actualType = result.type;
     const m = Math.max(0, Math.round(Number(margin) || 0));
     return { blob, name: `${safeBaseName(file.name)}-${width + m * 2}x${height + m * 2}.${ext || extensionFor(actualType)}`, details: `${width + m * 2} × ${height + m * 2} · ${formatBytes(blob.size)}`, width: width + m * 2, height: height + m * 2, sizeBytes: blob.size, mimeType: blob.type || actualType };
@@ -423,6 +671,6 @@
     }
     return info;
   }
-      window.iLoveMyFilesModules['image-tools'] = { canvasToBmp, convertImage, resizeImage, makeYoutubeThumbnail, cropImage, compressImage, rotateImage, watermarkImage, readImageDimensions, detectImageType, getImageInfo };
+      window.iLoveMyFilesModules['image-tools'] = { canvasToBmp, convertImage, resizeImage, resizeDsssbImage, makeYoutubeThumbnail, cropImage, compressImage, rotateImage, watermarkImage, readImageDimensions, detectImageType, getImageInfo };
   });
 </script>

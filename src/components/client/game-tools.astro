@@ -1,0 +1,393 @@
+---
+---
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+
+    const THEMES = {
+      files: [
+        { id: 'pdf', label: 'PDF', emoji: '📄' },
+        { id: 'jpg', label: 'JPG', emoji: '🖼️' },
+        { id: 'png', label: 'PNG', emoji: '🌄' },
+        { id: 'doc', label: 'DOC', emoji: '📝' },
+        { id: 'xls', label: 'XLS', emoji: '📊' },
+        { id: 'zip', label: 'ZIP', emoji: '📦' },
+        { id: 'mp4', label: 'MP4', emoji: '🎬' },
+        { id: 'mp3', label: 'MP3', emoji: '🎵' },
+        { id: 'txt', label: 'TXT', emoji: '📃' },
+        { id: 'svg', label: 'SVG', emoji: '🎨' },
+        { id: 'json', label: 'JSON', emoji: '{}' },
+        { id: 'xml', label: 'XML', emoji: '<>' },
+      ],
+      web: [
+        { id: 'html', label: 'HTML', emoji: '🌐' },
+        { id: 'css', label: 'CSS', emoji: '🎨' },
+        { id: 'js', label: 'JS', emoji: '🟨' },
+        { id: 'json', label: 'JSON', emoji: '{}' },
+        { id: 'svg', label: 'SVG', emoji: '🖼️' },
+        { id: 'png', label: 'PNG', emoji: '🌄' },
+        { id: 'jpg', label: 'JPG', emoji: '📷' },
+        { id: 'webp', label: 'WebP', emoji: '💠' },
+        { id: 'gif', label: 'GIF', emoji: '🎞️' },
+        { id: 'pdf', label: 'PDF', emoji: '📄' },
+        { id: 'xml', label: 'XML', emoji: '<>' },
+        { id: 'zip', label: 'ZIP', emoji: '📦' },
+      ],
+    };
+
+    const DIFFICULTIES = {
+      easy: { pairs: 6, cols: 4, label: 'Easy (6 pairs)' },
+      medium: { pairs: 10, cols: 5, label: 'Medium (10 pairs)' },
+      hard: { pairs: 15, cols: 6, label: 'Hard (15 pairs)' },
+    };
+
+    function shuffle(array) {
+      const copy = array.slice();
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    function bestKey(difficulty, theme) {
+      return `ilovemyfiles-game-best-${theme}-${difficulty}`;
+    }
+
+    function createGame({ container, difficulty = 'medium', theme = 'files' } = {}) {
+      if (!container) return;
+      const diff = DIFFICULTIES[difficulty] || DIFFICULTIES.medium;
+      const themeItems = THEMES[theme] || THEMES.files;
+      const pairs = Math.min(diff.pairs, Math.floor(themeItems.length));
+
+      let state = {
+        difficulty,
+        theme,
+        cards: [],
+        flipped: [],
+        matched: 0,
+        moves: 0,
+        seconds: 0,
+        timer: null,
+        started: false,
+        locked: false,
+      };
+
+      const elements = {};
+
+      function buildUI() {
+        container.innerHTML = '';
+        container.className = 'game-root';
+
+        const shell = document.createElement('div');
+        shell.className = 'game-shell';
+
+        const head = document.createElement('header');
+        head.className = 'game-head';
+        const title = document.createElement('div');
+        title.className = 'game-title';
+        title.textContent = 'File Memory Match';
+        const subtitle = document.createElement('span');
+        subtitle.className = 'game-subtitle';
+        subtitle.textContent = 'Match pairs of file-type cards';
+        head.append(title, subtitle);
+
+        const controls = document.createElement('div');
+        controls.className = 'game-controls';
+
+        const diffSelect = document.createElement('select');
+        diffSelect.id = 'game-difficulty';
+        diffSelect.setAttribute('aria-label', 'Difficulty');
+        Object.entries(DIFFICULTIES).forEach(([key, value]) => {
+          const opt = document.createElement('option');
+          opt.value = key;
+          opt.textContent = value.label;
+          if (key === state.difficulty) opt.selected = true;
+          diffSelect.append(opt);
+        });
+        elements.difficulty = diffSelect;
+
+        const themeSelect = document.createElement('select');
+        themeSelect.id = 'game-theme';
+        themeSelect.setAttribute('aria-label', 'Theme');
+        Object.entries(THEMES).forEach(([key]) => {
+          const opt = document.createElement('option');
+          opt.value = key;
+          opt.textContent = key === 'files' ? 'File types' : 'Web files';
+          if (key === state.theme) opt.selected = true;
+          themeSelect.append(opt);
+        });
+        elements.theme = themeSelect;
+
+        const newBtn = document.createElement('button');
+        newBtn.id = 'game-new';
+        newBtn.type = 'button';
+        newBtn.className = 'button game-new-btn';
+        newBtn.textContent = 'New game';
+        elements.newBtn = newBtn;
+
+        controls.append(diffSelect, themeSelect, newBtn);
+        head.append(controls);
+
+        const stats = document.createElement('div');
+        stats.className = 'game-stats';
+        const makeStat = (label, id, value) => {
+          const wrap = document.createElement('div');
+          wrap.className = 'game-stat';
+          const text = document.createElement('div');
+          text.className = 'game-stat-label';
+          text.textContent = label;
+          const b = document.createElement('div');
+          b.className = 'game-stat-value';
+          b.id = id;
+          b.textContent = value;
+          wrap.append(text, b);
+          return wrap;
+        };
+        elements.statMoves = makeStat('Moves', 'stat-moves', '0');
+        elements.statTime = makeStat('Time', 'stat-time', '0:00');
+        elements.statBest = makeStat('Best', 'stat-best', '–');
+        stats.append(elements.statMoves, elements.statTime, elements.statBest);
+
+        const board = document.createElement('div');
+        board.className = 'game-board';
+        board.setAttribute('role', 'grid');
+        board.setAttribute('aria-label', 'Memory board');
+        elements.board = board;
+
+        const message = document.createElement('div');
+        message.className = 'game-message';
+        message.setAttribute('role', 'status');
+        message.setAttribute('aria-live', 'polite');
+        message.textContent = 'Flip two cards to start';
+        elements.message = message;
+
+        shell.append(head, stats, board, message);
+        container.appendChild(shell);
+      }
+
+      function startTimer() {
+        stopTimer();
+        state.seconds = 0;
+        elements.statTime.querySelector('.game-stat-value').textContent = '0:00';
+        state.timer = setInterval(() => {
+          state.seconds++;
+          elements.statTime.querySelector('.game-stat-value').textContent = formatTime(state.seconds);
+        }, 1000);
+      }
+
+      function stopTimer() {
+        if (state.timer) { clearInterval(state.timer); state.timer = null; }
+      }
+
+      function updateBest() {
+        const key = bestKey(state.theme, state.difficulty);
+        const stored = sessionStorage.getItem(key);
+        const currentBest = stored ? Number(stored) : null;
+        const score = state.moves;
+        const isBest = currentBest === null || score < currentBest;
+        if (isBest) {
+          sessionStorage.setItem(key, String(score));
+          elements.statBest.querySelector('.game-stat-value').textContent = `${score} moves`;
+        } else if (currentBest !== null) {
+          elements.statBest.querySelector('.game-stat-value').textContent = `${currentBest} moves`;
+        } else {
+          elements.statBest.querySelector('.game-stat-value').textContent = '–';
+        }
+        return isBest;
+      }
+
+      function createCards() {
+        const picked = shuffle(themeItems).slice(0, pairs);
+        const cards = [];
+        picked.forEach((item, index) => {
+          cards.push({ id: index, item, faceUp: false, matched: false, key: `a-${index}` });
+          cards.push({ id: index, item, faceUp: false, matched: false, key: `b-${index}` });
+        });
+        state.cards = shuffle(cards);
+      }
+
+      function renderBoard() {
+        elements.board.innerHTML = '';
+        elements.board.style.setProperty('--cols', String(diff.cols));
+        state.cards.forEach((card, index) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'game-card';
+          btn.setAttribute('role', 'gridcell');
+          btn.setAttribute('aria-label', `${card.item.label} card`);
+          btn.dataset.index = String(index);
+          if (card.matched || card.faceUp) btn.classList.add('revealed');
+          if (card.matched) btn.classList.add('matched');
+          btn.style.setProperty('--card-emoji', JSON.stringify(card.item.emoji));
+          btn.style.setProperty('--card-label', JSON.stringify(card.item.label));
+          btn.addEventListener('click', () => handleCardClick(index));
+          elements.board.appendChild(btn);
+        });
+      }
+
+      function handleCardClick(index) {
+        if (state.locked) return;
+        const card = state.cards[index];
+        if (card.matched || card.faceUp) return;
+        if (!state.started) {
+          state.started = true;
+          startTimer();
+        }
+        card.faceUp = true;
+        state.flipped.push(index);
+        renderBoard();
+        elements.message.textContent = '';
+
+        if (state.flipped.length === 2) {
+          state.locked = true;
+          state.moves++;
+          elements.statMoves.querySelector('.game-stat-value').textContent = String(state.moves);
+          const [first, second] = state.flipped;
+          const c1 = state.cards[first];
+          const c2 = state.cards[second];
+          if (c1.item.id === c2.item.id) {
+            c1.matched = true;
+            c2.matched = true;
+            state.matched += 2;
+            state.flipped = [];
+            state.locked = false;
+            renderBoard();
+            if (state.matched === state.cards.length) {
+              stopTimer();
+              const isBest = updateBest();
+              elements.message.textContent = isBest
+                ? `Completed in ${state.moves} moves and ${formatTime(state.seconds)} — new best!`
+                : `Completed in ${state.moves} moves and ${formatTime(state.seconds)}.`;
+              elements.message.classList.add('game-message--win');
+            }
+          } else {
+            setTimeout(() => {
+              c1.faceUp = false;
+              c2.faceUp = false;
+              state.flipped = [];
+              state.locked = false;
+              renderBoard();
+            }, 900);
+          }
+        }
+      }
+
+      function newGame() {
+        stopTimer();
+        state.flipped = [];
+        state.matched = 0;
+        state.moves = 0;
+        state.seconds = 0;
+        state.started = false;
+        state.locked = false;
+        state.timer = null;
+        elements.statMoves.querySelector('.game-stat-value').textContent = '0';
+        elements.statTime.querySelector('.game-stat-value').textContent = '0:00';
+        elements.statBest.querySelector('.game-stat-value').textContent = '–';
+        elements.message.textContent = 'Flip two cards to start';
+        elements.message.classList.remove('game-message--win');
+        createCards();
+        renderBoard();
+      }
+
+      elements.difficulty?.addEventListener('change', () => {
+        state.difficulty = elements.difficulty.value;
+        newGame();
+      });
+      elements.theme?.addEventListener('change', () => {
+        state.theme = elements.theme.value;
+        newGame();
+      });
+      elements.newBtn?.addEventListener('click', newGame);
+
+      buildUI();
+      createCards();
+      renderBoard();
+      updateBest();
+
+      return {
+        destroy() { stopTimer(); container.innerHTML = ''; },
+        setDifficulty(value) {
+          if (DIFFICULTIES[value]) {
+            state.difficulty = value;
+            elements.difficulty.value = value;
+            newGame();
+          }
+        },
+        setTheme(value) {
+          if (THEMES[value]) {
+            state.theme = value;
+            elements.theme.value = value;
+            newGame();
+          }
+        },
+      };
+    }
+
+    window.iLoveMyFilesModules['game-tools'] = {
+      DIFFICULTIES,
+      THEMES,
+      init: createGame,
+    };
+  });
+</script>
+
+<style>
+  :root{
+    --game-radius: 20px;
+    --game-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .game-root{font:inherit;display:flex;flex-direction:column;align-items:center;gap:0;width:100%}
+  .game-shell{max-width:620px;width:100%;border:1px solid var(--color-border);border-radius:var(--game-radius);background:var(--color-surface);color:var(--color-text-primary);display:flex;flex-direction:column;gap:0;padding:0;box-shadow:var(--game-shadow);overflow:hidden}
+  .game-head{display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px 20px 16px;border-bottom:1px solid var(--color-border);text-align:center;background:linear-gradient(180deg,var(--color-surface),rgba(0,0,0,0.02))}
+  .game-title{font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--color-text-primary);margin:0}
+  .game-subtitle{font-size:13px;color:var(--color-text-muted);margin:0}
+  .game-controls{display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap;padding:12px 20px;background:var(--color-background);border-bottom:1px solid var(--color-border)}
+  .game-controls select{min-height:40px;padding:0 14px;border:1px solid var(--color-border);border-radius:12px;background:var(--color-surface);color:var(--color-text-primary);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+  .game-controls select:hover{border-color:var(--color-action)}
+  .game-controls select:focus{outline:none;border-color:var(--color-action);box-shadow:0 0 0 3px var(--color-action-transparent)}
+  .button.game-new-btn{min-height:40px;padding:0 18px;border:none;border-radius:12px;background:var(--color-action);color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:transform .15s,opacity .15s}
+  .button.game-new-btn:hover{opacity:.92;transform:translateY(-1px)}
+  .button.game-new-btn:active{transform:translateY(0)}
+  .game-stats{display:flex;gap:0;justify-content:center;padding:14px 20px;border-bottom:1px solid var(--color-border);background:var(--color-background)}
+  .game-stat{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 14px;flex:1;min-width:90px}
+  .game-stat-label{font-size:10px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.6px}
+  .game-stat-value{font-size:15px;font-weight:800;color:var(--color-text-primary);font-variant-numeric:tabular-nums}
+  .game-board{display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));gap:8px;padding:20px}
+  .game-card{aspect-ratio:1;border:2px solid var(--color-border);border-radius:14px;background:linear-gradient(135deg,#f0f2f5,#e4e7ec);color:transparent;cursor:pointer;display:grid;place-items:center;transition:all .2s;position:relative;overflow:hidden;font-size:34px}
+  .game-card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,0.5),transparent 60%);opacity:0;transition:opacity .2s}
+  .game-card:hover:not(.revealed):not(.matched){transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,0.1);border-color:var(--color-action);background:#fff}
+  .game-card:hover:not(.revealed):not(.matched)::before{opacity:1}
+  .game-card:active:not(.revealed):not(.matched){transform:scale(0.96)}
+  .game-card.revealed{background:var(--color-surface);border-color:var(--color-action);color:var(--color-text-primary);cursor:default;animation:flipIn .3s ease}
+  .game-card.revealed::after{content:var(--card-emoji);font-size:32px}
+  .game-card.matched{border-color:#22c55e;background:linear-gradient(135deg,#ecfdf5,#d1fae5);color:#065f46;animation:matchedPulse .4s ease}
+  .game-card.matched::after{content:var(--card-emoji);font-size:32px}
+  .game-card.matched::before{content:'✓';position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:50%;background:#22c55e;color:#fff;font-size:12px;font-weight:800;display:grid;place-items:center;animation:checkPop .3s ease}
+  .game-message{min-height:44px;font-size:14px;font-weight:600;text-align:center;padding:12px 20px;border-top:1px solid var(--color-border);color:var(--color-action);background:var(--color-surface)}
+  .game-message--win{color:#15803d;background:#f0fdf4;border-color:#a7f3d0}
+  [data-theme='dark'] .game-shell{box-shadow:0 8px 32px rgba(0,0,0,0.35),0 2px 8px rgba(0,0,0,0.2)}
+  [data-theme='dark'] .game-head{background:linear-gradient(180deg,var(--color-surface),rgba(0,0,0,0.15))}
+  [data-theme='dark'] .game-controls{background:rgba(0,0,0,0.15);border-bottom-color:var(--color-border)}
+  [data-theme='dark'] .game-stats{background:rgba(0,0,0,0.15)}
+  [data-theme='dark'] .game-card{background:#111a2a;border-color:#2c3150}
+  [data-theme='dark'] .game-card:hover:not(.revealed):not(.matched){border-color:#6366f1;background:#151d30;box-shadow:0 8px 20px rgba(99,102,241,0.15)}
+  [data-theme='dark'] .game-card.revealed{background:#1e293b;border-color:#6366f1}
+  [data-theme='dark'] .game-card.matched{background:linear-gradient(135deg,#064e3b,#022c22);border-color:#22c55e;color:#4ade80}
+  [data-theme='dark'] .game-stat-value{color:#e2e8f0}
+  [data-theme='dark'] .game-message{background:var(--color-surface);border-top-color:var(--color-border)}
+  [data-theme='dark'] .game-message--win{background:#064e3b;border-color:#065f46}
+  [data-theme='dark'] .game-card::before{background:radial-gradient(circle at 30% 30%,rgba(255,255,255,0.08),transparent 60%)}
+  @keyframes flipIn{from{transform:rotateY(90deg) scale(.9);opacity:0}to{transform:rotateY(0) scale(1);opacity:1}}
+  @keyframes matchedPulse{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+  @keyframes checkPop{0%{transform:scale(0) rotate(-180deg)}50%{transform:scale(1.3) rotate(15deg)}100%{transform:scale(1) rotate(0)}}
+  @media(max-width:640px){.game-shell{border-radius:0}.game-head{padding:20px 16px 14px}.game-title{font-size:20px}.game-controls{padding:10px 16px}.game-stats{padding:10px 16px}.game-board{padding:16px;gap:7px}.game-card{font-size:28px}}
+  @media(max-width:420px){.game-board{gap:6px}.game-card{font-size:26px}}
+</style>

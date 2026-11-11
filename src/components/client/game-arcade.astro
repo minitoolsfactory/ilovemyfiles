@@ -1,0 +1,670 @@
+---
+const { game } = Astro.props;
+---
+<div class="file-game-root" data-file-game={game} data-file-game-root></div>
+
+<script>
+  window.iLoveMyFilesModulesReady = (window.iLoveMyFilesModulesReady ?? Promise.resolve()).then(() => {
+    window.iLoveMyFilesModules ??= {};
+
+    const TITLES = {
+      'file-size-2048': 'File Size 2048',
+      'regex-crossword-mini': 'Regex Crossword Mini',
+      'code-markdown-racer': 'Code & Markdown Racer',
+      'memory-cache-pair': 'Memory Cache Pair',
+      'bug-hunter-snake': 'Bug Hunter: Snake 2.0',
+      'hex-color-guesser': 'Hex Color Guesser',
+      'micro-solitaire': 'Micro Solitaire',
+    };
+
+    const SNIPPETS = [
+      '# Local files, happy workflows\nconst convert = (file) => ({ name: file.name, size: file.size });',
+      '## Quick notes\n- Keep your original file safe\n- Convert a copy in your browser',
+      '{\n  "format": "webp",\n  "quality": 85,\n  "keepOriginal": true\n}',
+      '<main>\n  <h1>Files stay on your device</h1>\n  <p>Convert, resize, and share.</p>\n</main>',
+    ];
+    const COLOR_CHOICES = ['#6366f1', '#10b981', '#f97316', '#ec4899', '#06b6d4', '#eab308', '#8b5cf6', '#ef4444', '#14b8a6', '#f43f5e', '#3b82f6', '#84cc16'];
+    const SUITS = ['♠', '♥', '♦', '♣'];
+
+    function element(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    function button(text, className = 'file-game-button') {
+      const node = element('button', className, text);
+      node.type = 'button';
+      return node;
+    }
+
+    function shuffle(items) {
+      const list = [...items];
+      for (let index = list.length - 1; index > 0; index--) {
+        const swap = Math.floor(Math.random() * (index + 1));
+        [list[index], list[swap]] = [list[swap], list[index]];
+      }
+      return list;
+    }
+
+    function init({ container, game = container?.dataset.fileGame } = {}) {
+      if (!(container instanceof HTMLElement) || !TITLES[game]) return;
+
+      container.innerHTML = `
+        <section class="file-game-shell" aria-label="${TITLES[game]}">
+          <header class="file-game-head">
+            <div><p class="file-game-kicker">FILE ARCADE · INSTANT PLAY</p><h2>${TITLES[game]}</h2></div>
+            <button type="button" class="file-game-button" data-reset>New game</button>
+          </header>
+          <div class="file-game-stats" data-stats></div>
+          <div class="file-game-board" data-board></div>
+          <div class="file-game-controls" data-controls></div>
+          <p class="file-game-status" data-status role="status" aria-live="polite"></p>
+        </section>`;
+
+      const board = container.querySelector('[data-board]');
+      const stats = container.querySelector('[data-stats]');
+      const controls = container.querySelector('[data-controls]');
+      const status = container.querySelector('[data-status]');
+      const reset = container.querySelector('[data-reset]');
+      if (!(board instanceof HTMLElement) || !(stats instanceof HTMLElement) || !(controls instanceof HTMLElement) || !(status instanceof HTMLElement) || !(reset instanceof HTMLButtonElement)) return;
+
+      const cleanups = [];
+      const setStatus = (message) => { status.textContent = message; };
+      container.tabIndex = 0;
+      const setStats = (...values) => {
+        stats.replaceChildren(...values.map(([label, value]) => {
+          const item = element('div', 'file-game-stat');
+          item.append(element('span', '', label), element('strong', '', String(value)));
+          return item;
+        }));
+      };
+
+      function start2048() {
+        let grid;
+        let score;
+        let finished;
+        const labels = ['KB', 'MB', 'GB', 'TB', 'PB'];
+        const tileText = (power) => {
+          const totalKb = 2 ** (power + 1);
+          const unit = Math.min(labels.length - 1, Math.floor(Math.log2(totalKb) / 10));
+          const amount = totalKb / (1024 ** unit);
+          return `${Number.isInteger(amount) ? amount : amount.toFixed(1)} ${labels[unit]}`;
+        };
+        const emptyGrid = () => Array.from({ length: 4 }, () => Array(4).fill(0));
+        const addTile = () => {
+          const cells = [];
+          grid.forEach((row, y) => row.forEach((value, x) => { if (!value) cells.push([x, y]); }));
+          if (!cells.length) return;
+          const [x, y] = cells[Math.floor(Math.random() * cells.length)];
+          grid[y][x] = Math.random() < 0.9 ? 1 : 2;
+        };
+        const render = () => {
+          board.className = 'file-game-board file-2048-board';
+          board.setAttribute('role', 'grid');
+          board.setAttribute('aria-label', 'File Size 2048 board. Use arrow keys or the direction buttons.');
+          board.tabIndex = 0;
+          board.replaceChildren(...grid.flat().map((value) => {
+            const cell = element('div', `file-2048-cell${value ? ` tile-${Math.min(value, 9)}` : ''}`, value ? tileText(value - 1) : '');
+            cell.setAttribute('role', 'gridcell');
+            return cell;
+          }));
+          setStats(['Score', score.toLocaleString()], ['Largest file', tileText(Math.max(0, ...grid.flat()) - (Math.max(0, ...grid.flat()) ? 1 : 0))], ['Goal', '1 PB']);
+        };
+        const resetGame = () => {
+          grid = emptyGrid();
+          score = 0;
+          finished = false;
+          addTile();
+          addTile();
+          render();
+          setStatus('Merge equal file sizes. Use arrow keys, swipe, or the buttons.');
+        };
+        const canMove = () => {
+          for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
+            if (!grid[y][x] || grid[y][x] < 40) {
+              if (!grid[y][x]) return true;
+              if (x < 3 && grid[y][x] === grid[y][x + 1]) return true;
+              if (y < 3 && grid[y][x] === grid[y + 1][x]) return true;
+            }
+          }
+          return false;
+        };
+        const move = (direction) => {
+          if (finished) return;
+          const before = grid.map(row => row.join(',')).join('|');
+          for (let line = 0; line < 4; line++) {
+            const coords = Array.from({ length: 4 }, (_, index) => {
+              if (direction === 'left') return [index, line];
+              if (direction === 'right') return [3 - index, line];
+              if (direction === 'up') return [line, index];
+              return [line, 3 - index];
+            });
+            const values = coords.map(([x, y]) => grid[y][x]).filter(Boolean);
+            for (let index = 0; index < values.length - 1; index++) {
+              if (values[index] === values[index + 1] && values[index] < 40) {
+                values[index]++;
+                score += 2 ** (values[index] + 1);
+                values.splice(index + 1, 1);
+              }
+            }
+            while (values.length < 4) values.push(0);
+            coords.forEach(([x, y], index) => { grid[y][x] = values[index]; });
+          }
+          if (before === grid.map(row => row.join(',')).join('|')) return;
+          addTile();
+          render();
+          if (grid.flat().includes(40)) {
+            finished = true;
+            setStatus('1 PB reached! You merged the whole file-size ladder.');
+          } else if (!canMove()) {
+            finished = true;
+            setStatus(`No more moves. Final score: ${score.toLocaleString()}. Start a new game to try again.`);
+          } else {
+            setStatus('Nice merge. Keep combining matching file sizes.');
+          }
+        };
+        const onKey = (event) => {
+          const direction = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[event.key];
+          if (direction) { event.preventDefault(); move(direction); }
+        };
+        container.addEventListener('keydown', onKey);
+        cleanups.push(() => container.removeEventListener('keydown', onKey));
+        controls.replaceChildren(...[['↑', 'up'], ['←', 'left'], ['↓', 'down'], ['→', 'right']].map(([label, direction]) => {
+          const control = button(label, 'file-game-button file-game-direction');
+          control.setAttribute('aria-label', `Move ${direction}`);
+          control.addEventListener('click', () => move(direction));
+          return control;
+        }));
+        let touchX = 0, touchY = 0;
+        const onTouchStart = event => { touchX = event.changedTouches[0].clientX; touchY = event.changedTouches[0].clientY; };
+        const onTouchEnd = event => {
+          const dx = event.changedTouches[0].clientX - touchX;
+          const dy = event.changedTouches[0].clientY - touchY;
+          if (Math.max(Math.abs(dx), Math.abs(dy)) > 28) move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+        };
+        board.addEventListener('touchstart', onTouchStart, { passive: true });
+        board.addEventListener('touchend', onTouchEnd, { passive: true });
+        cleanups.push(() => {
+          board.removeEventListener('touchstart', onTouchStart);
+          board.removeEventListener('touchend', onTouchEnd);
+        });
+        resetGame();
+        return resetGame;
+      }
+
+      function startRegex() {
+        const solution = ['PDF', 'ZIP', 'SVG'];
+        const rowPatterns = [/^P.F$/, /^Z.P$/, /^S.G$/];
+        const columnPatterns = [/^PZS$/, /^DIV$/, /^FPG$/];
+        const letters = Array.from({ length: 3 }, () => Array(3).fill(''));
+        const render = () => {
+          board.className = 'file-game-board file-regex-layout';
+          board.innerHTML = '<div class="regex-clue regex-empty"></div><div class="regex-clue">↓ PZS</div><div class="regex-clue">↓ DIV</div><div class="regex-clue">↓ FPG</div>';
+          const checks = [];
+          for (let row = 0; row < 3; row++) {
+            const rowText = letters[row].join('');
+            const ok = rowPatterns[row].test(rowText);
+            checks.push(ok);
+            const clue = element('div', `regex-clue${ok ? ' is-correct' : ''}`, `→ ${['P.F', 'Z.P', 'S.G'][row]}`);
+            board.append(clue);
+            for (let column = 0; column < 3; column++) {
+              const cell = button(letters[row][column] || '·', `regex-cell${letters[row][column] ? ' is-filled' : ''}`);
+              cell.setAttribute('aria-label', `Row ${row + 1}, column ${column + 1}, ${letters[row][column] || 'empty'}`);
+              cell.maxLength = 1;
+              cell.addEventListener('click', () => {
+                const next = letters[row][column] ? String.fromCharCode((letters[row][column].charCodeAt(0) - 65 + 1) % 26 + 65) : 'A';
+                letters[row][column] = next;
+                render();
+              });
+              cell.addEventListener('keydown', event => {
+                if (/^[a-z]$/i.test(event.key)) {
+                  event.preventDefault();
+                  letters[row][column] = event.key.toUpperCase();
+                  render();
+                  board.querySelectorAll('.regex-cell')[row * 3 + column]?.focus();
+                }
+              });
+              board.append(cell);
+            }
+          }
+          for (let column = 0; column < 3; column++) {
+            const text = letters.map(row => row[column]).join('');
+            checks.push(columnPatterns[column].test(text));
+          }
+          const complete = checks.every(Boolean);
+          setStats(['Rows matched', `${checks.slice(0, 3).filter(Boolean).length}/3`], ['Columns matched', `${checks.slice(3).filter(Boolean).length}/3`]);
+          setStatus(complete ? `Solved! ${solution.join(' · ')} are all valid file extensions.` : 'Fill letters so every row and column matches its regular-expression clue. Click a cell to cycle; focus and type a letter.');
+        };
+        controls.replaceChildren(button('Clear grid', 'file-game-button'));
+        controls.firstElementChild?.addEventListener('click', () => { letters.forEach(row => row.fill('')); render(); });
+        render();
+      }
+
+      function startRacer() {
+        let target = SNIPPETS[Math.floor(Math.random() * SNIPPETS.length)];
+        let startedAt = 0, timer = null, finished = false;
+        const input = element('textarea', 'racer-input');
+        input.setAttribute('aria-label', 'Type the code or Markdown snippet shown above');
+        input.placeholder = 'Start typing here...';
+        input.spellcheck = false;
+        const targetNode = element('pre', 'racer-target');
+        const renderTarget = () => {
+          const typed = input.value;
+          targetNode.replaceChildren(...Array.from(target, (character, index) => {
+            const span = element('span', index < typed.length ? (typed[index] === character ? 'typed-correct' : 'typed-wrong') : '', character);
+            if (index === typed.length) span.classList.add('typed-current');
+            return span;
+          }));
+        };
+        const update = () => {
+          const typed = input.value;
+          const correct = Array.from(typed).filter((character, index) => character === target[index]).length;
+          const elapsed = startedAt ? Math.max(1, (Date.now() - startedAt) / 1000) : 1;
+          const wpm = Math.round(correct / 5 / (elapsed / 60));
+          const accuracy = typed.length ? Math.round(correct / typed.length * 100) : 100;
+          setStats(['Time', startedAt ? `${Math.max(0, 60 - Math.floor((Date.now() - startedAt) / 1000))}s` : '60s'], ['Speed', `${wpm} WPM`], ['Accuracy', `${accuracy}%`]);
+          renderTarget();
+          if (typed.length >= target.length || (startedAt && Date.now() - startedAt >= 60000)) {
+            finished = true;
+            clearInterval(timer);
+            input.disabled = true;
+            setStatus(`Round complete: ${wpm} WPM at ${accuracy}% accuracy. Start a new game for another snippet.`);
+          }
+        };
+        const tick = () => {
+          if (!finished) update();
+        };
+        input.addEventListener('input', () => {
+          if (!startedAt && input.value.length) {
+            startedAt = Date.now();
+            timer = setInterval(tick, 250);
+          }
+          update();
+        });
+        board.className = 'file-game-board racer-layout';
+        board.replaceChildren(targetNode, input);
+        controls.replaceChildren(button('Focus typing area', 'file-game-button'));
+        controls.firstElementChild?.addEventListener('click', () => input.focus());
+        setStatus('Type the snippet exactly as shown. The 60-second timer starts with your first keystroke.');
+        update();
+        return () => clearInterval(timer);
+      }
+
+      function startMemory() {
+        const formats = [
+          ['.pdf', 'application/pdf'], ['.jpg', 'image/jpeg'], ['.png', 'image/png'], ['.zip', 'application/zip'],
+          ['.mp3', 'audio/mpeg'], ['.svg', 'image/svg+xml'], ['.json', 'application/json'], ['.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+        ];
+        let cards, open, matches, turns, locked, timeout;
+        const resetGame = () => {
+          clearTimeout(timeout);
+          cards = shuffle(formats.flatMap(([extension, mime], pair) => [
+            { pair, label: extension, type: 'extension' },
+            { pair, label: mime, type: 'MIME type' },
+          ]));
+          open = [];
+          matches = 0;
+          turns = 0;
+          locked = false;
+          render();
+          setStatus('Match each file extension to its MIME type.');
+        };
+        const render = () => {
+          board.className = 'file-game-board cache-board';
+          board.setAttribute('role', 'grid');
+          board.replaceChildren(...cards.map((card, index) => {
+            const faceUp = open.includes(index) || card.matched;
+            const item = button(faceUp ? card.label : '?', `cache-card${faceUp ? ' is-open' : ''}${card.matched ? ' is-matched' : ''}`);
+            item.setAttribute('aria-label', `${faceUp ? `${card.type}: ${card.label}` : 'Hidden card'}, card ${index + 1}`);
+            item.disabled = locked || card.matched || faceUp;
+            item.addEventListener('click', () => {
+              if (locked || card.matched || open.includes(index)) return;
+              open.push(index);
+              if (open.length === 2) {
+                turns++;
+                const [first, second] = open.map(i => cards[i]);
+                if (first.pair === second.pair && first.type !== second.type) {
+                  first.matched = second.matched = true;
+                  matches++;
+                  open = [];
+                  if (matches === formats.length) setStatus(`All pairs matched in ${turns} turns. Great file-format recall!`);
+                  else setStatus('Match found!');
+                } else {
+                  locked = true;
+                  setStatus('Not a pair. Take another look and try again.');
+                  timeout = setTimeout(() => { open = []; locked = false; render(); }, 900);
+                }
+              } else {
+                setStatus(`Showing ${card.type}. Find its matching format.`);
+              }
+              render();
+            });
+            return item;
+          }));
+          setStats(['Pairs', `${matches}/${formats.length}`], ['Turns', turns], ['Cards', cards.length]);
+        };
+        resetGame();
+        return resetGame;
+      }
+
+      function startSnake() {
+        const width = 18, height = 14;
+        let snake, food, direction, nextDirection, score, timer, over;
+        const placeFood = () => {
+          let point;
+          do { point = { x: Math.floor(Math.random() * width), y: Math.floor(Math.random() * height) }; }
+          while (snake.some(cell => cell.x === point.x && cell.y === point.y));
+          food = point;
+        };
+        const draw = () => {
+          board.className = 'file-game-board snake-board';
+          board.tabIndex = 0;
+          board.style.setProperty('--snake-columns', String(width));
+          board.replaceChildren(...Array.from({ length: width * height }, (_, index) => {
+            const x = index % width, y = Math.floor(index / width);
+            const cell = element('span', `snake-cell${snake.some(part => part.x === x && part.y === y) ? ' is-snake' : ''}${food.x === x && food.y === y ? ' is-food' : ''}`, food.x === x && food.y === y ? '•' : '');
+            return cell;
+          }));
+          setStats(['Bugs fixed', score], ['Length', snake.length], ['Speed', 'Normal']);
+        };
+        const end = () => {
+          clearInterval(timer);
+          over = true;
+          setStatus(`Run ended with ${score} bugs fixed. Start a new game to try again.`);
+        };
+        const tick = () => {
+          if (over) return;
+          direction = nextDirection;
+          const head = {
+            x: (snake[0].x + direction.x + width) % width,
+            y: (snake[0].y + direction.y + height) % height,
+          };
+          const eating = head.x === food.x && head.y === food.y;
+          if (snake.slice(0, eating ? undefined : -1).some(part => part.x === head.x && part.y === head.y)) return end();
+          snake.unshift(head);
+          if (eating) { score++; placeFood(); } else snake.pop();
+          draw();
+        };
+        const change = (key) => {
+          const directions = {
+            ArrowUp: { x: 0, y: -1 }, w: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 }, s: { x: 0, y: 1 },
+            ArrowLeft: { x: -1, y: 0 }, a: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 }, d: { x: 1, y: 0 },
+          };
+          const proposed = directions[key];
+          if (proposed && !(proposed.x === -direction.x && proposed.y === -direction.y)) nextDirection = proposed;
+        };
+        const onKey = (event) => { if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) event.preventDefault(); change(event.key); };
+        container.addEventListener('keydown', onKey);
+        cleanups.push(() => container.removeEventListener('keydown', onKey));
+        controls.replaceChildren(...[['↑', 'ArrowUp'], ['←', 'ArrowLeft'], ['↓', 'ArrowDown'], ['→', 'ArrowRight']].map(([label, key]) => {
+          const control = button(label, 'file-game-button file-game-direction');
+          control.setAttribute('aria-label', `Move ${key.replace('Arrow', '').toLowerCase()}`);
+          control.addEventListener('click', () => change(key));
+          return control;
+        }));
+        const resetGame = () => {
+          clearInterval(timer);
+          snake = [{ x: 8, y: 7 }, { x: 7, y: 7 }, { x: 6, y: 7 }];
+          direction = { x: 1, y: 0 };
+          nextDirection = direction;
+          score = 0;
+          over = false;
+          placeFood();
+          draw();
+          setStatus('Use arrow keys or the direction pad to collect bugs. Wrap through the walls; avoid your tail.');
+          timer = setInterval(tick, 145);
+        };
+        resetGame();
+        return () => clearInterval(timer);
+      }
+
+      function startHex() {
+        let round = 0, score = 0, streak = 0, answer = '', locked = false, timeout;
+        const nextRound = () => {
+          clearTimeout(timeout);
+          locked = false;
+          round++;
+          const choices = shuffle(COLOR_CHOICES).slice(0, 4);
+          answer = choices[Math.floor(Math.random() * choices.length)];
+          board.className = 'file-game-board hex-layout';
+          const swatch = element('div', 'hex-swatch');
+          swatch.style.backgroundColor = answer;
+          swatch.setAttribute('role', 'img');
+          swatch.setAttribute('aria-label', 'Color swatch to identify');
+          const options = element('div', 'hex-options');
+          choices.forEach(color => {
+            const choice = button(color, 'file-game-button hex-choice');
+            choice.addEventListener('click', () => {
+              if (locked) return;
+              locked = true;
+              const correct = color === answer;
+              if (correct) { score++; streak++; } else streak = 0;
+              setStats(['Round', `${round}/10`], ['Score', `${score}/10`], ['Streak', streak]);
+              setStatus(correct ? `Correct — ${answer}.` : `Not quite. The color was ${answer}.`);
+              options.querySelectorAll('button').forEach(item => {
+                item.disabled = true;
+                if (item.textContent === answer) item.classList.add('is-correct');
+              });
+              if (round < 10) timeout = setTimeout(nextRound, 850);
+              else setStatus(`Game complete: ${score}/10 correct, with a ${streak}-answer final streak. Start a new game to play again.`);
+            });
+            options.append(choice);
+          });
+          board.replaceChildren(swatch, options);
+          setStats(['Round', `${round}/10`], ['Score', `${score}/10`], ['Streak', streak]);
+          if (round === 1) setStatus('Choose the hex code that matches the color swatch.');
+        };
+        const resetGame = () => { round = 0; score = 0; streak = 0; nextRound(); };
+        resetGame();
+        return () => clearTimeout(timeout);
+      }
+
+      function startSolitaire() {
+        let stock, waste, foundations, tableau, selected, moves;
+        const cardName = (card) => `${card.rank === 1 ? 'A' : card.rank === 11 ? 'J' : card.rank === 12 ? 'Q' : card.rank === 13 ? 'K' : card.rank}${card.suit}`;
+        const colorClass = (card) => card.suit === '♥' || card.suit === '♦' ? 'red' : 'black';
+        const resetGame = () => {
+          const deck = shuffle(SUITS.flatMap(suit => Array.from({ length: 13 }, (_, index) => ({ suit, rank: index + 1, faceUp: false }))));
+          tableau = [[], [], []];
+          for (let col = 0; col < 3; col++) {
+            for (let row = 0; row <= col; row++) tableau[col].push({ ...deck.pop(), faceUp: row === col });
+          }
+          stock = deck;
+          waste = [];
+          foundations = Object.fromEntries(SUITS.map(suit => [suit, []]));
+          selected = null;
+          moves = 0;
+          render();
+          setStatus('Move cards in descending alternating colors. Build each suit from Ace to King.');
+        };
+        const takeSelected = () => {
+          if (!selected) return null;
+          return selected.type === 'waste' ? waste.at(-1) : tableau[selected.col].at(-1);
+        };
+        const render = () => {
+          board.className = 'file-game-board solitaire-layout';
+          board.replaceChildren();
+          const top = element('div', 'solitaire-top');
+          const stockButton = button(stock.length ? `▧ ${stock.length}` : 'Recycle waste', 'solitaire-pile');
+          stockButton.setAttribute('aria-label', stock.length ? `Draw from stock, ${stock.length} cards remaining` : 'Recycle waste pile');
+          stockButton.addEventListener('click', () => {
+            if (stock.length) waste.push(stock.pop());
+            else if (waste.length) { stock = waste.reverse().map(card => ({ ...card, faceUp: false })); waste = []; }
+            selected = null;
+            render();
+          });
+          const wasteButton = button(waste.length ? cardName(waste.at(-1)) : 'Waste', `solitaire-card ${waste.length ? colorClass(waste.at(-1)) : ''}${selected?.type === 'waste' ? ' is-selected' : ''}`);
+          wasteButton.setAttribute('aria-label', waste.length ? `Waste top card ${cardName(waste.at(-1))}` : 'Empty waste pile');
+          wasteButton.disabled = !waste.length;
+          wasteButton.addEventListener('click', () => {
+            selected = selected?.type === 'waste' ? null : { type: 'waste' };
+            render();
+          });
+          top.append(stockButton, wasteButton);
+          for (const suit of SUITS) {
+            const pile = foundations[suit];
+            const foundation = button(pile.length ? cardName(pile.at(-1)) : suit, `solitaire-card ${pile.length ? colorClass(pile.at(-1)) : 'foundation-empty'}`);
+            foundation.setAttribute('aria-label', `${suit} foundation${pile.length ? `, top ${cardName(pile.at(-1))}` : ', empty'}`);
+            foundation.addEventListener('click', () => moveToFoundation(suit));
+            top.append(foundation);
+          }
+          board.append(top);
+          const table = element('div', 'solitaire-tableau');
+          tableau.forEach((pile, col) => {
+            const stack = element('div', 'solitaire-column');
+            if (!pile.length) {
+              const empty = button('King', 'solitaire-card foundation-empty');
+              empty.setAttribute('aria-label', `Column ${col + 1}, empty. Place a King here.`);
+              empty.addEventListener('click', () => selectOrMoveColumn(col));
+              stack.append(empty);
+            } else {
+              pile.forEach((card, index) => {
+                const isTop = index === pile.length - 1;
+                const item = isTop
+                  ? button(card.faceUp ? cardName(card) : '▧', `solitaire-card${card.faceUp ? ` ${colorClass(card)}` : ' is-facedown'}${selected?.type === 'tableau' && selected.col === col ? ' is-selected' : ''}`)
+                  : element('div', `solitaire-card solitaire-stack-card${card.faceUp ? ` ${colorClass(card)}` : ' is-facedown'}`, card.faceUp ? cardName(card) : '▧');
+                item.setAttribute('aria-label', `Column ${col + 1}, ${card.faceUp ? cardName(card) : 'face-down card'}${isTop ? ', top card' : ''}`);
+                if (isTop) item.addEventListener('click', () => selectOrMoveColumn(col));
+                stack.append(item);
+              });
+            }
+            table.append(stack);
+          });
+          board.append(table);
+          setStats(['Moves', moves], ['Stock', stock.length], ['Foundation', `${SUITS.reduce((count, suit) => count + foundations[suit].length, 0)}/52`]);
+        };
+        const moveToFoundation = (suit) => {
+          const card = takeSelected();
+          if (!card || card.suit !== suit) return;
+          const pile = foundations[suit];
+          if (card.rank !== (pile.at(-1)?.rank || 0) + 1) return;
+          if (selected.type === 'waste') waste.pop();
+          else { tableau[selected.col].pop(); if (tableau[selected.col].at(-1)) tableau[selected.col].at(-1).faceUp = true; }
+          pile.push(card);
+          selected = null;
+          moves++;
+          render();
+          setStatus(SUITS.every(item => foundations[item].length === 13) ? 'All 52 cards sorted. Solitaire complete!' : 'Card moved to its foundation.');
+        };
+        const selectOrMoveColumn = (col) => {
+          const destination = tableau[col];
+          const topCard = destination.at(-1);
+          if (!selected) {
+            if (topCard) selected = { type: 'tableau', col };
+            render();
+            return;
+          }
+          if (selected.type === 'tableau' && selected.col === col) {
+            selected = null;
+            render();
+            return;
+          }
+          const moving = takeSelected();
+          const valid = moving && (topCard
+            ? moving.rank === topCard.rank - 1 && colorClass(moving) !== colorClass(topCard)
+            : moving.rank === 13);
+          if (!valid) { setStatus('That move does not fit. Place a card one rank lower in the opposite color, or a King on an empty column.'); return; }
+          if (selected.type === 'waste') waste.pop();
+          else { tableau[selected.col].pop(); if (tableau[selected.col].at(-1)) tableau[selected.col].at(-1).faceUp = true; }
+          moving.faceUp = true;
+          destination.push(moving);
+          selected = null;
+          moves++;
+          render();
+          setStatus('Valid move.');
+        };
+        resetGame();
+        return resetGame;
+      }
+
+      let restart;
+      const starts = {
+        'file-size-2048': start2048,
+        'regex-crossword-mini': startRegex,
+        'code-markdown-racer': startRacer,
+        'memory-cache-pair': startMemory,
+        'bug-hunter-snake': startSnake,
+        'hex-color-guesser': startHex,
+        'micro-solitaire': startSolitaire,
+      };
+      const run = () => {
+        restart?.();
+        cleanups.splice(0).forEach(cleanup => cleanup());
+        restart = starts[game]();
+      };
+      reset.addEventListener('click', run);
+      run();
+
+      return {
+        destroy() {
+          cleanups.splice(0).forEach(cleanup => cleanup());
+          container.replaceChildren();
+        },
+        restart() { restart?.(); },
+      };
+    }
+
+    window.iLoveMyFilesModules['game-arcade'] = { init };
+    document.querySelectorAll('[data-file-game-root]').forEach((root) => {
+      if (root instanceof HTMLElement) init({ container: root, game: root.dataset.fileGame });
+    });
+  });
+</script>
+
+<style is:global>
+  .file-game-root{width:100%;max-width:900px;margin:0 auto}
+  .file-game-shell{--fg-bg:#111b30;--fg-panel:#0b1222;--fg-line:rgba(203,213,225,.15);--fg-text:#f8fafc;--fg-muted:#cbd5e1;--fg-accent:#a5b4fc;overflow:hidden;border:1px solid var(--fg-line);border-radius:20px;background:var(--fg-bg);color:var(--fg-text);box-shadow:0 18px 48px rgba(0,0,0,.2)}
+  .file-game-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 22px;border-bottom:1px solid var(--fg-line)}
+  .file-game-head h2{margin:4px 0 0;font-size:clamp(20px,4vw,27px);line-height:1.2}
+  .file-game-kicker{margin:0;color:var(--fg-accent);font:700 10px/1.4 ui-monospace,monospace;letter-spacing:1.3px}
+  .file-game-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;padding:14px;border-bottom:1px solid var(--fg-line);background:var(--fg-panel)}
+  .file-game-stat{display:flex;min-width:100px;flex-direction:column;align-items:center;gap:4px;padding:8px 12px}
+  .file-game-stat span{color:var(--fg-muted);font-size:11px}
+  .file-game-stat strong{font-size:16px;font-variant-numeric:tabular-nums}
+  .file-game-board{min-height:220px;padding:22px}
+  .file-game-controls{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:0 18px 16px}
+  .file-game-button{min-height:44px;padding:9px 14px;border:1px solid var(--fg-line);border-radius:11px;background:#1e293b;color:var(--fg-text);font:inherit;font-size:13px;font-weight:700;line-height:1.2;cursor:pointer;touch-action:manipulation}
+  .file-game-button:hover:not(:disabled){border-color:#818cf8;background:#273550}
+  .file-game-button:disabled{cursor:default;opacity:.72}
+  .file-game-button:focus-visible,.regex-cell:focus-visible,.solitaire-card:focus-visible{outline:3px solid #67e8f9;outline-offset:2px}
+  .file-game-status{min-height:46px;margin:0;padding:13px 20px;border-top:1px solid var(--fg-line);color:var(--fg-muted);font-size:13px;line-height:1.5;text-align:center}
+  .file-game-direction{min-width:48px;font-size:17px}
+  .file-2048-board{display:grid;grid-template-columns:repeat(4,minmax(45px,84px));justify-content:center;gap:8px;touch-action:none}
+  .file-2048-cell{display:grid;aspect-ratio:1;place-items:center;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:#172238;color:#e2e8f0;font-size:clamp(13px,3vw,18px);font-weight:850;text-align:center}
+  .file-2048-cell.tile-1{background:#334155}.file-2048-cell.tile-2{background:#256477}.file-2048-cell.tile-3{background:#276780}.file-2048-cell.tile-4{background:#4f46a5}.file-2048-cell.tile-5{background:#6d459d}.file-2048-cell.tile-6{background:#a0446e}.file-2048-cell.tile-7{background:#a45a2d}.file-2048-cell.tile-8,.file-2048-cell.tile-9{background:#a37a24}
+  .file-regex-layout{display:grid;grid-template-columns:repeat(4,minmax(48px,72px));justify-content:center;align-items:center;gap:8px}
+  .regex-clue{padding:10px 4px;color:#cbd5e1;font:700 12px/1.3 ui-monospace,monospace;text-align:center}
+  .regex-clue.is-correct{color:#86efac}
+  .regex-cell{min-height:58px;border:1px solid var(--fg-line);border-radius:11px;background:#192943;color:var(--fg-text);font:800 21px ui-monospace,monospace;cursor:pointer}
+  .regex-cell.is-filled{border-color:#818cf8}
+  .racer-layout{display:grid;gap:16px}
+  .racer-target{overflow:auto;min-height:96px;margin:0;padding:16px;border:1px solid var(--fg-line);border-radius:12px;background:#070c16;color:#cbd5e1;font:14px/1.8 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+  .racer-target .typed-correct{color:#86efac}.racer-target .typed-wrong{color:#fda4af;background:rgba(244,63,94,.22)}.racer-target .typed-current{border-left:2px solid #67e8f9}
+  .racer-input{width:100%;min-height:120px;padding:14px;border:1px solid var(--fg-line);border-radius:12px;background:#0b1222;color:var(--fg-text);font:14px/1.7 ui-monospace,monospace;resize:vertical}
+  .racer-input:focus-visible{outline:3px solid #67e8f9;outline-offset:2px}
+  .cache-board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;max-width:640px;margin:auto}
+  .cache-card{min-height:78px;overflow-wrap:anywhere;font:700 13px/1.3 ui-monospace,monospace}
+  .cache-card.is-open{border-color:#67e8f9;background:#fff;color:#0f172a}.cache-card.is-matched{border-color:#34d399;background:#dcfce7;color:#14532d}
+  .snake-board{display:grid;grid-template-columns:repeat(var(--snake-columns,18),minmax(0,1fr));gap:2px;max-width:560px;margin:auto;padding:8px;border:1px solid var(--fg-line);border-radius:12px;background:#070c16;touch-action:none}
+  .snake-cell{display:grid;aspect-ratio:1;place-items:center;border-radius:3px;background:#101b2c;color:#f8fafc;font-size:clamp(6px,1.7vw,12px)}
+  .snake-cell.is-snake{border-radius:4px;background:#34d399}.snake-cell.is-food{color:#fb7185;font-size:20px;line-height:1}
+  .hex-layout{display:grid;justify-items:center;gap:18px}
+  .hex-swatch{width:min(100%,360px);height:160px;border:1px solid rgba(255,255,255,.2);border-radius:18px;box-shadow:inset 0 0 30px rgba(0,0,0,.12)}
+  .hex-options{display:grid;width:min(100%,560px);grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .hex-choice{font:800 15px ui-monospace,monospace}
+  .hex-choice.is-correct{border-color:#34d399;background:#123d35;color:#a7f3d0}
+  .solitaire-layout{display:grid;gap:24px}
+  .solitaire-top,.solitaire-tableau{display:grid;grid-template-columns:repeat(5,minmax(52px,90px));justify-content:center;gap:8px}
+  .solitaire-tableau{grid-template-columns:repeat(3,minmax(72px,110px));gap:10px}
+  .solitaire-column{display:flex;min-height:102px;flex-direction:column;gap:6px;padding:6px;border:1px dashed var(--fg-line);border-radius:12px}
+  .solitaire-card,.solitaire-pile{display:grid;min-height:68px;place-items:center;padding:6px;border:1px solid #94a3b8;border-radius:10px;background:#e2e8f0;color:#0f172a;font-size:16px;font-weight:850;cursor:pointer}
+  .solitaire-card.is-facedown{border-color:#64748b;background:repeating-linear-gradient(135deg,#243d66,#243d66 6px,#334f7d 6px,#334f7d 12px);color:#fff}
+  .solitaire-card.solitaire-stack-card{cursor:default}
+  .solitaire-pile{background:#243d66;color:#fff;font-size:12px}
+  .solitaire-card.red{color:#b91c1c}.solitaire-card.black{color:#0f172a}.solitaire-card.foundation-empty{border-style:dashed;background:#172238;color:#cbd5e1}
+  .solitaire-card.is-selected{outline:3px solid #67e8f9;outline-offset:2px}
+  @media(max-width:560px){.file-game-head{padding:16px}.file-game-board{padding:16px 10px}.file-game-stat{min-width:78px;padding:6px}.file-2048-board{gap:6px}.cache-board{gap:6px}.cache-card{min-height:64px;padding:6px;font-size:11px}.solitaire-top{grid-template-columns:repeat(5,minmax(48px,1fr));gap:5px}.solitaire-tableau{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.solitaire-card,.solitaire-pile{min-height:56px;font-size:13px}}
+  @media(prefers-reduced-motion:reduce){.file-game-button{scroll-behavior:auto}}
+</style>

@@ -16,11 +16,12 @@ const categories = [
   {id:'developer',label:'Developer tools',description:'Utilities for code, data and web workflows.',icon:'⌘'},
   {id:'ai',label:'AI tools',description:'Helpers for AI prompts and model usage.',icon:'✧'},
   {id:'seo',label:'SEO tools',description:'Practical tools for site checks and search work.',icon:'⌕'},
+  {id:'games',label:'Games',description:'Fun browser-based games and quizzes.',icon:'🎮'},
 ];
 const countFor = id => id === 'pdf-tools'
   ? TOOLS.filter(tool => tool.category === 'to-pdf' || tool.category.endsWith('-pdf')).length
   : TOOLS.filter(tool => tool.category === id).length;
-const toolPath = tool => tool.section === 'tools' ? `/tools/${tool.slug}/` : `/${tool.slug}/`;
+const toolPath = tool => tool.section === 'tools' ? `/tools/${tool.slug}/` : tool.section === 'games' ? `/games/${tool.slug}/` : `/${tool.slug}/`;
 const icon = tool => `<span class="tool-icon icon-${tool.icon}" aria-hidden="true"><svg viewBox="0 0 24 24">${tool.svg}</svg></span>`;
 ---
 <BaseLayout>
@@ -63,7 +64,7 @@ const icon = tool => `<span class="tool-icon icon-${tool.icon}" aria-hidden="tru
     <a href="/tools/?category=video"><span aria-hidden="true">▶</span> Video Tools</a>
     <a href="/tools/?category=audio"><span aria-hidden="true">♫</span> Audio Tools</a>
     <a href="/tools/?category=developer"><span aria-hidden="true">⌘</span> Developer Tools</a>
-    <a href="/tools/?category=utilities"><span aria-hidden="true">⌁</span> Utilities</a>
+    <a href="/games/"><span aria-hidden="true">🎮</span> Games</a>
     <a href="/tools/#categories" class="category-rail-more">More <span aria-hidden="true">→</span></a>
   </nav>
 
@@ -79,7 +80,7 @@ const icon = tool => `<span class="tool-icon icon-${tool.icon}" aria-hidden="tru
 
   <section class="browse-category-section home-section" id="categories" aria-labelledby="browse-categories-title">
     <div class="home-section-heading"><div><div class="eyebrow">BROWSE BY CATEGORY</div><h2 id="browse-categories-title">Find the right toolkit</h2><p>Explore tools grouped around the work you need to do.</p></div><a class="quick-browse" href="/tools/#categories">All categories <span aria-hidden="true">→</span></a></div>
-    <div class="browse-category-grid">{categories.map(category => <a class="browse-category-card" href={`/tools/?category=${category.id}`}><span class="browse-category-icon" aria-hidden="true">{category.icon}</span><span class="browse-category-heading"><b>{category.label}</b><small>{countFor(category.id)} tools</small></span><p>{category.description}</p><span class="browse-category-link">Explore category <i aria-hidden="true">→</i></span></a>)}</div>
+    <div class="browse-category-grid">{categories.map(category => <a class="browse-category-card" href={category.id === 'games' ? '/games/' : `/tools/?category=${category.id}`}><span class="browse-category-icon" aria-hidden="true">{category.icon}</span><span class="browse-category-heading"><b>{category.label}</b><small>{countFor(category.id)} tools</small></span><p>{category.description}</p><span class="browse-category-link">Explore category <i aria-hidden="true">→</i></span></a>)}</div>
   </section>
 
   <section class="why-compact" id="about" aria-label="Why iLoveMyFiles">
@@ -97,7 +98,7 @@ const icon = tool => `<span class="tool-icon icon-${tool.icon}" aria-hidden="tru
     import tools from '../data/tools.json';
     const input = document.querySelector('#hero-tool-search');
     const list = document.querySelector('#hero-search-suggestions');
-    const route = tool => tool.section === 'tools' ? `/tools/${tool.slug}/` : `/${tool.slug}/`;
+    const route = tool => tool.section === 'tools' ? `/tools/${tool.slug}/` : tool.section === 'games' ? `/games/${tool.slug}/` : `/${tool.slug}/`;
     const synonyms = {reduce:['compress','smaller','shrink'],photo:['image','picture'],join:['merge','combine'],convert:['change format','to'],cut:['split','separate']};
     let activeIndex = -1;
     let results = [];

@@ -5,12 +5,15 @@ const { tool } = Astro.props;
 const { CATEGORIES, TOOLS } = toolData;
 const category = CATEGORIES.find(item => item.id === tool.category)?.label ?? 'Tool';
 const related = tool.seo.related.map(id => TOOLS.find(item => item.id === id)).filter(Boolean);
-const toolPath = item => item.section === 'tools' ? `/tools/${item.slug}/` : `/${item.slug}/`;
+const toolPath = item => item.section === 'tools' ? `/tools/${item.slug}/` : item.section === 'games' ? `/games/${item.slug}/` : `/${item.slug}/`;
 const icon = (item, large = false) => `<span class="tool-icon icon-${item.icon}${large ? ' tool-icon-lg' : ''}" aria-hidden="true"><svg viewBox="0 0 24 24">${item.svg}</svg></span>`;
+const isDirectTool = !['data', 'developer', 'ai', 'seo', 'games'].includes(tool.category);
+const sectionLabel = tool.section === 'games' ? 'Games' : 'Tools';
+const sectionHref = tool.section === 'games' ? '/games/' : '/tools/';
+const categoryHref = tool.section === 'games' ? '/games/' : `/tools/?category=${tool.category}`;
 ---
-
 <nav class="breadcrumb" aria-label="Breadcrumb">
-  <a href="/">Home</a><span>/</span><a href="/tools/">Tools</a><span>/</span><a href={`/tools/?category=${tool.category}`}>{category}</a><span>/</span><span aria-current="page">{tool.cardTitle}</span>
+  <a href="/">Home</a><span>/</span><a href={sectionHref}>{sectionLabel}</a><span>/</span><a href={categoryHref}>{category}</a><span>/</span><span aria-current="page">{tool.cardTitle}</span>
 </nav>
 <header class="tool-hero">
   <span set:html={icon(tool, true)} />

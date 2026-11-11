@@ -11,7 +11,7 @@ export function getStaticPaths() {
 const slug = Astro.params.slug;
 const post = posts.find(item => item.slug === slug);
 const relatedTools = post ? post.relatedTools.map(id => toolData.TOOLS.find(tool => tool.id === id)).filter(Boolean) : [];
-const pathFor = tool => tool.section === 'tools' ? `/tools/${tool.slug}/` : `/${tool.slug}/`;
+const pathFor = tool => tool.section === 'tools' ? `/tools/${tool.slug}/` : tool.section === 'games' ? `/games/${tool.slug}/` : `/${tool.slug}/`;
 const canonical = `https://ilovemyfiles.com/blog/${slug}/`;
 const structuredData = post ? {
   '@context':'https://schema.org',

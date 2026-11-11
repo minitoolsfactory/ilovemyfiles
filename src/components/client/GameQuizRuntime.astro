@@ -1,0 +1,14 @@
+---
+import GameQuiz from './game-quiz.astro';
+---
+<GameQuiz />
+<div id="quiz-root"></div>
+<script>
+  window.iLoveMyFilesModulesReady.then(() => {
+    const module = window.iLoveMyFilesModules?.['game-quiz'];
+    const root = document.getElementById('quiz-root');
+    if (module && root) {
+      module.init({ container: root });
+    }
+  });
+</script>

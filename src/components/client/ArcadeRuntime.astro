@@ -1,0 +1,466 @@
+<div class="arcade-game" data-byte-sorter>
+  <div class="arcade-hud">
+    <div class="arcade-stats" aria-label="Game stats">
+      <div class="arcade-stat"><span>Score</span><strong data-score>0</strong></div>
+      <div class="arcade-stat"><span>Level</span><strong class="accent" data-level>1</strong></div>
+      <div class="arcade-stat"><span>Lives</span><div class="arcade-lives" data-lives aria-label="3 lives remaining"><span aria-hidden="true">♥</span><span aria-hidden="true">♥</span><span aria-hidden="true">♥</span></div></div>
+    </div>
+    <div class="arcade-actions">
+      <button type="button" class="arcade-button" data-pause aria-label="Pause game" aria-pressed="false" disabled>Pause</button>
+      <button type="button" class="arcade-button" data-restart>Restart</button>
+    </div>
+  </div>
+
+  <div class="arcade-stage">
+    <canvas
+      data-canvas
+      role="img"
+      tabindex="0"
+      aria-label="Byte Sorter game board. Use the left and right arrow keys or A and D to move the catcher."
+      aria-describedby="byte-sorter-help"
+    ></canvas>
+    <div class="arcade-overlay" data-overlay>
+      <div class="arcade-overlay-card">
+        <span class="overlay-label">BYTE SORTER / 01</span>
+        <h3 data-overlay-title>Ready to sort?</h3>
+        <p data-overlay-description>Catch PDF, ZIP, and PNG packets. Avoid corrupted data to keep your three lives.</p>
+        <button type="button" class="arcade-start" data-start>Start sorting</button>
+      </div>
+    </div>
+    <div class="arcade-toast" data-toast aria-hidden="true"></div>
+  </div>
+
+  <div class="arcade-controls" aria-label="Touch controls">
+    <button type="button" class="arcade-button arcade-direction" data-direction="-1" aria-label="Move catcher left"><span aria-hidden="true">←</span> Left</button>
+    <button type="button" class="arcade-button arcade-direction" data-direction="1" aria-label="Move catcher right">Right <span aria-hidden="true">→</span></button>
+  </div>
+
+  <div class="arcade-footer">
+    <p id="byte-sorter-help">Move with <kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd>. On touch screens, use the Left and Right buttons. Catch file packets and dodge corrupted ones.</p>
+    <span class="local-best">Local best: <strong data-arcade-high-score>0</strong></span>
+  </div>
+  <p class="arcade-status" data-status role="status" aria-live="polite">Press start when you’re ready.</p>
+</div>
+
+<script>
+  const root = document.querySelector('[data-byte-sorter]');
+  if (root instanceof HTMLElement) {
+    const canvas = root.querySelector('[data-canvas]');
+    const context = canvas instanceof HTMLCanvasElement ? canvas.getContext('2d') : null;
+    const scoreElement = root.querySelector('[data-score]');
+    const levelElement = root.querySelector('[data-level]');
+    const livesElement = root.querySelector('[data-lives]');
+    const overlay = root.querySelector('[data-overlay]');
+    const overlayTitle = root.querySelector('[data-overlay-title]');
+    const overlayDescription = root.querySelector('[data-overlay-description]');
+    const startButton = root.querySelector('[data-start]');
+    const pauseButton = root.querySelector('[data-pause]');
+    const restartButton = root.querySelector('[data-restart]');
+    const status = root.querySelector('[data-status]');
+    const toast = root.querySelector('[data-toast]');
+    const highScoreElements = document.querySelectorAll('[data-arcade-high-score]');
+    const storageKey = 'ilovemyfiles-byte-sorter-high-score';
+    const keys = { left: false, right: false };
+
+    if (
+      canvas instanceof HTMLCanvasElement &&
+      context &&
+      scoreElement instanceof HTMLElement &&
+      levelElement instanceof HTMLElement &&
+      livesElement instanceof HTMLElement &&
+      overlay instanceof HTMLElement &&
+      overlayTitle instanceof HTMLElement &&
+      overlayDescription instanceof HTMLElement &&
+      startButton instanceof HTMLButtonElement &&
+      pauseButton instanceof HTMLButtonElement &&
+      restartButton instanceof HTMLButtonElement &&
+      status instanceof HTMLElement &&
+      toast instanceof HTMLElement
+    ) {
+      function readHighScore() {
+        try {
+          const value = Number(window.localStorage.getItem(storageKey));
+          return Number.isFinite(value) ? Math.max(0, value) : 0;
+        } catch (error) {
+          console.warn('Unable to read the Byte Sorter high score from local storage.', error);
+          return 0;
+        }
+      }
+
+      const state = {
+        score: 0,
+        best: readHighScore(),
+        level: 1,
+        lives: 3,
+        combo: 0,
+        running: false,
+        paused: false,
+        lastFrame: 0,
+        spawnElapsed: 0,
+        width: 0,
+        height: 0,
+        playerX: 0,
+        playerWidth: 82,
+        playerHeight: 14,
+        packets: [],
+        frameId: 0,
+      };
+
+      function showHighScore() {
+        highScoreElements.forEach((element) => {
+          element.textContent = state.best.toLocaleString();
+        });
+      }
+
+      function setHighScore(score) {
+        state.best = score;
+        showHighScore();
+        try {
+          window.localStorage.setItem(storageKey, String(score));
+        } catch (error) {
+          console.warn('Unable to save the Byte Sorter high score to local storage.', error);
+        }
+      }
+
+      function updateHud() {
+        scoreElement.textContent = state.score.toLocaleString();
+        levelElement.textContent = String(state.level);
+        livesElement.setAttribute('aria-label', `${state.lives} ${state.lives === 1 ? 'life' : 'lives'} remaining`);
+        livesElement.querySelectorAll('span').forEach((life, index) => {
+          life.classList.toggle('is-spent', index >= state.lives);
+        });
+      }
+
+      function clampPlayer() {
+        state.playerX = Math.max(8, Math.min(state.playerX, state.width - state.playerWidth - 8));
+      }
+
+      function resizeCanvas() {
+        const bounds = canvas.getBoundingClientRect();
+        const ratio = Math.min(window.devicePixelRatio || 1, 2);
+        state.width = bounds.width;
+        state.height = bounds.height;
+        canvas.width = Math.round(bounds.width * ratio);
+        canvas.height = Math.round(bounds.height * ratio);
+        context.setTransform(ratio, 0, 0, ratio, 0, 0);
+        state.playerX = state.playerX || (state.width - state.playerWidth) / 2;
+        clampPlayer();
+        draw();
+      }
+
+      function roundedRect(x, y, width, height, radius) {
+        context.beginPath();
+        context.moveTo(x + radius, y);
+        context.lineTo(x + width - radius, y);
+        context.quadraticCurveTo(x + width, y, x + width, y + radius);
+        context.lineTo(x + width, y + height - radius);
+        context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        context.lineTo(x + radius, y + height);
+        context.quadraticCurveTo(x, y + height, x, y + height - radius);
+        context.lineTo(x, y + radius);
+        context.quadraticCurveTo(x, y, x + radius, y);
+        context.closePath();
+      }
+
+      function draw() {
+        const { width, height } = state;
+        if (!width || !height) return;
+
+        context.clearRect(0, 0, width, height);
+        const background = context.createLinearGradient(0, 0, width, height);
+        background.addColorStop(0, '#111a2e');
+        background.addColorStop(1, '#090d16');
+        context.fillStyle = background;
+        context.fillRect(0, 0, width, height);
+
+        context.strokeStyle = 'rgba(129, 140, 248, .09)';
+        context.lineWidth = 1;
+        for (let x = 0; x <= width; x += 32) {
+          context.beginPath();
+          context.moveTo(x, 0);
+          context.lineTo(x, height);
+          context.stroke();
+        }
+        for (let y = 0; y <= height; y += 32) {
+          context.beginPath();
+          context.moveTo(0, y);
+          context.lineTo(width, y);
+          context.stroke();
+        }
+
+        for (const packet of state.packets) {
+          const isHazard = packet.kind === 'hazard';
+          const color = isHazard ? '#fb7185' : packet.kind === 'gold' ? '#fbbf24' : '#67e8f9';
+          context.save();
+          context.shadowColor = color;
+          context.shadowBlur = 14;
+          context.fillStyle = color;
+          roundedRect(packet.x, packet.y, packet.size, packet.size, 8);
+          context.fill();
+          context.shadowBlur = 0;
+          context.fillStyle = '#0b1220';
+          context.font = '700 10px ui-monospace, SFMono-Regular, Menlo, monospace';
+          context.textAlign = 'center';
+          context.textBaseline = 'middle';
+          context.fillText(packet.label, packet.x + packet.size / 2, packet.y + packet.size / 2);
+          context.restore();
+        }
+
+        const playerY = height - 33;
+        const playerGradient = context.createLinearGradient(state.playerX, 0, state.playerX + state.playerWidth, 0);
+        playerGradient.addColorStop(0, '#6366f1');
+        playerGradient.addColorStop(.5, '#22d3ee');
+        playerGradient.addColorStop(1, '#6366f1');
+        context.save();
+        context.shadowColor = '#818cf8';
+        context.shadowBlur = 18;
+        context.fillStyle = playerGradient;
+        roundedRect(state.playerX, playerY, state.playerWidth, state.playerHeight, 7);
+        context.fill();
+        context.restore();
+        context.fillStyle = '#e0e7ff';
+        context.font = '700 9px ui-monospace, SFMono-Regular, Menlo, monospace';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText('CATCHER', state.playerX + state.playerWidth / 2, playerY + state.playerHeight / 2);
+      }
+
+      function showMessage(message) {
+        status.textContent = message;
+        toast.textContent = message;
+        toast.classList.add('is-visible');
+        window.setTimeout(() => toast.classList.remove('is-visible'), 1100);
+      }
+
+      function finishGame() {
+        state.running = false;
+        state.paused = false;
+        window.cancelAnimationFrame(state.frameId);
+        pauseButton.disabled = true;
+        pauseButton.textContent = 'Pause';
+        pauseButton.setAttribute('aria-label', 'Pause game');
+        pauseButton.setAttribute('aria-pressed', 'false');
+        overlayTitle.textContent = 'Buffer overrun';
+        overlayDescription.textContent = `You sorted ${state.score.toLocaleString()} points and reached level ${state.level}. Ready for another run?`;
+        startButton.textContent = 'Play again';
+        overlay.hidden = false;
+        status.textContent = `Game over. Final score: ${state.score.toLocaleString()}.`;
+      }
+
+      function update(delta) {
+        const speed = 330 + state.level * 12;
+        if (keys.left) state.playerX -= speed * delta;
+        if (keys.right) state.playerX += speed * delta;
+        clampPlayer();
+
+        state.spawnElapsed += delta;
+        const spawnInterval = Math.max(.42, 1.15 - (state.level - 1) * .07);
+        if (state.spawnElapsed >= spawnInterval) {
+          state.spawnElapsed = 0;
+          const roll = Math.random();
+          const packet = roll < .13
+            ? { label: 'BAD', kind: 'hazard' }
+            : roll < .2
+              ? { label: 'GOLD', kind: 'gold' }
+              : { label: ['PDF', 'ZIP', 'PNG'][Math.floor(Math.random() * 3)], kind: 'file' };
+          const size = 38;
+          state.packets.push({
+            ...packet,
+            size,
+            x: Math.random() * Math.max(1, state.width - size),
+            y: -size,
+            speed: 115 + state.level * 13 + Math.random() * 35,
+          });
+        }
+
+        const playerY = state.height - 33;
+        for (let index = state.packets.length - 1; index >= 0; index--) {
+          const packet = state.packets[index];
+          packet.y += packet.speed * delta;
+          const overlaps =
+            packet.y + packet.size >= playerY &&
+            packet.y <= playerY + state.playerHeight &&
+            packet.x + packet.size >= state.playerX &&
+            packet.x <= state.playerX + state.playerWidth;
+
+          if (overlaps) {
+            if (packet.kind === 'hazard') {
+              state.lives -= 1;
+              state.combo = 0;
+              updateHud();
+              showMessage(`Corrupted packet! ${state.lives} ${state.lives === 1 ? 'life' : 'lives'} left.`);
+              if (state.lives <= 0) {
+                state.packets.splice(index, 1);
+                finishGame();
+                return;
+              }
+            } else {
+              state.combo += 1;
+              const points = packet.kind === 'gold' ? 50 : 10;
+              const bonus = state.combo > 0 && state.combo % 4 === 0 ? 20 : 0;
+              state.score += points + bonus;
+              state.level = 1 + Math.floor(state.score / 150);
+              updateHud();
+              if (state.score > state.best) setHighScore(state.score);
+              showMessage(bonus ? `Combo x${state.combo}! +${points + bonus}` : `Packet sorted! +${points}`);
+            }
+            state.packets.splice(index, 1);
+          } else if (packet.y > state.height) {
+            if (packet.kind === 'file') state.combo = 0;
+            state.packets.splice(index, 1);
+          }
+        }
+      }
+
+      function frame(timestamp) {
+        if (!state.running || state.paused) return;
+        const delta = Math.min((timestamp - state.lastFrame) / 1000, .05);
+        state.lastFrame = timestamp;
+        update(delta);
+        if (!state.running) return;
+        draw();
+        state.frameId = window.requestAnimationFrame(frame);
+      }
+
+      function startGame() {
+        state.score = 0;
+        state.level = 1;
+        state.lives = 3;
+        state.combo = 0;
+        state.spawnElapsed = 0;
+        state.packets = [];
+        state.playerX = (state.width - state.playerWidth) / 2;
+        state.running = true;
+        state.paused = false;
+        overlay.hidden = true;
+        pauseButton.disabled = false;
+        pauseButton.textContent = 'Pause';
+        pauseButton.setAttribute('aria-label', 'Pause game');
+        pauseButton.setAttribute('aria-pressed', 'false');
+        startButton.textContent = 'Start sorting';
+        updateHud();
+        status.textContent = 'Game started. Catch file packets and avoid corrupted ones.';
+        state.lastFrame = performance.now();
+        window.cancelAnimationFrame(state.frameId);
+        state.frameId = window.requestAnimationFrame(frame);
+        canvas.focus({ preventScroll: true });
+        draw();
+      }
+
+      function togglePause() {
+        if (!state.running) return;
+        state.paused = !state.paused;
+        pauseButton.textContent = state.paused ? 'Resume' : 'Pause';
+        pauseButton.setAttribute('aria-label', state.paused ? 'Resume game' : 'Pause game');
+        pauseButton.setAttribute('aria-pressed', String(state.paused));
+        overlay.hidden = !state.paused;
+        if (state.paused) {
+          window.cancelAnimationFrame(state.frameId);
+          overlayTitle.textContent = 'Game paused';
+          overlayDescription.textContent = 'Take a breather. Your score and lives are saved until you resume.';
+          startButton.textContent = 'Resume game';
+          status.textContent = 'Game paused.';
+        } else {
+          state.lastFrame = performance.now();
+          status.textContent = 'Game resumed.';
+          state.frameId = window.requestAnimationFrame(frame);
+          canvas.focus({ preventScroll: true });
+        }
+      }
+
+      canvas.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') {
+          keys.left = true;
+          event.preventDefault();
+        } else if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') {
+          keys.right = true;
+          event.preventDefault();
+        } else if (event.key.toLowerCase() === 'p' || event.key === 'Escape') {
+          togglePause();
+          event.preventDefault();
+        }
+      });
+      canvas.addEventListener('keyup', (event) => {
+        if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') keys.left = false;
+        if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') keys.right = false;
+      });
+      window.addEventListener('blur', () => {
+        keys.left = false;
+        keys.right = false;
+      });
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && state.running && !state.paused) {
+          togglePause();
+          status.textContent = 'Game paused because this tab is hidden.';
+        }
+      });
+
+      root.querySelectorAll('[data-direction]').forEach((button) => {
+        button.addEventListener('click', () => {
+          if (!state.running || state.paused) return;
+          const direction = Number(button.getAttribute('data-direction'));
+          state.playerX += direction * Math.max(60, state.width * .2);
+          clampPlayer();
+          draw();
+        });
+      });
+      startButton.addEventListener('click', () => {
+        if (state.paused) togglePause();
+        else startGame();
+      });
+      pauseButton.addEventListener('click', togglePause);
+      restartButton.addEventListener('click', startGame);
+
+      const resizeObserver = new ResizeObserver(resizeCanvas);
+      resizeObserver.observe(canvas.parentElement);
+      showHighScore();
+      updateHud();
+      resizeCanvas();
+    } else {
+      const start = root.querySelector('[data-start]');
+      const gameStatus = root.querySelector('[data-status]');
+      if (start instanceof HTMLButtonElement) start.disabled = true;
+      if (gameStatus instanceof HTMLElement) gameStatus.textContent = 'The game could not start because this browser does not support canvas.';
+    }
+  }
+</script>
+
+<style>
+  .arcade-game{padding:16px;border:1px solid rgba(255,255,255,.1);border-radius:20px;background:rgba(19,29,54,.74);box-shadow:0 16px 38px rgba(0,0,0,.2)}
+  .arcade-hud{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;max-width:760px;margin:0 auto 14px;padding:10px 14px;border:1px solid rgba(255,255,255,.08);border-radius:13px;background:rgba(9,13,22,.86)}
+  .arcade-stats{display:flex;align-items:center;gap:24px}
+  .arcade-stat{display:flex;flex-direction:column;gap:4px}
+  .arcade-stat>span{color:#94a3b8;font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+  .arcade-stat>strong{color:#f8fafc;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:20px;line-height:1}
+  .arcade-stat>strong.accent{color:#67e8f9}
+  .arcade-lives{display:flex;gap:4px;color:#fb7185;font-size:18px;line-height:1}
+  .arcade-lives .is-spent{opacity:.22}
+  .arcade-actions{display:flex;gap:8px}
+  .arcade-button{min-width:76px;min-height:44px;padding:0 12px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#1e293b;color:#e2e8f0;font-size:12px;font-weight:750;transition:background .15s,border-color .15s,color .15s}
+  .arcade-button:hover:not(:disabled){border-color:rgba(129,140,248,.65);background:#283750;color:#fff}
+  .arcade-button:disabled{cursor:not-allowed;opacity:.48}
+  .arcade-stage{position:relative;width:100%;max-width:760px;height:clamp(260px,48vw,420px);margin:0 auto;overflow:hidden;border:1px solid rgba(129,140,248,.28);border-radius:16px;background:#090d16;box-shadow:0 0 34px rgba(99,102,241,.14),inset 0 0 14px rgba(0,0,0,.5)}
+  .arcade-stage canvas{display:block;width:100%;height:100%;touch-action:pan-y}
+  .arcade-stage canvas:focus-visible{outline:3px solid #a5b4fc;outline-offset:-4px}
+  .arcade-overlay{position:absolute;inset:0;display:grid;place-items:center;padding:20px;background:rgba(9,13,22,.82);backdrop-filter:blur(8px)}
+  .arcade-overlay[hidden]{display:none}
+  .arcade-overlay-card{width:min(100%,390px);padding:24px;border:1px solid rgba(129,140,248,.3);border-radius:18px;background:rgba(18,27,48,.96);text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.36)}
+  .overlay-label{color:#67e8f9;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;font-weight:800;letter-spacing:1.4px}
+  .arcade-overlay-card h3{margin:10px 0 8px;color:#f8fafc;font-size:24px;letter-spacing:-.6px}
+  .arcade-overlay-card p{margin:0 auto 18px;color:#cbd5e1;font-size:13px;line-height:1.6}
+  .arcade-start{min-height:48px;padding:0 20px;border:0;border-radius:11px;background:linear-gradient(100deg,#4f46e5,#0891b2);color:#fff;font-size:13px;font-weight:800;box-shadow:0 7px 22px rgba(79,70,229,.25);transition:filter .15s,transform .15s}
+  .arcade-start:hover{filter:brightness(1.12);transform:translateY(-1px)}
+  .arcade-controls{display:flex;justify-content:center;gap:10px;margin:12px auto 0}
+  .arcade-direction{min-width:130px;touch-action:manipulation}
+  .arcade-direction span{font-size:17px}
+  .arcade-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;max-width:760px;margin:12px auto 0}
+  .arcade-footer p{margin:0;color:#cbd5e1;font-size:11px;line-height:1.55}
+  .arcade-footer kbd{padding:2px 5px;border:1px solid #475569;border-radius:4px;background:#1e293b;color:#e2e8f0;font:inherit}
+  .local-best{flex:none;color:#cbd5e1;font-size:11px}
+  .local-best strong{color:#f8fafc;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .arcade-status{min-height:18px;margin:10px auto 0;color:#a5b4fc;font-size:11px;text-align:center}
+  .arcade-toast{position:absolute;top:14px;left:50%;max-width:calc(100% - 24px);padding:7px 12px;transform:translate(-50%,-6px);border:1px solid rgba(103,232,249,.4);border-radius:999px;background:rgba(8,145,178,.2);color:#a5f3fc;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:800;opacity:0;pointer-events:none;transition:opacity .16s,transform .16s;white-space:nowrap}
+  .arcade-toast.is-visible{transform:translate(-50%,0);opacity:1}
+  @media(max-width:600px){.arcade-game{padding:10px;border-radius:15px}.arcade-hud{gap:8px;padding:9px}.arcade-stats{gap:14px}.arcade-stat>strong{font-size:18px}.arcade-actions{gap:6px}.arcade-button{min-width:64px;min-height:44px;padding:0 9px;font-size:11px}.arcade-stage{height:clamp(250px,68vw,360px);border-radius:12px}.arcade-overlay-card{padding:19px}.arcade-controls{gap:8px}.arcade-direction{flex:1;max-width:190px}.arcade-footer{align-items:flex-start;flex-direction:column;gap:7px;padding:0 3px}}
+  @media(prefers-reduced-motion:reduce){.arcade-button,.arcade-start,.arcade-toast{transition:none}.arcade-start:hover{transform:none}}
+</style>

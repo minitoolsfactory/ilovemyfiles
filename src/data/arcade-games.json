@@ -1,0 +1,135 @@
+[
+  {
+    "id": "file-size-2048",
+    "slug": "file-size-2048",
+    "section": "games",
+    "category": "games",
+    "gameCategory": "brain",
+    "cardTitle": "File Size 2048",
+    "cardText": "Merge matching file sizes from 2 KB toward a 1 PB supercluster.",
+    "tag": "PUZZLE",
+    "icon": "purple",
+    "svg": "<path d=\"M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z\"/><path d=\"M7 7h.01M17 7h.01M7 17h.01M17 17h.01\"/>",
+    "keywords": ["2048 game", "file size puzzle", "number merge game"],
+    "seo": {
+      "description": "Merge matching file-size tiles in this free 2048-style browser puzzle. No uploads or sign-up.",
+      "intro": "Slide matching file-size tiles together to grow from kilobytes to megabytes, gigabytes, terabytes, and the 1 PB goal.",
+      "steps": ["Use arrow keys, swipe, or the direction buttons to move every tile.", "Matching neighboring sizes merge into the next size.", "Keep space open and try to reach the 1 PB tile."],
+      "faqs": [["Do I upload files?", "No. This is a local puzzle and never reads or uploads your files."]]
+    }
+  },
+  {
+    "id": "regex-crossword-mini",
+    "slug": "regex-crossword-mini",
+    "section": "games",
+    "category": "games",
+    "gameCategory": "brain",
+    "cardTitle": "Regex Crossword Mini",
+    "cardText": "Fill intersecting file-extension clues so every row and column matches its regular expression.",
+    "tag": "CODE BRAIN",
+    "icon": "teal",
+    "svg": "<path d=\"m8 5-5 7 5 7M16 5l5 7-5 7M14 4l-4 16\"/>",
+    "keywords": ["regex crossword", "regular expression puzzle", "coding game"],
+    "seo": {
+      "description": "Solve a compact regex crossword using familiar file extensions. Free, private, and playable in your browser.",
+      "intro": "Use row and column patterns to fill a small crossword of file extensions. Every crossing must satisfy both clues.",
+      "steps": ["Click a cell to cycle through letters, or focus it and type a letter.", "Use the row and column regex clues to check your choices.", "Match all six patterns to solve the puzzle."],
+      "faqs": [["Do I need to know regex?", "Basic pattern matching helps, and the clues are visible beside the grid."]]
+    }
+  },
+  {
+    "id": "code-markdown-racer",
+    "slug": "code-markdown-racer",
+    "section": "games",
+    "category": "games",
+    "gameCategory": "arcade",
+    "cardTitle": "Code & Markdown Racer",
+    "cardText": "Race the clock while typing snippets of JSON, HTML, and Markdown accurately.",
+    "tag": "TYPING RACE",
+    "icon": "orange",
+    "svg": "<path d=\"M3 6h18v12H3zM7 10l2 2-2 2m5 0h4\"/>",
+    "keywords": ["typing speed test", "code typing game", "markdown typing"],
+    "seo": {
+      "description": "Test your typing speed and accuracy on code and Markdown snippets in this free 60-second browser game.",
+      "intro": "Type the displayed snippet as accurately as you can. The timer starts on your first key and tracks speed and accuracy.",
+      "steps": ["Read the code or Markdown snippet.", "Type it exactly into the text box; spaces and punctuation count.", "Finish the snippet or beat the 60-second clock."],
+      "faqs": [["Is my typing saved?", "No. The snippet and typed text stay in this browser session."]]
+    }
+  },
+  {
+    "id": "memory-cache-pair",
+    "slug": "memory-cache-pair",
+    "section": "games",
+    "category": "games",
+    "gameCategory": "brain",
+    "cardTitle": "Memory Cache Pair",
+    "cardText": "Match file extensions with their MIME types using as few turns as possible.",
+    "tag": "FORMAT MATCH",
+    "icon": "pink",
+    "svg": "<path d=\"M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z\"/>",
+    "keywords": ["file extension matching", "MIME types", "memory card game"],
+    "seo": {
+      "description": "Match common file extensions with MIME types in a quick memory game. No files are needed.",
+      "intro": "Find the MIME type for each extension by turning over two cards at a time.",
+      "steps": ["Choose any two cards to reveal them.", "Match an extension such as .pdf with its MIME type.", "Clear all pairs in as few turns as you can."],
+      "faqs": [["Are the cards actual files?", "No. They are text labels for common formats and MIME types."]]
+    }
+  },
+  {
+    "id": "bug-hunter-snake",
+    "slug": "bug-hunter-snake",
+    "section": "games",
+    "category": "games",
+    "gameCategory": "casual",
+    "cardTitle": "Bug Hunter: Snake 2.0",
+    "cardText": "Eat software bugs, wrap through the walls, and avoid your own tail.",
+    "tag": "ARCADE CLASSIC",
+    "icon": "green",
+    "svg": "<path d=\"M12 3v3m-4 1 2 2m6-2-2 2M8 11H5m14 0h-3M8 16l-2 2m10-2 2 2M8 21v-3m8 3v-3\"/><circle cx=\"12\" cy=\"12\" r=\"5\"/>",
+    "keywords": ["snake game", "bug hunter game", "arcade game"],
+    "seo": {
+      "description": "Play a file-themed snake game: collect bugs, grow longer, and wrap through the board edges. Free and local to your browser.",
+      "intro": "Guide the bug-catching snake around the board. Every bug adds to your score and length.",
+      "steps": ["Use arrow keys or the direction pad to steer.", "Collect the bug to grow and earn a point.", "Pass through any wall to appear on the opposite edge, and avoid your own tail."],
+      "faqs": [["Can I play with touch controls?", "Yes. Use the on-screen direction buttons on touch screens."]]
+    }
+  },
+  {
+    "id": "hex-color-guesser",
+    "slug": "hex-color-guesser",
+    "section": "games",
+    "category": "games",
+    "gameCategory": "brain",
+    "cardTitle": "Hex Color Guesser",
+    "cardText": "Match hex color codes to their swatches and build a streak.",
+    "tag": "DESIGN CHALLENGE",
+    "icon": "purple",
+    "svg": "<path d=\"M12 3a9 9 0 1 0 0 18h1.2a2 2 0 0 0 1.4-3.4 1.8 1.8 0 0 1 1.3-3.1H18a3 3 0 0 0 3-3c0-4.7-4-8.5-9-8.5Z\"/><path d=\"M7.5 10h.01M10 7.5h.01M14 7.5h.01\"/>",
+    "keywords": ["hex color game", "color guessing game", "CSS colors"],
+    "seo": {
+      "description": "Train your color vision by matching hex codes to swatches in this short design game.",
+      "intro": "Study the color swatch and choose its matching CSS hex value. Play ten rounds and track your streak.",
+      "steps": ["Look at the displayed color.", "Choose one of four hex codes.", "Get ten answers and see your final score."],
+      "faqs": [["Does the game use my design files?", "No. The game uses a small built-in palette and never reads your files."]]
+    }
+  },
+  {
+    "id": "micro-solitaire",
+    "slug": "micro-solitaire",
+    "section": "games",
+    "category": "games",
+    "gameCategory": "casual",
+    "cardTitle": "Micro Solitaire",
+    "cardText": "Sort a compact Klondike-style card layout into four suit foundations.",
+    "tag": "QUICK BREAK",
+    "icon": "blue",
+    "svg": "<path d=\"M12 3 4 8l8 5 8-5-8-5ZM4 12l8 5 8-5M4 16l8 5 8-5\"/>",
+    "keywords": ["micro solitaire", "klondike card game", "solitaire break"],
+    "seo": {
+      "description": "Play a compact Klondike-style solitaire game with a three-column tableau. Free and playable in your browser.",
+      "intro": "Move cards into foundations in suit order from Ace to King. Tableau moves descend by rank and alternate color.",
+      "steps": ["Tap the stock to deal a card or select a visible card.", "Build foundations by suit from Ace through King.", "On the tableau, place a lower-rank card of the opposite color."],
+      "faqs": [["How do I move cards?", "Select a visible card, then select a valid foundation or tableau destination."]]
+    }
+  }
+]
